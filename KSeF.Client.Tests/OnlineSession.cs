@@ -114,9 +114,11 @@ public class OnlineSession : TestBase
     private async Task Step3_GetOnlineSessionStatusByAsync_ReturnsStatus()
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
-
-        var statusResponse = await kSeFClient.GetSessionStatusAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
-
+        SessionStatusResponse statusResponse = null;
+        do {
+            statusResponse = await kSeFClient.GetSessionStatusAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
+            await Task.Delay(sleepTime); // Wait for the status to update
+        } while (statusResponse.SuccessfulInvoiceCount is null); 
         Assert.NotNull(statusResponse);
 
         //if ok GetSessionInvoicesAsync
