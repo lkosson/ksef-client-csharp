@@ -13,6 +13,7 @@ using KSeF.Client.Core.Models.Sessions.BatchSession;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeFClient.Core.Interfaces;
 using KSeFClient.Core.Models;
+using System.Net.Http.Headers;
 using System.Text;
 
 
@@ -849,7 +850,7 @@ public partial class KSeFClient : IKSeFClient
         {
             var fileInfo = batchPartSendingInfos.First(x => x.OrdinalNumber == part.OrdinalNumber);
             using var content = new ByteArrayContent(fileInfo.Data);
-
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             // Dodaj wymagane nagłówki
             if (part.Headers != null)
             {
