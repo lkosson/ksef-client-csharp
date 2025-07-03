@@ -11,5 +11,8 @@
             string payloadUrl,
             int pixelsPerModule = 20
         );
+
+        /// <summary>Dokleja podpis (label) pod istniejącym PNG z kodem QR.</summary>
+        byte[] AddLabelToQrCode(byte[] qrCodePng, string label, int fontSizePx = 14);
     }
 }

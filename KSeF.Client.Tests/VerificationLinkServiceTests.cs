@@ -1,128 +1,132 @@
-﻿using KSeF.Client.Api.Services;
-using KSeF.Client.Core.Interfaces;
-using System;
+﻿using System;
+using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using KSeF.Client.Api.Services;
+using KSeF.Client.Core.Interfaces;
 using Xunit;
 
 namespace KSeF.Client.Tests
 {
-    // Fixture przygotowujący dane do testów
-    public class VerificationLinkScenarioFixture
+    public class VerificationLinkServiceTests
     {
-        public string Nip { get; set; } = "4564564567";
-        public DateTime IssueDate { get; } = new DateTime(2026, 2, 1);
-        public string XmlContent { get; } = "<root>test</root>";
-        public X509Certificate2 Certificate { get; }
+        private readonly IVerificationLinkService _svc = new VerificationLinkService();
+        private const string BaseUrl = "https://ksef.mf.gov.pl/web";
 
-        public VerificationLinkScenarioFixture()
-        {
-            // Generujemy self-signed cert z kluczem prywatnym RSA
-            using var rsa = RSA.Create(2048);
-            var req = new CertificateRequest(
-                "CN=TestCert",
-                rsa,
-                HashAlgorithmName.SHA256,
-                RSASignaturePadding.Pkcs1
-            );
-            Certificate = req.CreateSelfSigned(
-                DateTimeOffset.Now,
-                DateTimeOffset.Now.AddDays(1)
-            );
-        }
-    }
-
-    // Definicja kolekcji xUnit
-    [CollectionDefinition("VerificationLinkScenario")]
-    public class VerificationLinkScenarioCollection
-        : ICollectionFixture<VerificationLinkScenarioFixture>
-    { }
-
-    [Collection("VerificationLinkScenario")]
-    public class VerificationLinkServiceTests : TestBase
-    {
-        private readonly VerificationLinkScenarioFixture _f;
-        private readonly IVerificationLinkService _svc;
-
-        public VerificationLinkServiceTests(VerificationLinkScenarioFixture f)
-        {
-            _f = f;
-            _svc = new VerificationLinkService();
-        }
-
-        [Fact]
-        public void Step1_BuildInvoiceVerificationUrl_ShouldMatchExpectedFormat()
+        [Theory]
+        [InlineData("<root>test</root>")]
+        [InlineData("<data>special & chars /?</data>")]
+        public void BuildInvoiceVerificationUrl_EncodesHashCorrectly(string xml)
         {
             // Arrange
-            // Compute expected hash
+            var nip = "1234567890";
+            var issueDate = new DateTime(2026, 1, 5);
+
             byte[] sha;
             using (var sha256 = SHA256.Create())
-                sha = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(_f.XmlContent));
+                sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
 
-            var b64 = Convert.ToBase64String(sha);
-            var encoded = WebUtility.UrlEncode(b64);
-            var expected = $"https://ksef.mf.gov.pl/web/verify-invoice/{_f.Nip}/{_f.IssueDate:dd-MM-yyyy}/{encoded}";
+            var expectedHash = WebUtility.UrlEncode(Convert.ToBase64String(sha));
+            var expectedUrl = $"{BaseUrl}/verify-invoice/{nip}/{issueDate:dd-MM-yyyy}/{expectedHash}";
 
             // Act
-            var url = _svc.BuildInvoiceVerificationUrl(_f.Nip, _f.IssueDate, _f.XmlContent);
+            var url = _svc.BuildInvoiceVerificationUrl(nip, issueDate, xml);
 
             // Assert
-            Assert.Equal(expected, url);
+            Assert.Equal(expectedUrl, url);
+
+            var segments = new Uri(url)
+                .Segments
+                .Select(s => s.Trim('/'))
+                .ToArray();
+
+            Assert.Equal("web", segments[0]);
+            Assert.Equal("verify-invoice", segments[1]);
+            Assert.Equal(nip, segments[2]);
+            Assert.Equal(issueDate.ToString("dd-MM-yyyy"), segments[3]);
+            Assert.Equal(expectedHash, segments[4]);
         }
 
         [Fact]
-        public void Step2_BuildCertificateVerificationUrl_ShouldContainAllSegments()
+        public void BuildCertificateVerificationUrl_WithRsaCertificate_ShouldMatchFormat()
         {
+            // Arrange
+            var nip = "4564564567";
+            var xml = "<root>foo</root>";
+            var serial = Guid.NewGuid();
+
+            // Create full self-signed RSA cert with private key
+            using var rsa = RSA.Create(2048);
+            var req = new CertificateRequest("CN=TestRSA", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
+
             // Act
-            var url = _svc.BuildCertificateVerificationUrl(
-                _f.Nip,
-                _f.Certificate.SerialNumberGUID(),
-                _f.XmlContent,
-                _f.Certificate
-            );
+            var url = _svc.BuildCertificateVerificationUrl(nip, serial, xml, fullCert);
 
-            // url.Split('/')
-            var parts = url.Split('/');
+            // Assert
+            var segments = new Uri(url)
+                .Segments
+                .Select(s => s.Trim('/'))
+                .ToArray();
 
-            // ["https:", "", "ksef.mf.gov.pl", "web", "verify-certificate", nip, serial, hash, signed]
-            Assert.Equal("https:", parts[0]);
-            Assert.Equal("ksef.mf.gov.pl", parts[2]);
-            Assert.Equal("verify-certificate", parts[4]);
-            Assert.Equal(_f.Nip, parts[5]);
-            Assert.Equal(_f.Certificate.SerialNumberGUID().ToString(), parts[6]);
-            Assert.False(string.IsNullOrWhiteSpace(parts[7])); // hash
-            Assert.False(string.IsNullOrWhiteSpace(parts[8])); // signed hash
+            Assert.Equal("web", segments[0]);
+            Assert.Equal("verify-certificate", segments[1]);
+            Assert.Equal(nip, segments[2]);
+            Assert.Equal(serial.ToString(), segments[3]);
+            Assert.False(string.IsNullOrWhiteSpace(segments[4])); // hash
+            Assert.False(string.IsNullOrWhiteSpace(segments[5])); // signed hash
         }
 
         [Fact]
-        public void Step3_BuildCertificateVerificationUrl_WithoutPrivateKey_ShouldThrow()
+        public void BuildCertificateVerificationUrl_WithEcdsaCertificate_ShouldMatchFormat()
         {
-            // Arrange: nowy cert bez klucza prywatnego
-            var publicOnly = new X509Certificate2();
+            // Arrange
+            var nip = "1234567890";
+            var xml = "<data>ecdsa</data>";
+            var serial = Guid.NewGuid();
+
+            // Create full self-signed ECDsa cert with private key
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var req = new CertificateRequest("CN=TestECDSA", ecdsa, HashAlgorithmName.SHA256);
+            var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
+
+            // Act
+            var url = _svc.BuildCertificateVerificationUrl(nip, serial, xml, fullCert);
+
+            // Assert
+            var segments = new Uri(url)
+                .Segments
+                .Select(s => s.Trim('/'))
+                .ToArray();
+
+            Assert.Equal("web", segments[0]);
+            Assert.Equal("verify-certificate", segments[1]);
+            Assert.Equal(nip, segments[2]);
+            Assert.Equal(serial.ToString(), segments[3]);
+            Assert.False(string.IsNullOrWhiteSpace(segments[4])); // hash
+            Assert.False(string.IsNullOrWhiteSpace(segments[5])); // signed hash
+        }
+
+        [Fact]
+        public void BuildCertificateVerificationUrl_WithoutPrivateKey_ShouldThrow()
+        {
+            // Arrange: export public part only
+            using var rsa = RSA.Create(2048);
+            var req = new CertificateRequest("CN=PublicOnly", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
+            var publicBytes = fullCert.Export(X509ContentType.Cert);
+            var pubOnly = new X509Certificate2(publicBytes);
+
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid();
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() =>
-                _svc.BuildCertificateVerificationUrl(
-                    _f.Nip,
-                    Guid.NewGuid(),
-                    "<x/>",
-                    publicOnly
-                )
+                _svc.BuildCertificateVerificationUrl(nip, serial, xml, pubOnly)
             );
-        }
-    }
-
-    // Helper extension to convert SerialNumber hex into Guid
-    internal static class X509Certificate2Extensions
-    {
-        public static Guid SerialNumberGUID(this X509Certificate2 cert)
-        {
-            // zakładamy, że serial ma długość 32 hex
-            var bytes = Enumerable.Range(0, cert.SerialNumber.Length / 2)
-                .Select(i => Convert.ToByte(cert.SerialNumber.Substring(i * 2, 2), 16))
-                .ToArray();
-            return new Guid(bytes);
         }
     }
 }
