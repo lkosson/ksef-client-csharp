@@ -36,6 +36,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthCoordinator, AuthCoordinator>();
         services.AddScoped<ICryptographyService, CryptographyService>();
         services.AddScoped<ISignatureService, SignatureService>();
+        services.AddScoped<IQrCodeService, QrCodeService>();
+        services.AddScoped<IVerificationLinkService, VerificationLinkService>();
 
         return services;
     }
