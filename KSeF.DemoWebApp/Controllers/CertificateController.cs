@@ -70,9 +70,14 @@ public class CertificateController : ControllerBase
     }
 
     [HttpGet("certificate-list")]
-    public async Task<ActionResult<CertificateMetadataListResponse>> GetCertificateMetadataListAsync(string accessToken, CancellationToken cancellationToken)
+    public async Task<ActionResult<CertificateMetadataListResponse>> GetCertificateMetadataListAsync(string accessToken, string serialNumber, string name,  CancellationToken cancellationToken)
     {
-        return await kSeFClient.GetCertificateMetadataListAsync(accessToken, null, null, null, cancellationToken)
-          .ConfigureAwait(false);
+        var request = GetCertificateMetadataListRequestBuilder
+            .Create()
+            .WithCertificateSerialNumber(serialNumber)
+            .WithName(name)
+            .Build();
+        var metadataList = await kSeFClient.GetCertificateMetadataListAsync(accessToken, request, 20, 0, cancellationToken);
+        return metadataList;
     }
 }

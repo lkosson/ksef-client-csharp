@@ -25,7 +25,7 @@ public class OnlineSessionController : ControllerBase
     public async Task<ActionResult<OpenOnlineSessionResponse>> OpenOnlineSessionAsync(string accessToken, CancellationToken cancellationToken)
     {
         encryptionData = cryptographyService.GetEncryptionData();
-        var openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
+        var request = OpenOnlineSessionRequestBuilder
          .Create()
          .WithFormCode(systemCode: "FA (2)", schemaVersion: "1-0E", value: "FA")
          .WithEncryption(
@@ -33,8 +33,7 @@ public class OnlineSessionController : ControllerBase
              initializationVector: encryptionData.EncryptionInfo.InitializationVector)
          .Build();
 
-        var openSessionResponse = await kseClient.OpenOnlineSessionAsync(openOnlineSessionRequest, accessToken, cancellationToken)
-            .ConfigureAwait(false);
+        var openSessionResponse = await kseClient.OpenOnlineSessionAsync(request, accessToken, cancellationToken);
         return Ok(openSessionResponse);
     }
 
@@ -54,6 +53,7 @@ public class OnlineSessionController : ControllerBase
             .WithEncryptedDocumentHash(
                encryptedInvoiceMetadata.HashSHA, encryptedInvoiceMetadata.FileSize)
             .WithEncryptedDocumentContent(Convert.ToBase64String(encryptedInvoice))
+            .WithOfflineMode(false)
             .Build();
 
         var sendInvoiceResponse = await kseClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, referenceNumber, accesToken, cancellationToken)

@@ -8,7 +8,8 @@ public interface IOpenBatchSessionRequestBuilder
 
 public interface IOpenBatchSessionRequestBuilderWithFormCode
 {
-    IOpenBatchSessionRequestBuilderBatchFile WithBatchFile(long fileSize, string fileHash, bool offlineMode = false);
+    IOpenBatchSessionRequestBuilderBatchFile WithBatchFile(long fileSize, string fileHash);
+    IOpenBatchSessionRequestBuilderWithFormCode WithOfflineMode(bool offlineMode = false);
 }
 
 public interface IOpenBatchSessionRequestBuilderBatchFile
@@ -59,15 +60,13 @@ internal class OpenBatchSessionRequestBuilderImpl
         return this;
     }
 
-    public IOpenBatchSessionRequestBuilderBatchFile WithBatchFile(long fileSize, string fileHash, bool offlineMode = false)
+    public IOpenBatchSessionRequestBuilderBatchFile WithBatchFile(long fileSize, string fileHash)
     {
         if (fileSize < 0 || string.IsNullOrWhiteSpace(fileHash))
             throw new ArgumentException("BatchFile parameters are invalid.");
 
-
         _batchFileSize = fileSize;
         _batchFileHash = fileHash;
-        _offlineMode = offlineMode;
         return this;
     }
 
@@ -101,6 +100,11 @@ internal class OpenBatchSessionRequestBuilderImpl
 
         _encryption.EncryptedSymmetricKey = encryptedSymmetricKey;
         _encryption.InitializationVector = initializationVector;
+        return this;
+    }
+    public IOpenBatchSessionRequestBuilderWithFormCode WithOfflineMode(bool offlineMode = false)
+    {
+        _offlineMode = offlineMode;
         return this;
     }
 

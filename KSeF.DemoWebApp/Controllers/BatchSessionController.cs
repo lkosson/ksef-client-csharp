@@ -72,7 +72,7 @@ public class BatchSessionController : ControllerBase
         int partCount = 11;
         int partSize = (int)Math.Ceiling((double)zipBytes.Length / partCount);
         var zipParts = new List<byte[]>();
-        for (int i = 0; i < partCount; i++)
+        for (var i = 0; i < partCount; i++)
         {
             int start = i * partSize;
             int size = Math.Min(partSize, zipBytes.Length - start);
@@ -84,7 +84,7 @@ public class BatchSessionController : ControllerBase
 
         // 5. Szyfruj każdy part i pobierz metadane
         var encryptedParts = new List<BatchPartSendingInfo>();
-        for (int i = 0; i < zipParts.Count; i++)
+        for (var i = 0; i < zipParts.Count; i++)
         {
             var encrypted = cryptographyService.EncryptBytesWithAES256(zipParts[i], encryptionData.CipherKey, encryptionData.CipherIv);
             var metadata = cryptographyService.GetMetaData(encrypted);
@@ -95,11 +95,12 @@ public class BatchSessionController : ControllerBase
         var batchFileInfoBuilder = OpenBatchSessionRequestBuilder
             .Create()
             .WithFormCode(systemCode: "FA (2)", schemaVersion: "1-0E", value: "FA")
+            .WithOfflineMode(false)
             .WithBatchFile(
                 fileSize: zipMetadata.FileSize,
                 fileHash: zipMetadata.HashSHA);
 
-        for (int i = 0; i < encryptedParts.Count; i++)
+        for (var i = 0; i < encryptedParts.Count; i++)
         {
             batchFileInfoBuilder = batchFileInfoBuilder.AddBatchFilePart(
                 ordinalNumber: i + 1,
