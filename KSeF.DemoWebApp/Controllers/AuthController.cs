@@ -31,11 +31,11 @@ public class AuthController : ControllerBase
     [HttpPost("auth-by-coordinator-with-PZ")]
     public async Task<ActionResult<AuthOperationStatusResponse>> AuthWithPZAsync(string contextIdentifier, CancellationToken cancellationToken)
     {
-        // Inicjalizacja przyk�dowego identyfikatora - w tym przypadku NIP.
+        // Inicjalizacja przykłdowego identyfikatora - w tym przypadku NIP.
 
         return await authCoordinator.AuthAsync(
                                                     ContextIdentifierType.Nip,
-                                                    string.IsNullOrWhiteSpace(contextIdentifier) ? contextIdentifier : _contextIdentifier,
+                                                    !string.IsNullOrWhiteSpace(contextIdentifier) ? contextIdentifier : _contextIdentifier,
                                                     SubjectIdentifierTypeEnum.CertificateSubject,
                                                     xmlSigner: (xml) => { return XadeSDummy.SignWithPZ(xml, xMLDirectory); },
                                                     ipAddressPolicy: null,
@@ -88,7 +88,7 @@ public static class AuthSessionStepByStepHelper
 
         var unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
 
-        // TODO Trzeba podpisac XML przed wys�aniem
+        // TODO Trzeba podpisac XML przed wysłaniem
         var signedXml = await xmlSigner.Invoke(unsignedXml);
 
         // Przesłanie podpisanego XML do systemu KSeF
