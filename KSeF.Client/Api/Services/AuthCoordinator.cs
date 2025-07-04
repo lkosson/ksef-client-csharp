@@ -87,6 +87,12 @@ public class AuthCoordinator : IAuthCoordinator
                 $"Polling: StatusCode={authStatus.Status.Code}, " +
                 $"Description='{authStatus.Status.Description}', " +
                 $"Elapsed={DateTime.UtcNow - startTime:mm\\:ss}");
+            
+            if (authStatus.Status.Code == 400)
+            {
+                var exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description='{authStatus.Status.Description}'";
+                throw new Exception(exMsg);
+            }
 
             if (authStatus.Status.Code != 200 && !cancellationToken.IsCancellationRequested)
             {

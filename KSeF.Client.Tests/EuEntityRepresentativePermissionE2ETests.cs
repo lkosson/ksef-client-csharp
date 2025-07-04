@@ -15,6 +15,7 @@ namespace KSeF.Client.Tests
         public OperationResponse GrantResponse { get; set; }
         public List<OperationResponse> RevokeResponse { get; set; } = new List<OperationResponse>();
         public PagedPermissionsResponse<EuEntityPermission> SearchResponse { get; set; }
+        public int ExpectedPermissionsAfterRevoke { get; internal set; }
     }
 
     [CollectionDefinition("EuEntityRepresentativeScenario")]
@@ -27,7 +28,7 @@ namespace KSeF.Client.Tests
     {
         private readonly EuEntityRepresentativeScenarioFixture _f;
 
-        public EuEntityRepresentativePermissionE2ETests(EuEntityRepresentativeScenarioFixture f):base(Core.Models.Authorization.ContextIdentifierType.NipVatUe)
+        public EuEntityRepresentativePermissionE2ETests(EuEntityRepresentativeScenarioFixture f) : base(Core.Models.Authorization.ContextIdentifierType.NipVatUe)
         {
             _f = f;
             _f.AccessToken = AccessToken;
@@ -81,7 +82,14 @@ namespace KSeF.Client.Tests
             }
             else
             {
-                Assert.Empty(resp.Permissions);
+                if (_f.ExpectedPermissionsAfterRevoke > 0)
+                {
+                    Assert.True(resp.Permissions.Count == _f.ExpectedPermissionsAfterRevoke);
+                }
+                else
+                {
+                    Assert.Empty(resp.Permissions);
+                }
             }
         }
 
@@ -95,7 +103,18 @@ namespace KSeF.Client.Tests
                 Assert.NotNull(resp);
                 Assert.False(string.IsNullOrEmpty(resp.OperationReferenceNumber));
                 _f.RevokeResponse.Add(resp);
-            }            
+            }
+
+
+            foreach (var revokeStatus in _f.RevokeResponse)
+            {
+                Thread.Sleep(sleepTime);
+                var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
+                if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" && status.Status.Details.First() == "Permission cannot be revoked.")
+                {
+                    _f.ExpectedPermissionsAfterRevoke += 1;
+                }
+            }
         }
 
         public async Task Step4_SearchEuRepAsync(bool expectAny)

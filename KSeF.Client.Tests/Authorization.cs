@@ -49,18 +49,28 @@ public class Authorization : TestBase
     /// </summary>
     public async Task AuthAsync_FullIntegrationFlowWithKSeFToken_ReturnsAccessToken()
     {
-
+      
         var random = randomGenerator.Next(100000000, 999999999);
         var randomString = 7 + random.ToString();
 
         // Arrange
         //need to first auth as owner to get the KSeF token
+        var owner = this.AuthenticateAsync();
+        var permissions = new KsefTokenPermissionType[]
+        {
+            KsefTokenPermissionType.InvoiceWrite,
+            KsefTokenPermissionType.InvoiceRead
+        };
+
+        var ownerToken = await this.kSeFClient.GenerateKsefTokenAsync(new KsefTokenRequest() { Description = $"NIP {randomString}", Permissions = permissions },AccessToken);
+
+
         var authCoordinator = new AuthCoordinator(this.kSeFClient) as IAuthCoordinator;
         var restClient = new RestClient(new HttpClient { BaseAddress = new Uri(env) }) as IRestClient;
         var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
 
         var contextType = ContextIdentifierType.Nip;
-        var contextValue = "5391433354"; //randomString;
+        var contextValue = NIP;
 
         IpAddressPolicy? ipPolicy = null;
              
@@ -69,7 +79,7 @@ public class Authorization : TestBase
         var result = await authCoordinator.AuthKsefTokenAsync(
             contextType,
             contextValue,
-            "",
+            ownerToken.Token,
             cryptographyService,
             ipPolicy,
             default

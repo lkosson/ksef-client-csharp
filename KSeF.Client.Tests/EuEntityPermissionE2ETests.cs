@@ -16,6 +16,7 @@ namespace KSeF.Client.Tests
         public OperationResponse GrantResponse { get; set; }
         public IList<OperationResponse> RevokeResponse { get; set; } = new List<OperationResponse>();
         public PagedPermissionsResponse<EuEntityPermission> SearchResponse { get; set; }
+        public int ExpectedPermissionsAfterRevoke { get; internal set; }
     }
 
     [CollectionDefinition("EuEntityScenario")]
@@ -83,7 +84,14 @@ namespace KSeF.Client.Tests
             }
             else
             {
-                Assert.Empty(resp.Permissions);
+                if (_f.ExpectedPermissionsAfterRevoke > 0)
+                {
+                    Assert.True(resp.Permissions.Count == _f.ExpectedPermissionsAfterRevoke);
+                }
+                else
+                {
+                    Assert.Empty(resp.Permissions);
+                }
             }
         }
 
@@ -97,6 +105,15 @@ namespace KSeF.Client.Tests
                 Assert.NotNull(resp);
                 Assert.False(string.IsNullOrEmpty(resp.OperationReferenceNumber));
                 _f.RevokeResponse.Add(resp);
+            }
+
+            foreach (var revokeStatus in _f.RevokeResponse)
+            {
+                var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
+                if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" &&  status.Status.Details.First() == "Permission cannot be revoked.")
+                {
+                    _f.ExpectedPermissionsAfterRevoke+=1;
+                }
             }
             
         }

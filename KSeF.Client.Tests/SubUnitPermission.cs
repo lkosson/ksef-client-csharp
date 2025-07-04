@@ -20,7 +20,9 @@ namespace KSeF.Client.Tests
         };
 
         public OperationResponse GrantResponse { get; set; }
-        public OperationResponse RevokeResponse { get; set; }
+        public List<OperationResponse> RevokeResponse { get; set; } = new();
+        public int ExpectedPermissionsAfterRevoke { get; internal set; }
+        public PagedPermissionsResponse<SubunitPermission> SearchResponse { get; internal set; }
     }
 
     [CollectionDefinition("SubUnitPermissionScenario")]
@@ -47,12 +49,18 @@ namespace KSeF.Client.Tests
         [Fact]
         public async Task SubUnitPermission_E2E_GrantAndRevoke()
         {
-            // 1. Nadaj uprawnienia sub-jednostce
+            // Nadaj uprawnienia sub-jednostce
             await Step1_GrantSubUnitPermissionsAsync();
             Thread.Sleep(sleepTime);
 
-            // 2. Cofnij uprawnienia sub-jednostce
-            await Step2_RevokeSubUnitPermissionsAsync();
+            await Step2_SearchSubUnitAsync(expectAny: true);
+            Thread.Sleep(sleepTime);
+
+            await Step3_RevokeSubUnitPermissionsAsync();
+            Thread.Sleep(sleepTime);
+
+            //  Cofnij uprawnienia sub-jednostce
+            await Step4_SearchSubUnitAsync(false);
         }
 
         public async Task Step1_GrantSubUnitPermissionsAsync()
@@ -70,14 +78,69 @@ namespace KSeF.Client.Tests
             Assert.NotNull(resp);
             _f.GrantResponse = resp;
         }
-
-        public async Task Step2_RevokeSubUnitPermissionsAsync()
+        public async Task Step2_SearchSubUnitAsync(bool expectAny)
         {
+            var rsp = await kSeFClient
+                .SearchEntityAuthorizationGrantsAsync(new Core.Models.Permissions.Entity.EntityAuthorizationsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+
             var resp = await kSeFClient
-                .RevokeAuthorizationsPermissionAsync(string.Empty, _f.AccessToken, CancellationToken.None);//TODO permissionId
+                .SearchSubunitAdminPermissionsAsync(new Core.Models.Permissions.SubUnit.SubunitPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+
+            var resp1 = await kSeFClient
+                .SearchGrantedPersonPermissionsAsync(new Core.Models.Permissions.Person.PersonPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+
+            var resp2 = await kSeFClient
+                .SearchSubordinateEntityInvoiceRolesAsync(new Core.Models.Permissions.SubUnit.SubordinateEntityRolesQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+
+            var resp3 = await kSeFClient
+                .SearchEntityInvoiceRolesAsync(_f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+
+            var resp4 = await kSeFClient
+                .SearchGrantedEuEntityPermissionsAsync(new(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             Assert.NotNull(resp);
-            _f.RevokeResponse = resp;
+            if (expectAny)
+            {
+                Assert.Empty(resp.Permissions);
+                _f.SearchResponse = resp;
+            }
+            else
+            {
+                if (_f.ExpectedPermissionsAfterRevoke > 0)
+                {
+                    Assert.True(resp.Permissions.Count == _f.ExpectedPermissionsAfterRevoke);
+                }
+                else
+                {
+                    Assert.Empty(resp.Permissions);
+                }
+            }
         }
+
+        public async Task Step3_RevokeSubUnitPermissionsAsync()
+        {
+            foreach (var permission in _f.SearchResponse.Permissions)
+            {
+                var resp = await kSeFClient
+                .RevokeAuthorizationsPermissionAsync(permission.Id, _f.AccessToken, CancellationToken.None);
+
+                Assert.NotNull(resp);
+                Assert.False(string.IsNullOrEmpty(resp.OperationReferenceNumber));
+                _f.RevokeResponse.Add(resp);
+            }
+
+            foreach (var revokeStatus in _f.RevokeResponse)
+            {
+                Thread.Sleep(sleepTime);
+                var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
+                if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" && status.Status.Details.First() == "Permission cannot be revoked.")
+                {
+                    _f.ExpectedPermissionsAfterRevoke += 1;
+                }
+            }
+        }
+
+        public async Task Step4_SearchSubUnitAsync(bool expectAny)
+    => await Step2_SearchSubUnitAsync(expectAny);
     }
 }

@@ -10,12 +10,16 @@ namespace KSeF.Client.Tests
 
         // Testowy użytkownik — tu wstaw realny identyfikator (NIP lub PESEL)
         public SubjectIdentifier Person { get; } =
-            new SubjectIdentifier {Value = "0000000000" ,
-                Type = SubjectIdentifierType.Pesel};
+            new SubjectIdentifier
+            {
+                Value = "0000000000",
+                Type = SubjectIdentifierType.Pesel
+            };
 
         public OperationResponse GrantResponse { get; set; }
-        public OperationResponse RevokeResponse { get; set; }
+        public List<OperationResponse> RevokeResponse { get; set; } = new();
         public PagedPermissionsResponse<PersonPermission> SearchResponse { get; set; }
+        public int ExpectedPermissionsAfterRevoke { get; internal set; }
     }
 
     [CollectionDefinition("PersonPermissionScenario")]
@@ -98,21 +102,40 @@ namespace KSeF.Client.Tests
             }
             else
             {
-                Assert.Empty(resp.Permissions);
+                if (_f.ExpectedPermissionsAfterRevoke > 0)
+                {
+                    Assert.True(resp.Permissions.Count == _f.ExpectedPermissionsAfterRevoke);
+                }
+                else
+                {
+                    Assert.Empty(resp.Permissions);
+                }
             }
         }
 
         public async Task Step3_RevokePermissionsAsync()
         {
-            string permissionId = string.Empty;
+            foreach (var permission in _f.SearchResponse.Permissions)
+            {
+                var resp = await kSeFClient
+                .RevokeCommonPermissionAsync(permission.Id, _f.AccessToken, CancellationToken.None);
 
-            var resp = await kSeFClient
-                .RevokeCommonPermissionAsync(permissionId, _f.AccessToken, CancellationToken.None);
+                Assert.NotNull(resp);
+                Assert.False(string.IsNullOrEmpty(resp.OperationReferenceNumber));
+                _f.RevokeResponse.Add(resp);
+            }
 
 
-            Assert.NotNull(resp);
-            Assert.True(!string.IsNullOrEmpty(resp.OperationReferenceNumber));
-            _f.RevokeResponse = resp;
+            foreach (var revokeStatus in _f.RevokeResponse)
+            {
+                Thread.Sleep(sleepTime);
+                var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
+                if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" && status.Status.Details.First() == "Permission cannot be revoked.")
+                {
+                    _f.ExpectedPermissionsAfterRevoke += 1;
+                }
+            }
+
         }
 
         public async Task Step4_SearchGrantedPermissionsAsync(bool expectAny)

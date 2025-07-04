@@ -26,7 +26,7 @@ public class TestBase
     internal readonly HttpClient httpClient;
     internal readonly RestClient restClient;
     internal ContextIdentifierType contextIdentifierType;
-    internal const int sleepTime = 350;
+    internal const int sleepTime = 500;
     internal TestBase(ContextIdentifierType contextIdentifierType = ContextIdentifierType.Nip)
     {
         this.contextIdentifierType = contextIdentifierType;
