@@ -65,7 +65,7 @@ public class EuEntityPermission
     public string VatUeIdentifier { get; set; }
     public string EuEntityName { get; set; }
     public string AuthorizedFingerprintIdentifier { get; set; }
-    public string PermissionType { get; set; }
+    public string PermissionScope { get; set; }
     public string Description { get; set; }
     public DateTime StartDate { get; set; }
 }

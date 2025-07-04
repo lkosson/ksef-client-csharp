@@ -6,7 +6,8 @@ public class PersonPermissionsQueryRequest
     public PersonPermissionsAuthorizedIdentifier AuthorizedIdentifier { get; set; }
     public PersonPermissionsTargetIdentifier TargetIdentifier { get; set; }
     public List<PersonPermissionType> PermissionTypes { get; set; }
-    public PermissionState? PermissionState { get; set; }
+    public PermissionState PermissionState { get; set; }
+    public QueryTypeEnum QueryType { get; set; }
 }
 
 public class PersonPermissionsAuthorIdentifier
@@ -39,4 +40,9 @@ public enum PermissionState
 {
     Active,
     Inactive
+}
+public enum QueryTypeEnum
+{
+    PermissionsInCurrentContext,
+    PermissionsGrantedInCurrentContext
 }

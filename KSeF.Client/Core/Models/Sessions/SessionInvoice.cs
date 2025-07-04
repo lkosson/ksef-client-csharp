@@ -14,6 +14,7 @@ public class SessionInvoice
     public string ReferenceNumber { get; set; }
 
     public string InvoiceHash { get; set; }
+    public string InvoiceFileName { get; set; }
 
     public DateTimeOffset ReceiveDate { get; set; }
 
