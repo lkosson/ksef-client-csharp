@@ -1,6 +1,5 @@
 ﻿using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
-using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
