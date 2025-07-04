@@ -1,12 +1,10 @@
-﻿using System;
-using System.Linq;
+﻿using KSeF.Client.Api.Services;
+using KSeF.Client.Core.Interfaces;
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using KSeF.Client.Api.Services;
-using KSeF.Client.Core.Interfaces;
-using Xunit;
+using System.Web;
 
 namespace KSeF.Client.Tests
 {
@@ -28,7 +26,7 @@ namespace KSeF.Client.Tests
             using (var sha256 = SHA256.Create())
                 sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
 
-            var expectedHash = WebUtility.UrlEncode(Convert.ToBase64String(sha));
+            var expectedHash = HttpUtility.UrlEncode(Convert.ToBase64String(sha));
             var expectedUrl = $"{BaseUrl}/verify-invoice/{nip}/{issueDate:dd-MM-yyyy}/{expectedHash}";
 
             // Act
@@ -42,11 +40,11 @@ namespace KSeF.Client.Tests
                 .Select(s => s.Trim('/'))
                 .ToArray();
 
-            Assert.Equal("web", segments[0]);
-            Assert.Equal("verify-invoice", segments[1]);
-            Assert.Equal(nip, segments[2]);
-            Assert.Equal(issueDate.ToString("dd-MM-yyyy"), segments[3]);
-            Assert.Equal(expectedHash, segments[4]);
+            Assert.Equal("web", segments[1]);
+            Assert.Equal("verify-invoice", segments[2]);
+            Assert.Equal(nip, segments[3]);
+            Assert.Equal(issueDate.ToString("dd-MM-yyyy"), segments[4]);
+            Assert.Equal(expectedHash, segments[5]);
         }
 
         [Fact]
@@ -71,12 +69,12 @@ namespace KSeF.Client.Tests
                 .Select(s => s.Trim('/'))
                 .ToArray();
 
-            Assert.Equal("web", segments[0]);
-            Assert.Equal("verify-certificate", segments[1]);
-            Assert.Equal(nip, segments[2]);
-            Assert.Equal(serial.ToString(), segments[3]);
-            Assert.False(string.IsNullOrWhiteSpace(segments[4])); // hash
-            Assert.False(string.IsNullOrWhiteSpace(segments[5])); // signed hash
+            Assert.Equal("web", segments[1]);
+            Assert.Equal("verify-certificate", segments[2]);
+            Assert.Equal(nip, segments[3]);
+            Assert.Equal(serial.ToString(), segments[4]);
+            Assert.False(string.IsNullOrWhiteSpace(segments[5])); // hash
+            Assert.False(string.IsNullOrWhiteSpace(segments[6])); // signed hash
         }
 
         [Fact]
@@ -101,12 +99,12 @@ namespace KSeF.Client.Tests
                 .Select(s => s.Trim('/'))
                 .ToArray();
 
-            Assert.Equal("web", segments[0]);
-            Assert.Equal("verify-certificate", segments[1]);
-            Assert.Equal(nip, segments[2]);
-            Assert.Equal(serial.ToString(), segments[3]);
-            Assert.False(string.IsNullOrWhiteSpace(segments[4])); // hash
-            Assert.False(string.IsNullOrWhiteSpace(segments[5])); // signed hash
+            Assert.Equal("web", segments[1]);
+            Assert.Equal("verify-certificate", segments[2]);
+            Assert.Equal(nip, segments[3]);
+            Assert.Equal(serial.ToString(), segments[4]);
+            Assert.False(string.IsNullOrWhiteSpace(segments[5])); // hash
+            Assert.False(string.IsNullOrWhiteSpace(segments[6])); // signed hash
         }
 
         [Fact]
