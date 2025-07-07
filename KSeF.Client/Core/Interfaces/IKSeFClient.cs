@@ -54,7 +54,7 @@ public interface IKSeFClient
     /// <param name="referenceNumber">Numer referencyjny otrzymany w wyniku inicjalizacji uwierzytelnienia.</param>
     /// <param name="authenticationToken">Tymczasowy token otrzymany w wyniku inicjalizacji uwierzytelnienia.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns><see cref="BasicStatusInfo"/></returns>
+    /// <returns><see cref="StatusInfo"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
     Task<AuthStatus> GetAuthStatusAsync(string referenceNumberstring, string authenticationToken, CancellationToken cancellationToken = default);

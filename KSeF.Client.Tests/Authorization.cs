@@ -75,7 +75,7 @@ public class Authorization : TestBase
         await Task.Delay(sleepTime);
 
         var contextType = ContextIdentifierType.Nip;
-        var contextValue = NIP;
+        var contextValue = tokenStatus.ContextIdentifier.Value;
 
         IpAddressPolicy? ipPolicy = null;
              

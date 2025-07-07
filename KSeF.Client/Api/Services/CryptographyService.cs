@@ -18,18 +18,21 @@ public class CryptographyService : ICryptographyService
 
     public CryptographyService(IKSeFClient kSeFClient, IRestClient restClient)
     {
-        //var certificates = kSeFClient.GetPublicCertificates(default)
-        //    .GetAwaiter().GetResult();
+        var certificates = kSeFClient.GetPublicCertificates(default)
+            .GetAwaiter().GetResult();
 
-        //var symmetricCert = certificates
-        //    .FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.SymmetricKeyEncryption));
-        //var tokenCert = certificates
-        //    .OrderBy(ord => ord.ValidFrom)
-        //    .FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.KsefTokenEncryption));
+        var symmetricCert = certificates
+            .FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.SymmetricKeyEncryption));
+        var tokenCert = certificates
+            .OrderBy(ord => ord.ValidFrom)
+            .FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.KsefTokenEncryption));
 
         var  pem = restClient.GetPemAsync().GetAwaiter().GetResult();
         symetricKeyEncryptionPem = pem;
         ksefTokenPem = pem;
+
+        symetricKeyEncryptionPem = symmetricCert?.PublicKeyPem;
+        ksefTokenPem = tokenCert.PublicKeyPem;
     }
 
     /// <inheritdoc />

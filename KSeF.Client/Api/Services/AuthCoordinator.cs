@@ -85,7 +85,8 @@ public class AuthCoordinator : IAuthCoordinator
 
             Console.WriteLine(
                 $"Polling: StatusCode={authStatus.Status.Code}, " +
-                $"Description='{authStatus.Status.Description}', " +
+                $"Description='{authStatus.Status.Description}', " +                
+                $"Details='{authStatus.Status.Details ?? new List<string>()}', " +                
                 $"Elapsed={DateTime.UtcNow - startTime:mm\\:ss}");
             
             if (authStatus.Status.Code == 400)
