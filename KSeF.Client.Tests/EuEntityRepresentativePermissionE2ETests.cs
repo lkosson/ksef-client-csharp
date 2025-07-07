@@ -39,13 +39,13 @@ namespace KSeF.Client.Tests
         public async Task EuEntityRepresentative_E2E_GrantSearchRevokeSearch()
         {
             await Step1_GrantEuRepAsync();
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             await Step2_SearchEuRepAsync(expectAny: true);
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             await Step3_RevokeEuRepAsync();
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             await Step4_SearchEuRepAsync(expectAny: false);
         }
@@ -108,7 +108,7 @@ namespace KSeF.Client.Tests
 
             foreach (var revokeStatus in _f.RevokeResponse)
             {
-                Thread.Sleep(sleepTime);
+                await Task.Delay(sleepTime);
                 var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
                 if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" && status.Status.Details.First() == "Permission cannot be revoked.")
                 {

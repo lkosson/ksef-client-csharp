@@ -61,13 +61,18 @@ public class Authorization : TestBase
             KsefTokenPermissionType.InvoiceWrite,
             KsefTokenPermissionType.InvoiceRead
         };
+        
+        await Task.Delay(sleepTime);
+        var ownerToken = await kSeFClient.GenerateKsefTokenAsync(new KsefTokenRequest() { Description = $"NIP {randomString}", Permissions = permissions },AccessToken);
 
-        var ownerToken = await this.kSeFClient.GenerateKsefTokenAsync(new KsefTokenRequest() { Description = $"NIP {randomString}", Permissions = permissions },AccessToken);
+        await Task.Delay(sleepTime);
+        var tokenStatus = await kSeFClient.GetKsefTokenAsync(ownerToken.ReferenceNumber, AccessToken);
 
-
+        await Task.Delay(sleepTime);
         var authCoordinator = new AuthCoordinator(this.kSeFClient) as IAuthCoordinator;
         var restClient = new RestClient(new HttpClient { BaseAddress = new Uri(env) }) as IRestClient;
-        var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
+            var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
+        await Task.Delay(sleepTime);
 
         var contextType = ContextIdentifierType.Nip;
         var contextValue = NIP;

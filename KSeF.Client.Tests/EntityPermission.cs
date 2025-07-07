@@ -44,15 +44,15 @@ namespace KSeF.Client.Tests
         {
             // 1. Nadaj uprawnienia
             await Step1_GrantPermissionsAsync();
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             // 2. Wyszukaj — powinny się pojawić
             await Step2_SearchGrantedRolesAsync(expectAny: true);
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             // 3. Cofnij uprawnienia
             await Step3_RevokePermissionsAsync();
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             // 4. Wyszukaj ponownie — nie powinno być wpisów
             await Step4_SearchGrantedPermissionsAsync(expectAny: false);
@@ -123,7 +123,7 @@ namespace KSeF.Client.Tests
 
             foreach (var revokeStatus in _f.RevokeResponse)
             {
-                Thread.Sleep(sleepTime);
+                await Task.Delay(sleepTime);
                 var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
                 if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" && status.Status.Details.First() == "Permission cannot be revoked.")
                 {

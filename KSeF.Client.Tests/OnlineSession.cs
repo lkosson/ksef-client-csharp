@@ -39,13 +39,13 @@ public class OnlineSession : TestBase
         var encryptionData = cryptographyService.GetEncryptionData();
         // Step 1: Open session
         await Step1_OpenOnlineSession_ReturnsReference(encryptionData);
-        Thread.Sleep(sleepTime); 
+        await Task.Delay(sleepTime); 
         // Step 2: Send invoice
         await Step2_SendInvoiceOnlineSessionAsync_ReturnsReferenceNumber(encryptionData, cryptographyService);
         Thread.Sleep(1000);
         // Step 3: Check status        
         await Step3_GetOnlineSessionStatusByAsync_ReturnsStatus();        
-        Thread.Sleep(sleepTime);
+        await Task.Delay(sleepTime);
         // Step 4: Close session
         await Step4_CloseOnlineSessionAsync_ClosesSessionSuccessfully();
         Thread.Sleep(2000);

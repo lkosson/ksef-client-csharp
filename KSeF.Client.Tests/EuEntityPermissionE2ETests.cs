@@ -41,13 +41,13 @@ namespace KSeF.Client.Tests
         {
             //Dodaje 4, a usuwa tylko dwa mimo, ze mam idki?
             await Step1_GrantEuAsync();
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             await Step2_SearchEuAsync(expectAny: true);
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             await Step3_RevokeEuAsync();
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
 
             await Step4_SearchEuAsync(expectAny: false);
         }
@@ -105,6 +105,8 @@ namespace KSeF.Client.Tests
                 Assert.NotNull(resp);
                 Assert.False(string.IsNullOrEmpty(resp.OperationReferenceNumber));
                 _f.RevokeResponse.Add(resp);
+
+                await Task.Delay(sleepTime);
             }
 
             foreach (var revokeStatus in _f.RevokeResponse)
