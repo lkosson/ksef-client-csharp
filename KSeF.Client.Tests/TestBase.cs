@@ -72,7 +72,7 @@ public class TestBase
             .WithCommonName("A R")
             .Build();
 
-        var signedXml = await signatureService.Sign(unsignedXml, certificate);
+        var signedXml = await signatureService.SignAsync(unsignedXml, certificate);
 
         var authOperationInfo = await kSeFClient
           .SubmitXadesAuthRequestAsync(signedXml,false,CancellationToken.None);

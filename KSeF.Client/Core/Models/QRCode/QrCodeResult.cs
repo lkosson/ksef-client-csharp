@@ -3,15 +3,12 @@
     public class QrCodeResult
     {
 
-        public QrCodeResult(string url, byte[] qrBytes, byte[] labeledQrBytes)
+        public QrCodeResult(string url, string qrCode)
         {
             this.Url = url;
-            this.QrCode= qrBytes;
-            this.labeledQrCode= labeledQrBytes;
         }
 
         public string Url { get; set; }
-        public byte[] QrCode { get; set; }
-        public byte[] labeledQrCode { get; set; }
+        public string QrCode { get; set; }
     }
 }

@@ -12,7 +12,7 @@ public class SignatureService : ISignatureService
     private static readonly string _xadesNsUrl = "http://uri.etsi.org/01903/v1.3.2#";
     private static readonly string _signedPropertiesType = "http://uri.etsi.org/01903#SignedProperties";
 
-    public Task<string> Sign(string xml, X509Certificate2 certificate)
+    public Task<string> SignAsync(string xml, X509Certificate2 certificate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(xml);
         ArgumentNullException.ThrowIfNull(certificate);

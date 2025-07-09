@@ -4,5 +4,5 @@ namespace KSeF.Client.Core.Interfaces;
 
 public interface ISignatureService
 {
-    public Task<string> Sign(string xml, X509Certificate2 certificate);
+    public Task<string> SignAsync(string xml, X509Certificate2 certificate);
 }

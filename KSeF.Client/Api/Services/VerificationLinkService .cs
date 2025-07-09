@@ -8,13 +8,13 @@ namespace KSeF.Client.Api.Services
 {
     public class VerificationLinkService : IVerificationLinkService
     {
-        private const string BaseUrl = "https://ksef.mf.gov.pl/web";
+        private const string BaseUrl = "https://ksef.mf.gov.pl/client-app";
 
         public string BuildInvoiceVerificationUrl(string nip, DateTime issueDate, string xmlContent)
         {
             var date = issueDate.ToString("dd-MM-yyyy");
             var hash = ComputeUrlEncodedBase64Sha256(xmlContent);
-            return $"{BaseUrl}/verify-invoice/{nip}/{date}/{hash}";
+            return $"{BaseUrl}/invoice/{nip}/{date}/{hash}";
         }
 
         public string BuildCertificateVerificationUrl(
@@ -26,7 +26,7 @@ namespace KSeF.Client.Api.Services
         {
             var hash = ComputeUrlEncodedBase64Sha256(xmlContent);
             var signedHash = ComputeUrlEncodedSignedHash(xmlContent, signingCertificate);
-            return $"{BaseUrl}/verify-certificate/{nip}/{certificateSerial}/{hash}/{signedHash}";
+            return $"{BaseUrl}/certificate/{nip}/{certificateSerial}/{hash}/{signedHash}";
         }
 
         private static string ComputeUrlEncodedBase64Sha256(string xml)

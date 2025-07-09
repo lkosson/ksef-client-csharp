@@ -1,6 +1,8 @@
-﻿using KSeF.Client.Core.Models.Certificates;
+﻿using System;
+using KSeF.Client.Core.Models.Certificates;
 
 namespace KSeFClient.Api.Builders.Certificates;
+
 
 public interface ISendCertificateEnrollmentRequestBuilder
 {
@@ -14,26 +16,22 @@ public interface ISendCertificateEnrollmentRequestBuilderWithCertificateName
 
 public interface ISendCertificateEnrollmentRequestBuilderWithCsr
 {
-    ISendCertificateEnrollmentRequestBuilderWithValidFrom WithValidFrom(DateTimeOffset validFrom);
-}
-
-public interface ISendCertificateEnrollmentRequestBuilderWithValidFrom
-{
+    ISendCertificateEnrollmentRequestBuilderWithCsr WithValidFrom(DateTimeOffset validFrom); // opcjonalna metoda
     SendCertificateEnrollmentRequest Build();
 }
 
-internal class SendCertificateEnrollmentRequestBuilderImpl
-    : ISendCertificateEnrollmentRequestBuilder
-    , ISendCertificateEnrollmentRequestBuilderWithCertificateName
-    , ISendCertificateEnrollmentRequestBuilderWithCsr
-    , ISendCertificateEnrollmentRequestBuilderWithValidFrom
+
+internal class SendCertificateEnrollmentRequestBuilderImpl :
+    ISendCertificateEnrollmentRequestBuilder,
+    ISendCertificateEnrollmentRequestBuilderWithCertificateName,
+    ISendCertificateEnrollmentRequestBuilderWithCsr
 {
     private string _certificateName;
     private string _csr;
-    private DateTimeOffset _validFrom;
+    private DateTimeOffset? _validFrom;
 
- 
-    public static ISendCertificateEnrollmentRequestBuilder Create() => new SendCertificateEnrollmentRequestBuilderImpl();
+    public static ISendCertificateEnrollmentRequestBuilder Create() =>
+        new SendCertificateEnrollmentRequestBuilderImpl();
 
     public ISendCertificateEnrollmentRequestBuilderWithCertificateName WithCertificateName(string certificateName)
     {
@@ -53,7 +51,7 @@ internal class SendCertificateEnrollmentRequestBuilderImpl
         return this;
     }
 
-    public ISendCertificateEnrollmentRequestBuilderWithValidFrom WithValidFrom(DateTimeOffset validFrom)
+    public ISendCertificateEnrollmentRequestBuilderWithCsr WithValidFrom(DateTimeOffset validFrom)
     {
         _validFrom = validFrom;
         return this;
@@ -62,11 +60,9 @@ internal class SendCertificateEnrollmentRequestBuilderImpl
     public SendCertificateEnrollmentRequest Build()
     {
         if (string.IsNullOrWhiteSpace(_certificateName))
-            throw new InvalidOperationException("CertificateName is.");
+            throw new InvalidOperationException("CertificateName is required.");
         if (string.IsNullOrWhiteSpace(_csr))
-            throw new InvalidOperationException("CSR is.");
-        if (_validFrom == default)
-            throw new InvalidOperationException("ValidFrom is.");
+            throw new InvalidOperationException("CSR is required.");
 
         return new SendCertificateEnrollmentRequest
         {

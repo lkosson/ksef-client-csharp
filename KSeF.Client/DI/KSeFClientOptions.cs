@@ -7,7 +7,7 @@ namespace KSeFClient.DI;
 /// </summary>
 public class KSeFClientOptions
 {
-    [Required(ErrorMessage = "BaseUrl is.")]
+    [Required(ErrorMessage = "BaseUrl is required.")]
     [Url(ErrorMessage = "BaseUrl must be a valid URL.")]
     public string BaseUrl { get; set; } = "";
 }
