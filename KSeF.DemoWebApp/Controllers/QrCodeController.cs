@@ -21,11 +21,12 @@ public class QrCodeController(
         string nip,
         DateTime issueDate,
         string invoiceHash,
-        string ksefNumber)                       
+        string ksefNumber)
     {
         var url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
-        var qrCode = qrSvc.AddLabelToQrCode(qrSvc.GenerateQrCode(url), ksefNumber);
-    
+        var qrCode = qrSvc.GenerateQrCode(url);
+        var labeledQr = qrSvc.AddLabelToQrCode(qrCode, ksefNumber);
+
         return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));
     }
 
@@ -37,7 +38,8 @@ public class QrCodeController(
         string invoiceHash)
     {
         var url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
-        var qrCode = qrSvc.AddLabelToQrCode(qrSvc.GenerateQrCode(url), "OFFLINE");
+        var qrCode = qrSvc.GenerateQrCode(url);
+        var labeledQr = qrSvc.AddLabelToQrCode(qrCode, "OFFLINE");
 
         return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));
     }
@@ -53,7 +55,8 @@ public class QrCodeController(
     {
         var cert = new X509Certificate2(Convert.FromBase64String(certbase64));
         var url = linkSvc.BuildCertificateVerificationUrl(nip, certSerial, invoiceHash, cert, privateKey);
-        var qrCode = qrSvc.AddLabelToQrCode(qrSvc.GenerateQrCode(url), "CERTYFIKAT");
+        var qrCode = qrSvc.GenerateQrCode(url);
+        var labeledQr = qrSvc.AddLabelToQrCode(qrCode, "CERTYFIKAT");
 
         return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));
     }
