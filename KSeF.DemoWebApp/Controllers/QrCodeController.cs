@@ -20,10 +20,10 @@ public class QrCodeController(
     public ActionResult<QrCodeResult> GetInvoiceQrWithKsef(
         string nip,
         DateTime issueDate,
-        string xml,
+        string invoiceHash,
         string ksefNumber)                       
     {
-        var url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, xml);
+        var url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
         var qrCode = qrSvc.AddLabelToQrCode(qrSvc.GenerateQrCode(url), ksefNumber);
     
         return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));
@@ -34,9 +34,9 @@ public class QrCodeController(
     public ActionResult<QrCodeResult> GetInvoiceQrOffline(
         string nip,
         DateTime issueDate,
-        string xml)
+        string invoiceHash)
     {
-        var url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, xml);
+        var url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
         var qrCode = qrSvc.AddLabelToQrCode(qrSvc.GenerateQrCode(url), "OFFLINE");
 
         return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));
@@ -46,11 +46,13 @@ public class QrCodeController(
     [HttpGet("certificate")]
     public ActionResult<QrCodeResult> GetCertificateQr(
         string nip,
-        Guid certSerial,
-        string xml,
-        X509Certificate2 cert)
+        string certSerial,
+        string invoiceHash,
+        string certbase64,
+        string privateKey)
     {
-        var url = linkSvc.BuildCertificateVerificationUrl(nip, certSerial, xml, cert);
+        var cert = new X509Certificate2(Convert.FromBase64String(certbase64));
+        var url = linkSvc.BuildCertificateVerificationUrl(nip, certSerial, invoiceHash, cert, privateKey);
         var qrCode = qrSvc.AddLabelToQrCode(qrSvc.GenerateQrCode(url), "CERTYFIKAT");
 
         return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));

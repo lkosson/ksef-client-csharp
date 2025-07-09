@@ -15,9 +15,10 @@ namespace KSeF.Client.Core.Interfaces
         /// </summary>
         string BuildCertificateVerificationUrl(
             string nip,
-            Guid certificateSerial,
+            string certificateSerial,
             string xmlContent,
-            X509Certificate2 signingCertificate
+            X509Certificate2 signingCertificate,
+            string privateKey = ""
         );
     }
 }

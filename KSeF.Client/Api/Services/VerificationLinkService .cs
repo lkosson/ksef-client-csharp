@@ -10,42 +10,41 @@ namespace KSeF.Client.Api.Services
     {
         private const string BaseUrl = "https://ksef.mf.gov.pl/client-app";
 
-        public string BuildInvoiceVerificationUrl(string nip, DateTime issueDate, string xmlContent)
+        public string BuildInvoiceVerificationUrl(string nip, DateTime issueDate, string invoicehash)
         {
             var date = issueDate.ToString("dd-MM-yyyy");
-            var hash = ComputeUrlEncodedBase64Sha256(xmlContent);
-            return $"{BaseUrl}/invoice/{nip}/{date}/{hash}";
+            return $"{BaseUrl}/invoice/{nip}/{date}/{invoicehash}";
         }
 
         public string BuildCertificateVerificationUrl(
             string nip,
-            Guid certificateSerial,
-            string xmlContent,
-            X509Certificate2 signingCertificate
+            string certificateSerial,
+            string invoicehash,
+            X509Certificate2 signingCertificate,
+            string privateKey = ""
         )
         {
-            var hash = ComputeUrlEncodedBase64Sha256(xmlContent);
-            var signedHash = ComputeUrlEncodedSignedHash(xmlContent, signingCertificate);
-            return $"{BaseUrl}/certificate/{nip}/{certificateSerial}/{hash}/{signedHash}";
+
+            var signedHash = ComputeUrlEncodedSignedHash(invoicehash, signingCertificate, privateKey);
+            return $"{BaseUrl}/certificate/{nip}/{certificateSerial}/{invoicehash}/{signedHash}";
         }
 
-        private static string ComputeUrlEncodedBase64Sha256(string xml)
-        {
-            byte[] sha;
-            using (var sha256 = SHA256.Create())
-                sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
 
-            var b64 = Convert.ToBase64String(sha);
-            return HttpUtility.UrlEncode(b64);
-        }
 
-        private static string ComputeUrlEncodedSignedHash(string xml, X509Certificate2 cert)
+        private static string ComputeUrlEncodedSignedHash(string xml, X509Certificate2 cert, string privateKey = "")
         {
             // 1. SHA-256
             byte[] sha;
             using (var sha256 = SHA256.Create())
                 sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+            if (!string.IsNullOrEmpty(privateKey))
+            {
+                var privateKeyBytes = Convert.FromBase64String(privateKey);
 
+                using var rsaTemp = RSA.Create();
+                rsaTemp.ImportRSAPrivateKey(privateKeyBytes, out _);
+                cert = cert.CopyWithPrivateKey(rsaTemp);
+            }
             // 2. Sign hash
             byte[] signature;
             if (cert.GetRSAPrivateKey() is RSA rsa)

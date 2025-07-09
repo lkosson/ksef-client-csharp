@@ -5,7 +5,8 @@
 
         public QrCodeResult(string url, string qrCode)
         {
-            this.Url = url;
+            Url = url;
+            QrCode = qrCode;
         }
 
         public string Url { get; set; }
