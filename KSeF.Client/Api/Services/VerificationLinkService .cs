@@ -19,24 +19,22 @@ namespace KSeF.Client.Api.Services
         public string BuildCertificateVerificationUrl(
             string nip,
             string certificateSerial,
-            string invoicehash,
+            string invoiceHash,
             X509Certificate2 signingCertificate,
             string privateKey = ""
         )
         {
-
-            var signedHash = ComputeUrlEncodedSignedHash(invoicehash, signingCertificate, privateKey);
-            return $"{BaseUrl}/certificate/{nip}/{certificateSerial}/{invoicehash}/{signedHash}";
+            var signedHash = ComputeUrlEncodedSignedHash(invoiceHash, signingCertificate, privateKey);
+            return $"{BaseUrl}/certificate/{nip}/{certificateSerial}/{invoiceHash}/{signedHash}";
         }
 
 
 
-        private static string ComputeUrlEncodedSignedHash(string xml, X509Certificate2 cert, string privateKey = "")
+        private static string ComputeUrlEncodedSignedHash(string invoiceHash, X509Certificate2 cert, string privateKey = "")
         {
             // 1. SHA-256
-            byte[] sha;
-            using (var sha256 = SHA256.Create())
-                sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+            byte[] sha = Convert.FromBase64String(invoiceHash);
+
             if (!string.IsNullOrEmpty(privateKey))
             {
                 var privateKeyBytes = Convert.FromBase64String(privateKey);

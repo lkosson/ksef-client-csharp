@@ -16,7 +16,7 @@ namespace KSeF.Client.Core.Interfaces
         string BuildCertificateVerificationUrl(
             string nip,
             string certificateSerial,
-            string xmlContent,
+            string invoiceHash,
             X509Certificate2 signingCertificate,
             string privateKey = ""
         );

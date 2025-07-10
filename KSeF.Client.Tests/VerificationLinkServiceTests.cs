@@ -50,17 +50,23 @@ namespace KSeF.Client.Tests
         public void BuildCertificateVerificationUrl_WithRsaCertificate_ShouldMatchFormat()
         {
             // Arrange
-            var nip = "4564564567";
-            var xml = "<root>foo</root>";
-            var serial = Guid.NewGuid();
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+                invoiceHash = Convert.ToBase64String(hashBytes);
+            }
 
             // Create full self-signed RSA cert with private key
             using var rsa = RSA.Create(2048);
             var req = new CertificateRequest("CN=TestRSA", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
             var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
-
+                        
             // Act
-            var url = _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), xml, fullCert);
+            var url = _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), invoiceHash, fullCert);
 
             // Assert
             var segments = new Uri(url)
@@ -80,9 +86,15 @@ namespace KSeF.Client.Tests
         public void BuildCertificateVerificationUrl_WithEcdsaCertificate_ShouldMatchFormat()
         {
             // Arrange
-            var nip = "1234567890";
-            var xml = "<data>ecdsa</data>";
-            var serial = Guid.NewGuid();
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+                invoiceHash = Convert.ToBase64String(hashBytes);
+            }
 
             // Create full self-signed ECDsa cert with private key
             using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -90,7 +102,7 @@ namespace KSeF.Client.Tests
             var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
 
             // Act
-            var url = _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), xml, fullCert,fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
+            var url = _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), invoiceHash, fullCert,fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
 
             // Assert
             var segments = new Uri(url)
@@ -121,13 +133,19 @@ namespace KSeF.Client.Tests
 
             var nip = "0000000000";
             var xml = "<x/>";
-            var serial = Guid.NewGuid();
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+                invoiceHash = Convert.ToBase64String(hashBytes);
+            }
 
             // Act & Assert: próba podpisania bez klucza prywatnego → wyjątek
             var ex = Assert.Throws<InvalidOperationException>(() =>
             {
                 // przekazujemy pusty ciąg Base64 jako "brakujący" klucz prywatny
-                return _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), xml, pubOnly, "");
+                return _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), invoiceHash, pubOnly);
             });
 
             Assert.Contains("nie wspiera RSA", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -161,14 +179,19 @@ namespace KSeF.Client.Tests
             var nip = "0000000000";
             var xml = "<x/>";
             var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                var sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+                invoiceHash = Convert.ToBase64String(sha);
+            }
 
-            // Act: nie podajemy privateKey — metoda użyje certWithKey.GetRSAPrivateKey()
+            // Act
             var url = _svc.BuildCertificateVerificationUrl(
                 nip,
                 serial,
-                xml,
-                certWithKey,
-                privateKey: ""
+                invoiceHash,
+                certWithKey
             );
 
             // Assert: URL powinien zawierać URL-encoded Base64 podpisu (końcówka "==" → "%3D%3D")

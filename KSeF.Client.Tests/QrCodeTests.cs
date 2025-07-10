@@ -1,6 +1,7 @@
-﻿using System.Security.Cryptography;
+﻿using KSeF.Client.Api.Services;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using KSeF.Client.Api.Services;
+using System.Text;
 
 namespace KSeF.Client.Tests
 {
@@ -37,11 +38,17 @@ namespace KSeF.Client.Tests
             );
 
             var nip = "0000000000";
-            var serial = Guid.NewGuid().ToString();
             var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+                invoiceHash = Convert.ToBase64String(hashBytes);
+            }
 
             // Act: brak privateKey → użyje wbudowanego klucza
-            var url = _linkSvc.BuildCertificateVerificationUrl(nip, serial, xml, certWithKey, "");
+            var url = _linkSvc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, certWithKey);
             byte[] qrBytes = _qrSvc.GenerateQrCode(url, 5);
             byte[] labeled = _qrSvc.AddLabelToQrCode(qrBytes, "CERTYFIKAT");
             string pngBase64 = Convert.ToBase64String(labeled);
@@ -68,12 +75,18 @@ namespace KSeF.Client.Tests
             var publicCert = new X509Certificate2(publicBytes);
 
             var nip = "0000000000";
-            var serial = Guid.NewGuid().ToString();
             var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+                invoiceHash = Convert.ToBase64String(hashBytes);
+            }
 
             // Act & Assert: brak privateKey i brak wbudowanego → InvalidOperationException
             Assert.Throws<InvalidOperationException>(() =>
-                _linkSvc.BuildCertificateVerificationUrl(nip, serial, xml, publicCert, "")
+                _linkSvc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, publicCert)
             );
         }
 
@@ -104,14 +117,19 @@ namespace KSeF.Client.Tests
             var nip = "0000000000";
             var xml = "<x/>";
             var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+                invoiceHash = Convert.ToBase64String(hashBytes);
+            }
 
             // Act: nie podajemy privateKey — metoda użyje certWithKey.GetRSAPrivateKey()
             var url = _linkSvc.BuildCertificateVerificationUrl(
                 nip,
                 serial,
-                xml,
-                certWithKey,
-                privateKey: ""
+                invoiceHash,
+                certWithKey
             );
 
             byte[] qrBytes = _qrSvc.GenerateQrCode(url, 5);
