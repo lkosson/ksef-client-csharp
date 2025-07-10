@@ -16,7 +16,7 @@ namespace KSeF.Client.Tests
         public List<OperationResponse> RevokeResponse { get; set; } = new List<OperationResponse>();
         
         public string Target { get; internal set; }
-        public PagedPermissionsResponse<SubunitPermission> SearchResponse { get; internal set; }
+        public PagedPermissionsResponse<PersonPermission> SearchResponse { get; internal set; }
         public int ExpectedPermissionsAfterRevoke { get; internal set; }
     }
 
@@ -48,19 +48,18 @@ namespace KSeF.Client.Tests
             await Step1_GrantIndirectAsync();
             await Task.Delay(sleepTime);
 
-            //no info
+            await Step2_SearchIndirectAsync(expectAny: true);
+            await Task.Delay(sleepTime);
 
-            //await Step2_SearchIndirectAsync(expectAny: true);
-            //await Task.Delay(sleepTime);
-
-            //await Step3_RevokeIndirectAsync();
-            //await Task.Delay(sleepTime);
+            await Step3_RevokeIndirectAsync();
+            await Task.Delay(sleepTime);
 
             await Step4_SearchIndirectAsync(expectAny: false);
         }
 
         public async Task Step1_GrantIndirectAsync()
         {
+            //Jesli podmiot w kontekście którego nadajemy uprawnienia nie nadał nam uprawnień z flagą "candelegate" to uprawnienie będzie nieaktywne
             var req = GrantIndirectEntityPermissionsRequestBuilder
                 .Create()
                 .WithSubject(_f.Subject)
@@ -79,28 +78,13 @@ namespace KSeF.Client.Tests
 
             var status = await kSeFClient.OperationsStatusAsync(resp.OperationReferenceNumber,AccessToken);
 
-            //Assert.True(status.)
+            Assert.True(status.Status.Code == 100);
         }
 
         public async Task Step2_SearchIndirectAsync(bool expectAny)
         {
-            var rsp = await kSeFClient
-                .SearchEntityAuthorizationGrantsAsync(new Core.Models.Permissions.Entity.EntityAuthorizationsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
-
-            var resp = await kSeFClient
-                .SearchSubunitAdminPermissionsAsync(new Core.Models.Permissions.SubUnit.SubunitPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
-
-            var resp1 = await kSeFClient
-                .SearchGrantedPersonPermissionsAsync(new Core.Models.Permissions.Person.PersonPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
-
-            var resp2 = await kSeFClient
-                .SearchSubordinateEntityInvoiceRolesAsync(new Core.Models.Permissions.SubUnit.SubordinateEntityRolesQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
-
-            var resp3 = await kSeFClient
-                .SearchEntityInvoiceRolesAsync(_f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
-
-            var resp4 = await kSeFClient
-                .SearchGrantedEuEntityPermissionsAsync(new(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);            
+           var resp = await kSeFClient
+                .SearchGrantedPersonPermissionsAsync(new Core.Models.Permissions.Person.PersonPermissionsQueryRequest() { QueryType = Core.Models.Permissions.Person.QueryTypeEnum.PermissionsGrantedInCurrentContext, PermissionState = Core.Models.Permissions.Person.PermissionState.Inactive}, _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             Assert.NotNull(resp);
             if (expectAny)
@@ -129,7 +113,7 @@ namespace KSeF.Client.Tests
                 var resp = await kSeFClient.RevokeAuthorizationsPermissionAsync(permission.Id, _f.AccessToken, CancellationToken.None);
 
                 Assert.NotNull(resp);
-                Assert.True(string.IsNullOrEmpty(resp.OperationReferenceNumber));
+                Assert.False(string.IsNullOrEmpty(resp.OperationReferenceNumber));
                 _f.RevokeResponse.Add(resp);
             }
 

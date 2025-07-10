@@ -1,4 +1,5 @@
-﻿namespace KSeF.Client.Core.Models.Permissions;
+﻿
+namespace KSeF.Client.Core.Models.Permissions;
 
 
 public class PagedPermissionsResponse<TPermission>
@@ -6,6 +7,11 @@ public class PagedPermissionsResponse<TPermission>
     public List<TPermission> Permissions { get; set; }
     public int Page { get; set; }
     public int PageSize { get; set; }
+
+    public static implicit operator PagedPermissionsResponse<TPermission>(PagedPermissionsResponse<PersonPermission> v)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public class PagedAuthorizationsResponse<TAuthorization>

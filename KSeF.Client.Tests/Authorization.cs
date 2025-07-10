@@ -52,7 +52,7 @@ public class Authorization : TestBase
       
         var random = randomGenerator.Next(100000000, 999999999);
         var randomString = 7 + random.ToString();
-
+       
         // Arrange
         //need to first auth as owner to get the KSeF token
         var owner = this.AuthenticateAsync();

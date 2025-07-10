@@ -81,13 +81,13 @@ namespace KSeF.Client.Tests
         public async Task Step2_SearchSubUnitAsync(bool expectAny)
         {
             var rsp = await kSeFClient
-                .SearchEntityAuthorizationGrantsAsync(new Core.Models.Permissions.Entity.EntityAuthorizationsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+                .SearchEntityAuthorizationGrantsAsync(new Core.Models.Permissions.Entity.EntityAuthorizationsQueryRequest() {QueryType = Core.Models.Permissions.Entity.QueryType.Granted , PermissionTypes = new[] { Core.Models.Permissions.Entity.InvoicePermissionType.SelfInvoicing}.ToList() }, _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             var resp = await kSeFClient
                 .SearchSubunitAdminPermissionsAsync(new Core.Models.Permissions.SubUnit.SubunitPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             var resp1 = await kSeFClient
-                .SearchGrantedPersonPermissionsAsync(new Core.Models.Permissions.Person.PersonPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+                .SearchGrantedPersonPermissionsAsync(new Core.Models.Permissions.Person.PersonPermissionsQueryRequest() { QueryType = Core.Models.Permissions.Person.QueryTypeEnum.PermissionsGrantedInCurrentContext, PermissionState = Core.Models.Permissions.Person.PermissionState.Inactive }, _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             var resp2 = await kSeFClient
                 .SearchSubordinateEntityInvoiceRolesAsync(new Core.Models.Permissions.SubUnit.SubordinateEntityRolesQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
@@ -96,7 +96,7 @@ namespace KSeF.Client.Tests
                 .SearchEntityInvoiceRolesAsync(_f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             var resp4 = await kSeFClient
-                .SearchGrantedEuEntityPermissionsAsync(new(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+                .SearchGrantedEuEntityPermissionsAsync(new Core.Models.Permissions.EUEntity.EuEntityPermissionsQueryRequest() { PermissionTypes = new[] { Core.Models.Permissions.EUEntity.EuEntityPermissionsQueryPermissionType.InvoiceRead }.ToList() }, _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             Assert.NotNull(resp);
             if (expectAny)

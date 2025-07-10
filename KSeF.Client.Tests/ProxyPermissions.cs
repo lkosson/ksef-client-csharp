@@ -87,8 +87,8 @@ namespace KSeF.Client.Tests
                 );
 
             //500 ???
-            //var rsp = await kSeFClient
-            //.SearchEntityAuthorizationGrantsAsync(new Core.Models.Permissions.Entity.EntityAuthorizationsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
+            var rsp = await kSeFClient
+            .SearchEntityAuthorizationGrantsAsync(new Core.Models.Permissions.Entity.EntityAuthorizationsQueryRequest() { QueryType = Core.Models.Permissions.Entity.QueryType.Received,  }, _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             var resp3 = await kSeFClient
                 .SearchSubunitAdminPermissionsAsync(new Core.Models.Permissions.SubUnit.SubunitPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
