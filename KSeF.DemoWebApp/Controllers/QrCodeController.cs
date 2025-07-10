@@ -27,7 +27,7 @@ public class QrCodeController(
         var qrCode = qrSvc.GenerateQrCode(url);
         var labeledQr = qrSvc.AddLabelToQrCode(qrCode, ksefNumber);
 
-        return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));
+        return Ok(new QrCodeResult(url, Convert.ToBase64String(labeledQr)));
     }
 
     // 2. Faktura offline (przed wysyłką)
@@ -41,7 +41,7 @@ public class QrCodeController(
         var qrCode = qrSvc.GenerateQrCode(url);
         var labeledQr = qrSvc.AddLabelToQrCode(qrCode, "OFFLINE");
 
-        return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));
+        return Ok(new QrCodeResult(url, Convert.ToBase64String(labeledQr)));
     }
 
     // 3. Weryfikacja certyfikatu (Kod II)
@@ -58,6 +58,6 @@ public class QrCodeController(
         var qrCode = qrSvc.GenerateQrCode(url);
         var labeledQr = qrSvc.AddLabelToQrCode(qrCode, "CERTYFIKAT");
 
-        return Ok(new QrCodeResult(url, Convert.ToBase64String(qrCode)));
+        return Ok(new QrCodeResult(url, Convert.ToBase64String(labeledQr)));
     }
 }

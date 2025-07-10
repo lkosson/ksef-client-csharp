@@ -9,10 +9,11 @@
         /// <param name="pixelsPerModule">Rozmiar modułu w pikselach (domyślnie 20).</param>
         byte[] GenerateQrCode(
             string payloadUrl,
-            int pixelsPerModule = 20
+            int pixelsPerModule = 20,
+            int qrCodeResolutionInPx = 300
         );
 
         /// <summary>Dokleja podpis (label) pod istniejącym PNG z kodem QR.</summary>
-        byte[] AddLabelToQrCode(byte[] qrCodePng, string label, int fontSizePx = 14);
+        byte[] AddLabelToQrCode(byte[] qrCodePng, string label, int fontSizePx = 14);        
     }
 }

@@ -7,12 +7,24 @@ namespace KSeF.Client.Api.Services
 {
     public class QrCodeService : IQrCodeService
     {
-        public byte[] GenerateQrCode(string payloadUrl, int pixelsPerModule = 20)
+        public byte[] GenerateQrCode(string payloadUrl, int pixelsPerModule = 20, int qrCodeWidthAndHeight = 300)
         {
             using var gen = new QRCodeGenerator();
-            using var data = gen.CreateQrCode(payloadUrl, QRCodeGenerator.ECCLevel.M);
-            using var qr = new PngByteQRCode(data);
-            return qr.GetGraphic(pixelsPerModule);
+            using var data = gen.CreateQrCode(payloadUrl, QRCodeGenerator.ECCLevel.Default);
+            using var qr = new PngByteQRCode(data);            
+            var graphic = qr.GetGraphic(pixelsPerModule);
+
+            return ResizePng(graphic, qrCodeWidthAndHeight, qrCodeWidthAndHeight);
+        }
+
+        public byte[] ResizePng(byte[] pngBytes, int targetWidth, int targetHeight)
+        {
+            using var input = new MemoryStream(pngBytes);
+            using var original = Image.FromStream(input);
+            using var resized = new Bitmap(original, new Size(targetWidth, targetHeight));
+            using var ms = new MemoryStream();
+            resized.Save(ms, ImageFormat.Png);
+            return ms.ToArray();
         }
 
         public byte[] AddLabelToQrCode(byte[] qrPng, string label, int fontSizePx = 14)
@@ -22,7 +34,7 @@ namespace KSeF.Client.Api.Services
             using var qrBmp = (Bitmap)System.Drawing.Image.FromStream(msIn);
 
             // 2. Font + wysokość napisu
-            using var font = new System.Drawing.Font("Arial", fontSizePx, FontStyle.Regular, GraphicsUnit.Pixel);
+            using var font = new System.Drawing.Font("Arial", fontSizePx, FontStyle.Bold, GraphicsUnit.Pixel);
             int labelHeight = (int)(font.GetHeight() + 4);
 
             // 3. Nowa bitmapa = QR + pasek na tekst
