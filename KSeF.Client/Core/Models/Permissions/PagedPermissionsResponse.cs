@@ -6,12 +6,7 @@ public class PagedPermissionsResponse<TPermission>
 {
     public List<TPermission> Permissions { get; set; }
     public int Page { get; set; }
-    public int PageSize { get; set; }
-
-    public static implicit operator PagedPermissionsResponse<TPermission>(PagedPermissionsResponse<PersonPermission> v)
-    {
-        throw new NotImplementedException();
-    }
+    public int PageSize { get; set; }        
 }
 
 public class PagedAuthorizationsResponse<TAuthorization>
