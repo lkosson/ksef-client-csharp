@@ -9,6 +9,7 @@ using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.Permissions.ProxyEntity;
 using KSeF.Client.Core.Models.Sessions;
+using KSeF.Client.Core.Models.Sessions.ActiveSessions;
 using KSeF.Client.Core.Models.Sessions.BatchSession;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeFClient.Core.Interfaces;
@@ -25,6 +26,58 @@ public partial class KSeFClient : IKSeFClient
     private readonly IRestClient restClient;
 
     public KSeFClient(IRestClient restClient) => this.restClient = restClient;
+
+    /// <inheritdoc />
+    public async Task<ActiveSessionsResponse> GetActiveSessions(string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default)
+    {
+        ValidateParams(accessToken);
+
+        var urlBuilder = new StringBuilder();
+
+        urlBuilder.Append("/api/v2/auth/sessions/");
+
+        if (pageSize.HasValue)
+        {
+            urlBuilder.Append($"?pageSize={pageSize.Value}");
+        }
+
+        var url = urlBuilder.ToString();
+
+        return await restClient.SendAsync<ActiveSessionsResponse, object>(HttpMethod.Get,
+                                                                            url,
+                                                                            default,
+                                                                            accessToken,
+                                                                            RestClient.DefaultContentType,
+                                                                            cancellationToken,
+                                                                            !string.IsNullOrEmpty(continuationToken) ?
+                                                                             new Dictionary<string, string> { { "x-continuation-token", continuationToken } }
+                                                                              : null).ConfigureAwait(false);
+
+    }
+
+    /// <inheritdoc />
+    public async Task RevokeCurrentSessionAsync(string token, CancellationToken cancellationToken = default)
+    {
+        ValidateParams(token);
+
+        await restClient.SendAsync(HttpMethod.Delete,
+                                   "/api/v2/auth/sessions/current",
+                                   token,
+                                   RestClient.DefaultContentType,
+                                   cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task RevokeSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    {
+        ValidateParams(referenceNumber, accessToken);
+
+        await restClient.SendAsync(HttpMethod.Delete,
+                                   $"/api/v2/auth/sessions/{Uri.EscapeDataString(referenceNumber)}",
+                                   accessToken,
+                                   RestClient.DefaultContentType,
+                                   cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc />
     public async Task<AuthChallengeResponse> GetAuthChallengeAsync(CancellationToken cancellationToken = default)

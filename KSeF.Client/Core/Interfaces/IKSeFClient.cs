@@ -11,6 +11,7 @@ using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.Permissions.ProxyEntity;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
 using KSeF.Client.Core.Models.Sessions;
+using KSeF.Client.Core.Models.Sessions.ActiveSessions;
 using KSeF.Client.Core.Models.Sessions.BatchSession;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeFClient.Core.Models;
@@ -19,6 +20,42 @@ namespace KSeFClient;
 
 public interface IKSeFClient
 {
+
+    /// <summary>
+    /// Pobranie listy aktywnych sesji.
+    /// </summary>
+    /// <param name="accessToken">Access token</param>
+    /// <param name="pageSize">Rozmiar strony wyników.</param>
+    /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
+    /// <param name="cancellationToken">Cancellation token./param>
+    /// <returns><see cref="ActiveSessionsResponse"/></returns>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task<ActiveSessionsResponse> GetActiveSessions(string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Unieważnia sesję powiązaną z tokenem użytym do wywołania tej operacji.
+    /// Unieważnienie sesji sprawia, że powiązany z nią refresh token przestaje działać i nie można już za jego pomocą uzyskać kolejnych access tokenów.
+    /// Aktywne access tokeny działają do czasu minięcia ich termin ważności.
+    /// </summary>
+    /// <param name="token">Access token lub Refresh token.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task RevokeCurrentSessionAsync(string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Unieważnia sesję o podanym numerze referencyjnym.
+    /// Unieważnienie sesji sprawia, że powiązany z nią refresh token przestaje działać i nie można już za jego pomocą uzyskać kolejnych access tokenów.
+    /// Aktywne access tokeny działają do czasu minięcia ich termin ważności.
+    /// </summary>
+    /// <param name="referenceNumber">Numer referencyjny sesji.</param>
+    /// <param name="accessToken">Access token lub Refresh token.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task RevokeSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Inicjalizacja mechanizmu uwierzytelnienia i autoryzacji
     /// </summary>
