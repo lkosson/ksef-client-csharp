@@ -17,6 +17,39 @@ public class SessionController : ControllerBase
         this.ksefClient = ksefClient;
     }
 
+    [HttpGet("online-sessions")]
+    public async Task<ActionResult<ICollection<Session>>> GetOnlineSessionsAsync([FromForm] string accessToken, [FromForm] SessionsFilter sessionsFilter, CancellationToken cancellationToken)
+    {
+        var sessions = new List<Session>();
+        const int pageSize = 20;
+        string? continuationToken = null;
+        do
+        {
+            var response = await ksefClient.GetSessionsAsync(SessionType.Online, accessToken, pageSize, continuationToken, sessionsFilter, cancellationToken);
+            continuationToken = response.ContinuationToken;
+            sessions.AddRange(response.Sessions);
+        } while (!string.IsNullOrEmpty(continuationToken));
+
+        return Ok(sessions);
+    }
+
+    [HttpGet("batch-sessions")]
+    public async Task<ActionResult<ICollection<Session>>> GetbatchSessionsAsync([FromForm] string accessToken, [FromForm] SessionsFilter sessionsFilter, CancellationToken cancellationToken)
+    {
+        var sessions = new List<Session>();
+        const int pageSize = 20;
+        string? continuationToken = null;
+        do
+        {
+            var response = await ksefClient.GetSessionsAsync(SessionType.Batch, accessToken, pageSize, continuationToken, sessionsFilter, cancellationToken);
+            continuationToken = response.ContinuationToken;
+            sessions.AddRange(response.Sessions);
+        } while (!string.IsNullOrEmpty(continuationToken));
+
+        return Ok(sessions);
+    }
+
+
     [HttpGet("status")]
     public async Task<SessionStatusResponse> GetStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken)
     {
@@ -44,7 +77,7 @@ public class SessionController : ControllerBase
     [HttpGet("session-documents")]
     public async Task<ActionResult<SessionInvoicesResponse>> GetSessionDocumentsAsync(string accessToken, string referenceNumber, CancellationToken cancellationToken)
     {
-        var sessionDocuments = await ksefClient.GetSessionInvoicesAsync(referenceNumber, accessToken,null, null, cancellationToken);
+        var sessionDocuments = await ksefClient.GetSessionInvoicesAsync(referenceNumber, accessToken, null, null, cancellationToken);
         return Ok(sessionDocuments);
     }
 

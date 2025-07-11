@@ -1,9 +1,10 @@
 ﻿using KSeF.Client.Core.Models.Sessions.ActiveSessions;
 using KSeFClient;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
 
 namespace WebApplication.Controllers;
-[Route("[controller]")]
+[Route("active-sessions")]
 [ApiController]
 public class ActiveSessionsController : ControllerBase
 {
@@ -28,7 +29,6 @@ public class ActiveSessionsController : ControllerBase
             var response = await ksefClient.GetActiveSessions(accessToken, pageSize, continuactionToken, cancellationToken);
             continuactionToken = response.ContinuationToken;
             activeSessions.AddRange(response.Items);
-
         }
         while (!string.IsNullOrWhiteSpace(continuactionToken));
 

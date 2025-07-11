@@ -16,6 +16,7 @@ using KSeFClient.Core.Interfaces;
 using KSeFClient.Core.Models;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 
 
 
@@ -50,7 +51,7 @@ public partial class KSeFClient : IKSeFClient
                                                                             RestClient.DefaultContentType,
                                                                             cancellationToken,
                                                                             !string.IsNullOrEmpty(continuationToken) ?
-                                                                             new Dictionary<string, string> { { "x-continuation-token", continuationToken } }
+                                                                             new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken)} }
                                                                               : null).ConfigureAwait(false);
 
     }
@@ -234,6 +235,69 @@ public partial class KSeFClient : IKSeFClient
                                            $"/api/v2/sessions/batch/{Uri.EscapeDataString(referenceNumber)}/close",
                                            default, accessToken, RestClient.DefaultContentType, cancellationToken).ConfigureAwait(false);
     }
+    /// <inheritdoc />
+    public async Task<SessionsListResponse> GetSessionsAsync(SessionType sessionType, string accessToken, int? pageSize, string continuationToken, SessionsFilter sessionsFilter = null, CancellationToken cancellationToken = default)
+    {
+        ValidateParams(accessToken);
+
+        var urlBuilder = new StringBuilder();
+
+        urlBuilder.Append($"/api/v2/sessions?sessionType={sessionType}");
+
+        if (pageSize.HasValue)
+        {
+            urlBuilder.Append($"&pageSize={pageSize.Value}");
+        }
+
+        if (sessionsFilter != null)
+        {
+            if (!string.IsNullOrEmpty(sessionsFilter.ReferenceNumber))
+            {
+                urlBuilder.Append($"&referenceNumber={Uri.EscapeDataString(sessionsFilter.ReferenceNumber)}");
+            }
+            if (sessionsFilter.DateCreatedFrom.HasValue)
+            {
+                urlBuilder.Append($"&dateCreatedFrom={Uri.EscapeDataString(sessionsFilter.DateCreatedFrom.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
+            }
+            if (sessionsFilter.DateCreatedTo.HasValue)
+            {
+                urlBuilder.Append($"&dateCreatedTo={Uri.EscapeDataString(sessionsFilter.DateCreatedTo.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
+            }
+            if (sessionsFilter.DateClosedFrom.HasValue)
+            {
+                urlBuilder.Append($"&dateClosedFrom={Uri.EscapeDataString(sessionsFilter.DateClosedFrom.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
+            }
+            if (sessionsFilter.DateClosedTo.HasValue)
+            {
+                urlBuilder.Append($"&dateClosedTo={Uri.EscapeDataString(sessionsFilter.DateClosedTo.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
+            }
+            if (sessionsFilter.DateModifiedFrom.HasValue)
+            {
+                urlBuilder.Append($"&dateModifiedFrom={Uri.EscapeDataString(sessionsFilter.DateModifiedFrom.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
+            }
+            if (sessionsFilter.DateModifiedTo.HasValue)
+            {
+                urlBuilder.Append($"&dateModifiedTo={Uri.EscapeDataString(sessionsFilter.DateModifiedTo.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
+            }
+            if (sessionsFilter.Statuses != null && sessionsFilter.Statuses.Any())
+            {
+                urlBuilder.Append($"&statuses={Uri.EscapeDataString(string.Join(",", sessionsFilter.Statuses))}");
+            }
+        }
+
+        var url = urlBuilder.ToString();
+
+        return await restClient.SendAsync<SessionsListResponse, object>(HttpMethod.Get,
+                                                                            url,
+                                                                            default,
+                                                                            accessToken,
+                                                                            RestClient.DefaultContentType,
+                                                                            cancellationToken,
+                                                                            !string.IsNullOrEmpty(continuationToken) ?
+                                                                             new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken) } }
+                                                                              : null).ConfigureAwait(false);
+
+    }
 
     /// <inheritdoc />
     public async Task<SessionStatusResponse> GetSessionStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default)
@@ -307,7 +371,7 @@ public partial class KSeFClient : IKSeFClient
                                                                             RestClient.DefaultContentType,
                                                                             cancellationToken,
                                                                             !string.IsNullOrEmpty(continuationToken) ?
-                                                                             new Dictionary<string, string> { { "x-continuation-token", continuationToken } }
+                                                                             new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken) } }
                                                                               : null).ConfigureAwait(false);
 
     }
@@ -849,7 +913,7 @@ public partial class KSeFClient : IKSeFClient
                                                                            RestClient.DefaultContentType,
                                                                            cancellationToken,
                                                                           !string.IsNullOrWhiteSpace(continuationToken) ?
-                                                                          new Dictionary<string, string> { { "x-continuation-token", continuationToken } }
+                                                                          new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken) } }
                                                                           : null)
                                                                            .ConfigureAwait(false);
     }

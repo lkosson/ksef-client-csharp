@@ -210,6 +210,18 @@ public interface IKSeFClient
     Task CloseBatchSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Zwraca listę sesji spełniających podane kryteria wyszukiwania.
+    /// </summary>
+    /// <param name="accessToken">Access token</param>
+    /// <param name="pageSize">Rozmiar strony wyników.</param>
+    /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
+    /// <param name="cancellationToken">Cancellation token./param>
+    /// <returns><see cref="ActiveSessionsResponse"/></returns>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task<SessionsListResponse> GetSessionsAsync(SessionType sessionType, string accessToken, int? pageSize, string continuationToken, SessionsFilter sessionsFilter = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Pobranie statusu sesji
     /// </summary>
     /// <remarks>
