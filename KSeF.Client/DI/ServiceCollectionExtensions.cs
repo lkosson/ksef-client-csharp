@@ -28,6 +28,11 @@ public static class ServiceCollectionExtensions
             .AddHttpClient<IRestClient, RestClient>(http =>
             {
                 http.BaseAddress = new Uri(options.BaseUrl);
+                if (options.CustomHeaders.Any())
+                {
+                    foreach (var header in options.CustomHeaders)
+                        http.DefaultRequestHeaders.Add(header.Key, header.Value);                    
+                }
                 http.DefaultRequestHeaders.Accept.Add(
                     new MediaTypeWithQualityHeaderValue("application/json"));
             });

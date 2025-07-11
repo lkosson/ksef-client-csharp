@@ -68,7 +68,7 @@ public class BatchSession : TestBase
 
     private async Task Step1_OpenBatchSession_ReturnsReference()
     {
-        var restClient = new RestClient(new HttpClient { BaseAddress = new Uri(env) });
+        var restClient = new RestClient(httpClientBase);
         var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
 
 

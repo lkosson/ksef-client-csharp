@@ -10,6 +10,11 @@ var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
 builder.Services.AddKSeFClient(options =>
 {
     options.BaseUrl = KsefEnviromentsUris.TEST;
+    options.CustomHeaders = 
+        builder.Configuration
+                .GetSection("ApiSettings:customHeaders")
+                .Get<Dictionary<string, string>>()
+              ?? new Dictionary<string, string>();    
 });
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);

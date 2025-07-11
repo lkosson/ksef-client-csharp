@@ -70,7 +70,7 @@ public class Authorization : TestBase
 
         await Task.Delay(sleepTime);
         var authCoordinator = new AuthCoordinator(this.kSeFClient) as IAuthCoordinator;
-        var restClient = new RestClient(new HttpClient { BaseAddress = new Uri(env) }) as IRestClient;
+        var restClient = new RestClient(httpClientBase) as IRestClient;
             var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
         await Task.Delay(sleepTime);
 

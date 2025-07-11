@@ -7,6 +7,7 @@ using KSeFClient;
 using KSeFClient.Api.Builders.Auth;
 using KSeFClient.Core.Models;
 using KSeFClient.Http;
+using Microsoft.Extensions.Configuration;
 
 
 namespace KSeF.Client.Tests;
@@ -18,12 +19,17 @@ public class TestBase
     internal IKSeFClient kSeFClient { get; private set; }
 
     internal string env = TestConfig.Load()["ApiSettings:BaseUrl"] ?? KSeFClient.DI.KsefEnviromentsUris.TEST;
+    internal Dictionary<string,string> customHeaders = TestConfig.Load()
+                .GetSection("ApiSettings:customHeaders")
+                .Get<Dictionary<string, string>>()
+              ?? new Dictionary<string, string>();
+
     internal Random randomGenerator;
     internal string NIP;
 
     internal ISignatureService signatureService { get; private set; }
 
-    internal readonly HttpClient httpClient;
+    internal readonly HttpClient httpClientBase;
     internal readonly RestClient restClient;
     internal ContextIdentifierType contextIdentifierType;
     internal const int sleepTime = 500;
@@ -34,8 +40,15 @@ public class TestBase
 
         signatureService = new SignatureService();
 
-        httpClient = new HttpClient { BaseAddress = new Uri(env) };
-        restClient = new RestClient(httpClient);
+        httpClientBase = new HttpClient { BaseAddress = new Uri(env) };
+        if (customHeaders.Keys.Any())
+        {
+            foreach (var customHeader in customHeaders)
+            {
+                httpClientBase.DefaultRequestHeaders.Add(customHeader.Key, customHeader.Value);
+            }
+        }
+        restClient = new RestClient(httpClientBase);
 
         kSeFClient = new KSeFClient.Http.KSeFClient(
             restClient
