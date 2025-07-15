@@ -12,6 +12,14 @@ namespace KSeF.Client.Tests
         private readonly IVerificationLinkService _svc = new VerificationLinkService();
         private const string BaseUrl = "https://ksef.mf.gov.pl/client-app";
 
+
+        // =============================================
+        // Testy legacy (RSA) – tylko dla zgodności wstecznej; NIEZALECANE:
+        // • Użycie RSA 2048-bit:
+        //    - Większy rozmiar kluczy i linków
+        //    - Wolniejsze operacje kryptograficzne
+        //    - Dłuższe URL-e (gorszy UX)
+        // =============================================
         [Theory]
         [InlineData("<root>test</root>")]
         [InlineData("<data>special & chars /?</data>")]
@@ -196,6 +204,117 @@ namespace KSeF.Client.Tests
 
             // Assert: URL powinien zawierać URL-encoded Base64 podpisu (końcówka "==" → "%3D%3D")
             Assert.NotNull(url);
+            Assert.Contains("%3d", url);
+        }
+
+        // =============================================
+        // Rekomendowane testy ECC (ECDSA P-256):
+        // • Bezpieczeństwo jak RSA-2048, ale mniejsze i szybsze klucze
+        // • Krótsze podpisane URL-e → lepszy UX w QR i linkach
+        // =============================================
+
+        [Theory]
+        [InlineData("<root>test</root>")]
+        [InlineData("<data>special & chars /?</data>")]
+        public void BuildInvoiceVerificationUrl_EncodesHashCorrectly_Ecc(string xml)
+        {
+            // Arrange – bez zmian, testuje enkodowanie hash
+            var nip = "1234567890";
+            var issueDate = new DateTime(2026, 1, 5);
+
+            byte[] sha;
+            using (var sha256 = SHA256.Create())
+                sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+
+            var expectedHash = HttpUtility.UrlEncode(Convert.ToBase64String(sha));
+            var expectedUrl = $"{BaseUrl}/invoice/{nip}/{issueDate:dd-MM-yyyy}/{expectedHash}";
+
+            // Act
+            var url = _svc.BuildInvoiceVerificationUrl(nip, issueDate, expectedHash);
+
+            // Assert
+            Assert.Equal(expectedUrl, url);
+            var segments = new Uri(url).Segments.Select(s => s.Trim('/')).ToArray();
+            Assert.Equal("invoice", segments[2]);
+            Assert.Equal(expectedHash, segments[5]);
+        }
+
+        [Fact]
+        public void BuildCertificateVerificationUrl_WithEcdsaCertificate_ShouldMatchFormat_Ecc()
+        {
+            // Arrange – generowanie ECDSA P-256
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
+            }
+
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var req = new CertificateRequest("CN=TestECDSA", ecdsa, HashAlgorithmName.SHA256);
+            var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
+
+            // Act – jawnie przekazujemy prywatny klucz ECDSA
+            var privateKeyPem = fullCert.GetECDsaPrivateKey()?.ExportPkcs8PrivateKeyPem();
+            var url = _svc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, fullCert, privateKeyPem);
+
+            // Assert – format ścieżek
+            var segments = new Uri(url).Segments.Select(s => s.Trim('/')).ToArray();
+            Assert.Equal("certificate", segments[2]);
+            Assert.Equal(nip, segments[3]);
+            Assert.Equal(serial, segments[4]);
+            Assert.False(string.IsNullOrWhiteSpace(segments[5])); // hash
+            Assert.False(string.IsNullOrWhiteSpace(segments[6])); // signed hash
+        }
+
+        [Fact]
+        public void BuildCertificateVerificationUrl_WithoutPrivateKey_ShouldThrow_Ecc()
+        {
+            // Arrange – public-only ECC powinno rzucić
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var req = new CertificateRequest("CN=PublicOnly", ecdsa, HashAlgorithmName.SHA256);
+            var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
+            var publicBytes = fullCert.Export(X509ContentType.Cert);
+            var pubOnly = new X509Certificate2(publicBytes);
+
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
+            }
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() =>
+                _svc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, pubOnly)
+            );
+        }
+
+        [Fact]
+        public void BuildCertificateVerificationUrl_WithEmbeddedEcdsaKey_ShouldSucceed_Ecc()
+        {
+            // Arrange – certyfikat PFX ECDSA P-256 z flagą exportowalności
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var req = new CertificateRequest("CN=FullEccCert", ecdsa, HashAlgorithmName.SHA256);
+            var fullCert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(1));
+            var pfx = fullCert.Export(X509ContentType.Pfx);
+            var certWithKey = new X509Certificate2(pfx, string.Empty, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+                invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
+
+            // Act
+            var url = _svc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, certWithKey);
+
+            // Assert: URL zawiera poprawny ECDSA podpis kodowany w Base64
             Assert.Contains("%3d", url);
         }
     }

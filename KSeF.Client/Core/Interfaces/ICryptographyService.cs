@@ -50,4 +50,11 @@ public interface ICryptographyService
     /// <param name="content"></param>
     /// <returns></returns>
     byte[] EncryptKsefTokenWithRSAUsingPublicKey(byte[] content);
+
+    /// <summary>
+    /// Zwraca zaszyfrowany token KSeF przy użyciu algorytmu ECIes z publicznym kluczem.
+    /// </summary>
+    /// <param name="content"></param>
+    /// <returns></returns>
+    byte[] EncryptWithECDsaUsingPublicKey(byte[] content);
 }

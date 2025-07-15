@@ -51,7 +51,7 @@ public class QrCodeController(
         string certSerial,
         string invoiceHash,
         string certbase64,
-        string privateKey)
+        string privateKey = "")
     {
         var cert = new X509Certificate2(Convert.FromBase64String(certbase64));
         var url = linkSvc.BuildCertificateVerificationUrl(nip, certSerial, invoiceHash, cert, privateKey);

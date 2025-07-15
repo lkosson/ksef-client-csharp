@@ -34,6 +34,7 @@ public interface IAuthCoordinator
         string contextIdentifierValue,
         string tokenKsef,
         ICryptographyService cryptographyService,
+        EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.ECDsa,
         IpAddressPolicy ipAddressPolicy = default,
         CancellationToken ct = default);
 }

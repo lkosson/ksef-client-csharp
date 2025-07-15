@@ -165,6 +165,37 @@ public class CryptographyService : ICryptographyService
         return rsa.Encrypt(content, RSAEncryptionPadding.OaepSHA256);
     }
 
+    /// <inheritdoc />
+    /// <summary>
+    /// Szyfruje dane przy pomocy klucza publicznego ECDSA (ECC P-256) wzorując się na ECIES.
+    /// </summary>
+    public byte[] EncryptWithECDsaUsingPublicKey(byte[] content)
+    {
+        // 1. Import klucza publicznego odbiorcy (ECDH)
+        using var ecdhReceiver = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        ecdhReceiver.ImportFromPem(ksefTokenPem);
+
+        // 2. Wygeneruj tymczasową parę (ECDH)
+        using var ecdhEphemeral = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        byte[] sharedSecret = ecdhEphemeral.DeriveKeyMaterial(ecdhReceiver.PublicKey);
+
+        // 3. Wyprowadź klucz AES z sharedSecret i zaszyfruj AES-GCM
+        using var aes = new AesGcm(sharedSecret, AesGcm.TagByteSizes.MaxSize);
+        byte[] nonce = new byte[AesGcm.NonceByteSizes.MaxSize];
+        RandomNumberGenerator.Fill(nonce);
+        byte[] ciphertext = new byte[content.Length];
+        byte[] tag = new byte[AesGcm.TagByteSizes.MaxSize];
+        aes.Encrypt(nonce, content, ciphertext, tag);
+
+        // 4. Zbuduj wynik: [ephemeralPub||nonce||tag||ciphertext]
+        byte[] ephPub = ecdhEphemeral.PublicKey.ExportSubjectPublicKeyInfo();
+        return ephPub
+            .Concat(nonce)
+            .Concat(tag)
+            .Concat(ciphertext)
+            .ToArray();
+    }
+
     private byte[] GenerateRandom256BitsKey()
     {
         var key = new byte[256 / 8];

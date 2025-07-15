@@ -47,7 +47,7 @@ public class Authorization : TestBase
     /// <summary>
     /// Authenticates using certificate and context NIP, encrypted session, role: owner.
     /// </summary>
-    public async Task AuthAsync_FullIntegrationFlowWithKSeFToken_ReturnsAccessToken()
+    public async Task AuthAsync_FullIntegrationFlowWithKSeFTokenRSA_ReturnsAccessToken()
     {
       
         var random = randomGenerator.Next(100000000, 999999999);
@@ -86,6 +86,63 @@ public class Authorization : TestBase
             contextValue,
             ownerToken.Token,
             cryptographyService,
+            EncryptionMethodEnum.Rsa,
+            ipPolicy,
+            default
+        );
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.AccessToken);
+
+        // (opcjonalnie: Assert na format tokena, Claims, czas ważności itp.)
+    }
+
+
+    [Fact]
+    /// <summary>
+    /// Authenticates using certificate and context NIP, encrypted session, role: owner.
+    /// </summary>
+    public async Task AuthAsync_FullIntegrationFlowWithKSeFTokenECDsa_ReturnsAccessToken()
+    {
+
+        var random = randomGenerator.Next(100000000, 999999999);
+        var randomString = 7 + random.ToString();
+
+        // Arrange
+        //need to first auth as owner to get the KSeF token
+        var owner = this.AuthenticateAsync();
+        var permissions = new KsefTokenPermissionType[]
+        {
+            KsefTokenPermissionType.InvoiceWrite,
+            KsefTokenPermissionType.InvoiceRead
+        };
+
+        await Task.Delay(sleepTime);
+        var ownerToken = await kSeFClient.GenerateKsefTokenAsync(new KsefTokenRequest() { Description = $"NIP {randomString}", Permissions = permissions }, AccessToken);
+
+        await Task.Delay(sleepTime);
+        var tokenStatus = await kSeFClient.GetKsefTokenAsync(ownerToken.ReferenceNumber, AccessToken);
+
+        await Task.Delay(sleepTime);
+        var authCoordinator = new AuthCoordinator(this.kSeFClient) as IAuthCoordinator;
+        var restClient = new RestClient(httpClientBase) as IRestClient;
+        var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
+        await Task.Delay(sleepTime);
+
+        var contextType = ContextIdentifierType.Nip;
+        var contextValue = tokenStatus.ContextIdentifier.Value;
+
+        IpAddressPolicy? ipPolicy = null;
+
+
+        // Act
+        var result = await authCoordinator.AuthKsefTokenAsync(
+            contextType,
+            contextValue,
+            ownerToken.Token,
+            cryptographyService,
+            EncryptionMethodEnum.ECDsa,
             ipPolicy,
             default
         );

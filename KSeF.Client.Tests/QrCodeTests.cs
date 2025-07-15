@@ -16,6 +16,14 @@ namespace KSeF.Client.Tests
             _qrSvc = new QrCodeService();
         }
 
+        // =============================================
+        // Testy RSA; NIEZALECANE):
+        // - Klucze RSA 2048-bit:
+        //   • Bezpieczeństwo porównywalne z ECC P-256, ale wyższy rozmiar
+        //   • Dłuższe linki QR (więcej miejsca w wizualizacji)
+        //   • Wolniejsze generowanie kluczy, podpis i weryfikacja
+        //   • Większe zużycie pamięci i miejsca na dysku
+        // =============================================
         [Fact]
         public void BuildCertificateQr_WithEmbeddedPrivateKey_ShouldReturnBase64Png()
         {
@@ -137,6 +145,126 @@ namespace KSeF.Client.Tests
             string pngBase64 = Convert.ToBase64String(labeled);
 
             // Assert: Base64 PNG zaczyna się od "iVBOR"
+            Assert.StartsWith("iVBOR", pngBase64);
+        }
+
+        // =============================================
+        // Rekomendowane testy ECC (ECDSA P-256):
+        // • Bezpieczeństwo jak RSA-2048 przy mniejszych kluczach i podpisach
+        // • Krótsze linki QR i mniejsze zużycie zasobów
+        // • Szybsze operacje: generowanie, podpis, weryfikacja
+        // =============================================
+
+        [Fact]
+        public void BuildCertificateQr_WithEmbeddedEccPrivateKey_ShouldReturnBase64Png()
+        {
+            // Rekomendowane: użyj ECDSA prime256v1 (P-256)
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var req = new CertificateRequest(
+                "CN=TestEcc", ecdsa,
+                HashAlgorithmName.SHA256
+            );
+            var fullCert = req.CreateSelfSigned(
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddDays(1)
+            );
+            var pfxBytes = fullCert.Export(X509ContentType.Pfx);
+            var certWithKey = new X509Certificate2(
+                pfxBytes,
+                (string?)null,
+                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet
+            );
+
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                invoiceHash = Convert.ToBase64String(
+                    sha256.ComputeHash(Encoding.UTF8.GetBytes(xml))
+                );
+            }
+
+            // Act: brak jawnego klucza prywatnego → używa osadzonego klucza ECDSA
+            var url = _linkSvc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, certWithKey);
+            var qrBytes = _qrSvc.GenerateQrCode(url, 5);
+            var labeled = _qrSvc.AddLabelToQrCode(qrBytes, "CERTYFIKAT");
+            var pngBase64 = Convert.ToBase64String(labeled);
+
+            // Assert
+            Assert.StartsWith("iVBOR", pngBase64);
+        }
+
+        [Fact]
+        public void BuildCertificateQr_PublicEccOnlyWithoutPrivateKey_ShouldThrowInvalidOperationException()
+        {
+            // Rekomendowane: klienci powinni generować klucze ECDSA; public-only powinno zwrócić błąd
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var req = new CertificateRequest(
+                "CN=TestEccPublic", ecdsa,
+                HashAlgorithmName.SHA256
+            );
+            var fullCert = req.CreateSelfSigned(
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddDays(1)
+            );
+            var publicBytes = fullCert.Export(X509ContentType.Cert);
+            var publicCert = new X509Certificate2(publicBytes);
+
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                invoiceHash = Convert.ToBase64String(
+                    sha256.ComputeHash(Encoding.UTF8.GetBytes(xml))
+                );
+            }
+
+            Assert.Throws<InvalidOperationException>(() =>
+                _linkSvc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, publicCert)
+            );
+        }
+
+        [Fact]
+        public void BuildCertificateQr_PublicEccOnlyWithPrivateKeyParam_ShouldReturnBase64Png()
+        {
+            // Rekomendowane: jawny import klucza prywatnego P-256
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var req = new CertificateRequest(
+                "CN=FullEccCert", ecdsa,
+                HashAlgorithmName.SHA256
+            );
+            var fullCert = req.CreateSelfSigned(
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddDays(1)
+            );
+
+            var pfxBytes = fullCert.Export(X509ContentType.Pfx);
+            var certWithKey = new X509Certificate2(
+                pfxBytes,
+                (string?)null,
+                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet
+            );
+
+            var nip = "0000000000";
+            var xml = "<x/>";
+            var serial = Guid.NewGuid().ToString();
+            string invoiceHash;
+            using (var sha256 = SHA256.Create())
+            {
+                invoiceHash = Convert.ToBase64String(
+                    sha256.ComputeHash(Encoding.UTF8.GetBytes(xml))
+                );
+            }
+
+            var url = _linkSvc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, certWithKey);
+            var qrBytes = _qrSvc.GenerateQrCode(url, 5);
+            var labeled = _qrSvc.AddLabelToQrCode(qrBytes, "CERTYFIKAT");
+            var pngBase64 = Convert.ToBase64String(labeled);
+
             Assert.StartsWith("iVBOR", pngBase64);
         }
     }

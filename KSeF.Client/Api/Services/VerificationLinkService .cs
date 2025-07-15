@@ -36,12 +36,38 @@ namespace KSeF.Client.Api.Services
             byte[] sha = Convert.FromBase64String(invoiceHash);
 
             if (!string.IsNullOrEmpty(privateKey))
-            {
-                var privateKeyBytes = Convert.FromBase64String(privateKey);
+            {                
+                if (privateKey.StartsWith("-----"))
+                {
+                    privateKey = string.Concat(
+                        privateKey
+                            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Where(l => !l.StartsWith("-----"))
+                    );
+                }
 
-                using var rsaTemp = RSA.Create();
-                rsaTemp.ImportRSAPrivateKey(privateKeyBytes, out _);
-                cert = cert.CopyWithPrivateKey(rsaTemp);
+                byte[] privateKeyBytes = Convert.FromBase64String(privateKey);
+
+                // 1.1 Importujemy tylko, gdy certyfikat nie ma klucza prywatnego
+                if (!cert.HasPrivateKey)
+                {
+                    if (cert.GetRSAPrivateKey() != null)
+                    {
+                        using var rsaTemp = RSA.Create();
+                        rsaTemp.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+                        cert = cert.CopyWithPrivateKey(rsaTemp);
+                    }
+                    else if (cert.GetECDsaPrivateKey() != null)
+                    {
+                        using var ecdsaTemp = ECDsa.Create();
+                        ecdsaTemp.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+                        cert = cert.CopyWithPrivateKey(ecdsaTemp);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Certyfikat nie wspiera RSA ani ECDSA.");
+                    }
+                }
             }
             // 2. Sign hash
             byte[] signature;

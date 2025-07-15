@@ -25,7 +25,6 @@ public class AuthCoordinator : IAuthCoordinator
     {
         _ksefClient = ksefClient;
     }
-
     /// <summary>
     /// Wykonuje cały flow z KSeF tokenem i zwraca finalny JWT accessToken.
     /// </summary>
@@ -34,6 +33,7 @@ public class AuthCoordinator : IAuthCoordinator
         string contextIdentifierValue,
         string tokenKsef,
         ICryptographyService cryptographyService,
+        EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.ECDsa,
         IpAddressPolicy ipAddressPolicy = default,
         CancellationToken cancellationToken = default)
     {
@@ -53,8 +53,12 @@ public class AuthCoordinator : IAuthCoordinator
         var tokenBytes = Encoding.UTF8.GetBytes(tokenWithTimestamp);
 
         // 3) Szyfrowanie RSA-OAEP SHA-256
-        var encryptedBytes = cryptographyService.EncryptKsefTokenWithRSAUsingPublicKey(
-            tokenBytes);
+        byte[] encryptedBytes = encryptionMethod switch
+        {
+            EncryptionMethodEnum.Rsa => cryptographyService.EncryptKsefTokenWithRSAUsingPublicKey(tokenBytes),
+            EncryptionMethodEnum.ECDsa => cryptographyService.EncryptWithECDsaUsingPublicKey(tokenBytes),
+            _ => throw new ArgumentOutOfRangeException(nameof(encryptionMethod))
+        };
 
         var encryptedToken = Convert.ToBase64String(encryptedBytes);
 
