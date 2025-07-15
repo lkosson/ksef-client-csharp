@@ -86,12 +86,12 @@ public class AuthCoordinator : IAuthCoordinator
             Console.WriteLine(
                 $"Polling: StatusCode={authStatus.Status.Code}, " +
                 $"Description='{authStatus.Status.Description}', " +                
-                $"Details='{authStatus.Status.Details ?? new List<string>()}', " +                
+                $"Details='{string.Join(", ",(authStatus.Status.Details ?? new List<string>()))}', " +                
                 $"Elapsed={DateTime.UtcNow - startTime:mm\\:ss}");
             
             if (authStatus.Status.Code == 400)
             {
-                var exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description='{authStatus.Status.Description}'";
+                var exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description={authStatus.Status.Description}, Details={string.Join(", ", (authStatus.Status.Details ?? new List<string>()))}'";
                 throw new Exception(exMsg);
             }
 
@@ -107,7 +107,8 @@ public class AuthCoordinator : IAuthCoordinator
         if (authStatus.Status.Code != 200)
         {
             Console.WriteLine("Timeout: Brak tokena po 2 minutach.");
-            throw new Exception("Timeout Uwierzytelniania: Brak tokena po 2 minutach.");
+            var exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description={authStatus.Status.Description}, Details={string.Join(", ", (authStatus.Status.Details ?? new List<string>()))}'";
+            throw new Exception("Timeout Uwierzytelniania: Brak tokena po 2 minutach." + exMsg);
         }
         var accessTokenResponse = await _ksefClient.GetAccessTokenAsync(submissionRef.AuthenticationToken.Token, cancellationToken);
 
