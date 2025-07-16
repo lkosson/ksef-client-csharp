@@ -72,3 +72,77 @@ Wybrane: **Authorization.cs**, `EntityPermission*.cs`, **OnlineSession.cs**, **T
 | ➖ usunięte | 2 |
 
 ---
+
+## [next-version] – `2025-07-15`
+
+### 1. KSeF.Client
+
+#### 1.1 Api/Services
+- **CryptographyService.cs**  
+  - ➕ Dodano `EncryptWithEciesUsingPublicKey(byte[] content)` — domyślna metoda szyfrowania ECIES (ECDH + AES-GCM) na krzywej P-256.  
+  - 🔧 Metodę `EncryptKsefTokenWithRSAUsingPublicKey(...)` można przełączyć na ECIES lub zachować RSA-OAEP SHA-256 przez parametr `EncryptionMethod`.
+
+- **AuthCoordinator.cs**  
+  - 🔧 Sygnatura `AuthKsefTokenAsync(...)` rozszerzona o opcjonalny parametr:
+    ```csharp
+    EncryptionMethod encryptionMethod = EncryptionMethod.Ecies
+    ```  
+    — domyślnie ECIES, z możliwością fallback do RSA.
+
+#### 1.2 Core/Models
+- **EncryptionMethod.cs**  
+  ➕ Nowy enum:
+  ```csharp
+  public enum EncryptionMethod
+  {
+      Ecies,
+      Rsa
+  }
+  ````
+
+#### 1.3 Core/Interfaces
+
+* **ICryptographyService.cs**
+  ➕ Dodano metodę:
+
+  ```csharp
+  byte[] EncryptWithEciesUsingPublicKey(byte[] content);
+  ```
+
+* **IAuthCoordinator.cs**
+  🔧 `AuthKsefTokenAsync(...)` przyjmuje dodatkowy parametr:
+
+  ```csharp
+  EncryptionMethod encryptionMethod = EncryptionMethod.Ecies
+  ```
+
+---
+
+### 2. KSeF.Client.Tests
+
+* **AuthorizationTests.cs**
+  ➕ Testy end-to-end dla `AuthKsefTokenAsync(...)` w wariantach `Ecies` i `Rsa`.
+
+* **QrCodeTests.cs**
+  ➕ Rozbudowano testy `BuildCertificateQr` o scenariusze z ECDSA P-256; poprzednie testy RSA pozostawione zakomentowane.
+
+* **VerificationLinkServiceTests.cs**
+  ➕ Dodano testy generowania i weryfikacji linków dla certyfikatów ECDSA P-256.
+
+---
+
+### 3. KSeF.DemoWebApp/Controllers
+
+* **QrCodeController.cs**
+  🔧 Akcja `GetCertificateQr(...)` przyjmuje teraz opcjonalny parametr:
+
+  ```csharp
+  string privateKey = ""
+  ```
+
+  — jeśli nie jest podany, używany jest osadzony klucz w certyfikacie.
+
+---
+
+```
+```
