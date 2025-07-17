@@ -449,7 +449,7 @@ public partial class KSeFClient : IKSeFClient
         ValidatePayload(requestPayload, accessToken);
 
         return await restClient.SendAsync<string, InvoiceRequest>(HttpMethod.Post,
-                                                                    "/api/v2/invoices",
+                                                                    "/api/v2/invoices/download",
                                                                     requestPayload,
                                                                     accessToken,
                                                                     RestClient.DefaultContentType,
