@@ -44,6 +44,11 @@
 ### 1.6 Http
 - **KSeFClient.cs**: ➕ nagłówki `X-KSeF-Session-Id`, `X-Environment`; ➕ `Content-Type: application/octet-stream`
 
+### 1.7 RestClient
+- **RestClient.cs**: 🔧 `Uproszczona implementacja IRestClient'
+
+### 1.8 Usunięto
+- **KSeFClient.csproj.cs**: ➖ `KSeFClient` - nadmiarowy plik projektu, który był nieużywany
 ---
 
 ## 2. KSeF.Client.Tests
@@ -68,8 +73,8 @@ Wybrane: **Authorization.cs**, `EntityPermission*.cs`, **OnlineSession.cs**, **T
 | Typ zmiany | Liczba plików |
 |------------|---------------|
 | ➕ dodane   | 12 |
-| 🔧 zmienione| 32 |
-| ➖ usunięte | 2 |
+| 🔧 zmienione| 33 |
+| ➖ usunięte | 3 |
 
 ---
 

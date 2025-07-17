@@ -26,11 +26,6 @@ public class CryptographyService : ICryptographyService
         var tokenCert = certificates
             .OrderBy(ord => ord.ValidFrom)
             .FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.KsefTokenEncryption));
-
-        var  pem = restClient.GetPemAsync().GetAwaiter().GetResult();        
-
-        symetricKeyEncryptionPem = symmetricCert?.PublicKeyPem ?? pem;
-        ksefTokenPem = tokenCert.PublicKeyPem ?? pem;
     }
 
     /// <inheritdoc />
