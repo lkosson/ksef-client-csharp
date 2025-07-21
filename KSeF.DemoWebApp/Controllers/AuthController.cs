@@ -1,17 +1,13 @@
 using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.Authorization;
-using KSeF.Client.Core.Models.Invoices;
 using KSeFClient;
 using KSeFClient.Api.Builders.Auth;
-using KSeFClient.Api.Services;
 using KSeFClient.Core.Interfaces;
 using KSeFClient.Core.Models;
-using KSeFClient.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Xml;
-using System.Threading;
+using WebApplication.Services;
 
 namespace WebApplication.Controllers;
 
@@ -57,7 +53,7 @@ public class AuthController : ControllerBase
         return await ksefClient
             .AuthSessionStepByStep(
             SubjectIdentifierTypeEnum.CertificateSubject,
-            string.IsNullOrWhiteSpace(contextIdentifier) ? contextIdentifier : _contextIdentifier,
+            !string.IsNullOrWhiteSpace(contextIdentifier) ? contextIdentifier : _contextIdentifier,
             (xml) => { return XadeSDummy.SignWithPZ(xml, xMLDirectory); },
             ipAddressPolicy: null,
             cancellationToken);

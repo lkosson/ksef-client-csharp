@@ -1,60 +1,102 @@
-﻿using QRCoder;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Drawing.Text;
+﻿using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Graphics.Skia;
+using QRCoder;
+using SkiaSharp;
 
 namespace KSeF.Client.Api.Services
 {
     public class QrCodeService : IQrCodeService
     {
-        public byte[] GenerateQrCode(string payloadUrl, int pixelsPerModule = 20, int qrCodeWidthAndHeight = 300)
+        public byte[] GenerateQrCode(string payloadUrl, int pixelsPerModule = 20, int qrCodeSize = 300)
         {
             using var gen = new QRCodeGenerator();
-            using var data = gen.CreateQrCode(payloadUrl, QRCodeGenerator.ECCLevel.Default);
-            using var qr = new PngByteQRCode(data);            
-            var graphic = qr.GetGraphic(pixelsPerModule);
+            using var qrData = gen.CreateQrCode(payloadUrl, QRCodeGenerator.ECCLevel.Default);
 
-            return ResizePng(graphic, qrCodeWidthAndHeight, qrCodeWidthAndHeight);
+            int modules = qrData.ModuleMatrix.Count;
+            float cellSize = qrCodeSize / (float)modules;
+
+            var info = new SKImageInfo(qrCodeSize, qrCodeSize);
+            using var surface = SKSurface.Create(info);
+            var skCanvas = surface.Canvas;
+
+            var canvas = new SkiaCanvas();
+            canvas.Canvas = skCanvas;
+            canvas.SetDisplayScale(1f);
+
+            // Background
+            canvas.FillColor = Colors.White;
+            canvas.FillRectangle(0, 0, qrCodeSize, qrCodeSize);
+
+            // Draw modules
+            canvas.FillColor = Colors.Black;
+            for (int y = 0; y < modules; y++)
+                for (int x = 0; x < modules; x++)
+                    if (qrData.ModuleMatrix[y][x])
+                        canvas.FillRectangle(x * cellSize, y * cellSize, cellSize, cellSize);
+
+            // Export PNG
+            using var img = surface.Snapshot();
+            using var data = img.Encode(SKEncodedImageFormat.Png, 100);
+            return data.ToArray();
         }
 
         public byte[] ResizePng(byte[] pngBytes, int targetWidth, int targetHeight)
         {
-            using var input = new MemoryStream(pngBytes);
-            using var original = Image.FromStream(input);
-            using var resized = new Bitmap(original, new Size(targetWidth, targetHeight));
-            using var ms = new MemoryStream();
-            resized.Save(ms, ImageFormat.Png);
-            return ms.ToArray();
+            using var skBitmap = SKBitmap.Decode(pngBytes);
+            var info = new SKImageInfo(targetWidth, targetHeight);
+            using var surface = SKSurface.Create(info);
+            var canvas = new SkiaCanvas() { Canvas = surface.Canvas };
+            canvas.SetDisplayScale(1f);
+
+            IImage image = new SkiaImage(skBitmap);
+            canvas.DrawImage(image, 0, 0, targetWidth, targetHeight);
+
+            using var snap = surface.Snapshot();
+            using var encoded = snap.Encode(SKEncodedImageFormat.Png, 100);
+            return encoded.ToArray();
         }
 
         public byte[] AddLabelToQrCode(byte[] qrPng, string label, int fontSizePx = 14)
         {
-            // 1. Bitmapa QR z bajtów
-            using var msIn = new MemoryStream(qrPng);
-            using var qrBmp = (Bitmap)System.Drawing.Image.FromStream(msIn);
+            using var skBitmap = SKBitmap.Decode(qrPng);
+            IImage qrImage = new SkiaImage(skBitmap);
+            int width = skBitmap.Width;
+            int height = skBitmap.Height;
 
-            // 2. Font + wysokość napisu
-            using var font = new System.Drawing.Font("Arial", fontSizePx, FontStyle.Bold, GraphicsUnit.Pixel);
-            int labelHeight = (int)(font.GetHeight() + 4);
+            var font = new Font("Arial", fontSizePx);
 
-            // 3. Nowa bitmapa = QR + pasek na tekst
-            using var canvas = new Bitmap(qrBmp.Width, qrBmp.Height + labelHeight);
-            using var g = Graphics.FromImage(canvas);
-            g.Clear(Color.White);
-            g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+            // Measure text
+            var measureCanvas = new SkiaCanvas() { Canvas = SKSurface.Create(new SKImageInfo(1, 1)).Canvas };
+            measureCanvas.SetDisplayScale(1f);
+            measureCanvas.Font = font;
+            measureCanvas.FontSize = fontSizePx;
+            var textSize = measureCanvas.GetStringSize(label, font, fontSizePx);
+            float labelHeight = textSize.Height + 4;
 
-            // 4. Rysuj QR
-            g.DrawImage(qrBmp, 0, 0);
+            // New surface for combined image
+            var info = new SKImageInfo(width, height + (int)labelHeight);
+            using var surface = SKSurface.Create(info);
+            var canvas = new SkiaCanvas() { Canvas = surface.Canvas };
+            canvas.SetDisplayScale(1f);
 
-            // 5. Rysuj tekst wyśrodkowany
-            var rect = new RectangleF(0, qrBmp.Height, qrBmp.Width, labelHeight);
-            var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(label, font, Brushes.Black, rect, fmt);
+            // Background
+            canvas.FillColor = Colors.White;
+            canvas.FillRectangle(0, 0, width, height + labelHeight);
 
-            // 6. PNG → bajt[]
-            using var msOut = new MemoryStream();
-            canvas.Save(msOut, ImageFormat.Png);
-            return msOut.ToArray();
+            // QR code
+            canvas.DrawImage(qrImage, 0, 0, width, height);
+
+            // Draw label
+            canvas.Font = font;
+            canvas.FontSize = fontSizePx;
+            canvas.FontColor = Colors.Black;
+            var rect = new RectF(0, height, width, labelHeight);
+            canvas.DrawString(label, rect, HorizontalAlignment.Center, VerticalAlignment.Center);
+
+            // Export PNG
+            using var snap2 = surface.Snapshot();
+            using var pngData = snap2.Encode(SKEncodedImageFormat.Png, 100);
+            return pngData.ToArray();
         }
     }
 }

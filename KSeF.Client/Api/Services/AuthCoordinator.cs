@@ -134,8 +134,6 @@ public class AuthCoordinator : IAuthCoordinator
         bool verifyCertificateChain = false)
     {
         // 1) Challenge
-
-
         var challengeResponse = await _ksefClient
             .GetAuthChallengeAsync(cancellationToken);
 

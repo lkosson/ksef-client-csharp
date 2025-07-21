@@ -5,9 +5,12 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-
 namespace KSeFClient.Http;
 
+/// <summary>
+/// A generic REST client that supports GET, POST, and DELETE requests with optional authorization,
+/// content serialization/deserialization, and structured error handling.
+/// </summary>
 public class RestClient : IRestClient
 {
     private readonly HttpClient httpClient;
@@ -20,6 +23,9 @@ public class RestClient : IRestClient
         this.httpClient = httpClient;
     }
 
+    /// <summary>
+    /// Sends an HTTP request and returns the deserialized response.
+    /// </summary>
     public async Task<TResponse> SendAsync<TResponse, TRequest>(
         HttpMethod method,
         string url,
@@ -33,7 +39,10 @@ public class RestClient : IRestClient
 
         if (requestBody != null && method != HttpMethod.Get)
         {
-            var requestContent = contentType == DefaultContentType ? JsonUtil.Serialize(requestBody) : requestBody.ToString();
+            var requestContent = contentType == DefaultContentType
+                ? JsonUtil.Serialize(requestBody)
+                : requestBody.ToString();
+
             request.Content = new StringContent(requestContent!, Encoding.UTF8, contentType);
         }
 
@@ -51,8 +60,9 @@ public class RestClient : IRestClient
         }
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        Stream content = null;
-        if (response.Content != null) content = await response.Content.ReadAsStreamAsync(cancellationToken);
+        Stream content = response.Content != null
+            ? await response.Content.ReadAsStreamAsync(cancellationToken)
+            : null;
 
         if (!response.IsSuccessStatusCode)
         {
@@ -67,7 +77,6 @@ public class RestClient : IRestClient
                 {
                     var errorMessages = error.Exception.ExceptionDetailList.Select(detail =>
                         $"{detail.ExceptionCode}: {detail.ExceptionDescription} - {string.Join("; ", detail.Details ?? new List<string>())}");
-
                     var fullMessage = string.Join(" | ", errorMessages);
                     throw new KsefApiException(fullMessage, response.StatusCode, error.Exception.ServiceCode);
                 }
@@ -84,14 +93,16 @@ public class RestClient : IRestClient
             return default;
 
         var responseString = await response.Content.ReadAsStringAsync();
-
         if (typeof(TResponse) == typeof(string))
             return (TResponse)(object)responseString;
 
         return await JsonUtil.DeserializeAsync<TResponse>(content);
     }
 
-    public Task SendAsync<TRequest>(
+    /// <summary>
+    /// Sends an HTTP request.
+    /// </summary>
+    public async Task SendAsync<TRequest>(
         HttpMethod method,
         string url,
         TRequest requestBody = default,
@@ -99,17 +110,19 @@ public class RestClient : IRestClient
         string contentType = DefaultContentType,
         CancellationToken cancellationToken = default)
     {
-        return SendAsync<object, TRequest>(method, url, requestBody, bearerToken, contentType, cancellationToken);
+        await SendAsync<object, TRequest>(method, url, requestBody, bearerToken, contentType, cancellationToken);
     }
 
-    public Task SendAsync(
+    /// <summary>
+    /// Sends an HTTP request without a body.
+    /// </summary>
+    public async Task SendAsync(
         HttpMethod method,
         string url,
         string bearerToken = null,
         string contentType = DefaultContentType,
         CancellationToken cancellationToken = default)
     {
-        return SendAsync<object>(method, url, null, bearerToken, contentType, cancellationToken);
+        await SendAsync<object>(method, url, null, bearerToken, contentType, cancellationToken);
     }
 }
-

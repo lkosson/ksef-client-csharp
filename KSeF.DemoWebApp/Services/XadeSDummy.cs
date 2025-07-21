@@ -1,4 +1,4 @@
-﻿namespace KSeFClient.Api.Services;
+﻿namespace WebApplication.Services;
 
 public static class XadeSDummy
 {

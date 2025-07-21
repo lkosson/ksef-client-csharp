@@ -151,3 +151,39 @@ Wybrane: **Authorization.cs**, `EntityPermission*.cs`, **OnlineSession.cs**, **T
 
 ```
 ```
+> • 🔀 przeniesione
+
+## Rozwiązania zgłoszonych  - `2025-07-21`
+
+- **#1 Metoda AuthCoordinator.AuthAsync() zawiera błąd**  
+  🔧 `KSeF.Client/Api/Services/AuthCoordinator.cs`: usunięto 2 linie zbędnego kodu challenge 
+
+- **#2 Błąd w AuthController.cs**  
+  🔧 `KSeF.DemoWebApp/Controllers/AuthController.cs`: poprawiono logikę `AuthStepByStepAsync` (2 additions, 6 deletions) — fallback `contextIdentifier`
+
+- **#3 „Śmieciowa” klasa XadeSDummy**  
+  🔀 Przeniesiono `XadeSDummy` z `KSeF.Client.Api.Services` do `WebApplication.Services` (zmiana namespace)
+po
+- **#4 Optymalizacja RestClient**  
+  🔧 `KSeF.Client/Http/RestClient.cs`: uproszczono przeciążenia `SendAsync` (24 additions, 11 deletions), usunięto dead-code, dodano performance benchmark `perf(#4)` 
+
+- **#5 Uporządkowanie języka komunikatów**  
+  ➕ `KSeF.Client/Resources/Strings.en.resx` & `Strings.pl.resx`: dodano 101 nowych wpisów w obu plikach; skonfigurowano lokalizację w DI 
+
+- **#6 Wsparcie dla AOT**  
+  ➕ `KSeF.Client/KSeF.Client.csproj`: dodano `<PublishAot>`, `<SelfContained>`, `<InvariantGlobalization>`, runtime identifiers `win-x64;linux-x64;osx-arm64`
+
+- **#7 Nadmiarowy plik KSeFClient.csproj**  
+  ➖ Usunięto nieużywany plik projektu `KSeFClient.csproj` z repozytorium
+
+---
+
+## Inne zmiany
+
+- **QrCodeService.cs**: ➕ nowa implementacji PNG-QR (`GenerateQrCode`, `ResizePng`, `AddLabelToQrCode`); 
+
+- **ServiceCollectionExtensions.cs**: ➕ konfiguracjia lokalizacji (`pl-PL`, `en-US`) i rejestracji `IQrCodeService`/`IVerificationLinkService`
+---
+
+```
+```

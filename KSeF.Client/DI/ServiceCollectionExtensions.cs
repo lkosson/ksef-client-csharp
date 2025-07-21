@@ -4,6 +4,7 @@ using KSeF.Client.Core.Interfaces;
 using KSeFClient.Api.Services;
 using KSeFClient.Core.Interfaces;
 using KSeFClient.Http;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 namespace KSeFClient.DI;
 
@@ -43,6 +44,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISignatureService, SignatureService>();
         services.AddScoped<IQrCodeService, QrCodeService>();
         services.AddScoped<IVerificationLinkService, VerificationLinkService>();
+
+        services.AddLocalization(options =>
+        {
+            options.ResourcesPath = "Resources";
+        });
+        services.Configure<RequestLocalizationOptions>(opts =>
+        {
+            opts.SetDefaultCulture("pl-PL")
+                .AddSupportedCultures("pl-PL", "en-US")
+                .AddSupportedUICultures("pl-PL", "en-US");
+        });
 
         return services;
     }
