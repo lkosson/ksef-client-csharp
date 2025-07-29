@@ -19,7 +19,11 @@ builder.Services.AddKSeFClient(options =>
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+        opts.JsonSerializerOptions.Converters
+            .Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase))
+    );
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

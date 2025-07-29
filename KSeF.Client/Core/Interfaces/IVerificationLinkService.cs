@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography.X509Certificates;
+﻿using KSeF.Client.Core.Models.QRCode;
+using System.Security.Cryptography.X509Certificates;
 
 
 namespace KSeF.Client.Core.Interfaces
@@ -14,7 +15,8 @@ namespace KSeF.Client.Core.Interfaces
         /// Buduje link do weryfikacji certyfikatu Wystawcy (offline).
         /// </summary>
         string BuildCertificateVerificationUrl(
-            string nip,
+            ContextIdentifierType IdentifierType,
+            string IdentifierValue,
             string certificateSerial,
             string invoiceHash,
             X509Certificate2 signingCertificate,

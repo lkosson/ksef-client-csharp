@@ -1,4 +1,5 @@
 ﻿using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Models.QRCode;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -17,23 +18,30 @@ namespace KSeF.Client.Api.Services
         }
 
         public string BuildCertificateVerificationUrl(
-            string nip,
+            ContextIdentifierType identifierType,
+            string identifierValue,
             string certificateSerial,
             string invoiceHash,
             X509Certificate2 signingCertificate,
             string privateKey = ""
         )
         {
-            var signedHash = ComputeUrlEncodedSignedHash(invoiceHash, signingCertificate, privateKey);
-            return $"{BaseUrl}/certificate/{nip}/{certificateSerial}/{invoiceHash}/{signedHash}";
+            var pathToSign = $"{identifierType}/{identifierValue}/{certificateSerial}/{invoiceHash}";
+            var signedHash = ComputeUrlEncodedSignedHash(pathToSign, signingCertificate, privateKey);
+
+            return $"{BaseUrl}/certificate/{pathToSign}/{signedHash}";
         }
 
 
-
-        private static string ComputeUrlEncodedSignedHash(string invoiceHash, X509Certificate2 cert, string privateKey = "")
+        private static string ComputeUrlEncodedSignedHash(string pathToSign, X509Certificate2 cert, string privateKey = "")
         {
             // 1. SHA-256
-            byte[] sha = Convert.FromBase64String(invoiceHash);
+            byte[] sha;
+
+            using (var sha256 = SHA256.Create())
+            {
+                sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(pathToSign));            
+            }
 
             if (!string.IsNullOrEmpty(privateKey))
             {                
@@ -51,13 +59,13 @@ namespace KSeF.Client.Api.Services
                 // 1.1 Importujemy tylko, gdy certyfikat nie ma klucza prywatnego
                 if (!cert.HasPrivateKey)
                 {
-                    if (cert.GetRSAPrivateKey() != null)
+                    if (cert.GetRSAPublicKey() != null)
                     {
                         using var rsaTemp = RSA.Create();
-                        rsaTemp.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+                        rsaTemp.ImportRSAPrivateKey(privateKeyBytes, out _);
                         cert = cert.CopyWithPrivateKey(rsaTemp);
                     }
-                    else if (cert.GetECDsaPrivateKey() != null)
+                    else if (cert.GetECDsaPublicKey() != null)
                     {
                         using var ecdsaTemp = ECDsa.Create();
                         ecdsaTemp.ImportPkcs8PrivateKey(privateKeyBytes, out _);

@@ -74,7 +74,7 @@ namespace KSeF.Client.Tests
             var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
                         
             // Act
-            var url = _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), invoiceHash, fullCert);
+            var url = _svc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip,nip, serial.ToString(), invoiceHash, fullCert);
 
             // Assert
             var segments = new Uri(url)
@@ -110,7 +110,7 @@ namespace KSeF.Client.Tests
             var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
 
             // Act
-            var url = _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), invoiceHash, fullCert,fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
+            var url = _svc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, fullCert,fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
 
             // Assert
             var segments = new Uri(url)
@@ -153,7 +153,7 @@ namespace KSeF.Client.Tests
             var ex = Assert.Throws<InvalidOperationException>(() =>
             {
                 // przekazujemy pusty ciąg Base64 jako "brakujący" klucz prywatny
-                return _svc.BuildCertificateVerificationUrl(nip, serial.ToString(), invoiceHash, pubOnly);
+                return _svc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, pubOnly);
             });
 
             Assert.Contains("nie wspiera RSA", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -195,7 +195,7 @@ namespace KSeF.Client.Tests
             }
 
             // Act
-            var url = _svc.BuildCertificateVerificationUrl(
+            var url = _svc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip,
                 nip,
                 serial,
                 invoiceHash,
@@ -258,7 +258,7 @@ namespace KSeF.Client.Tests
 
             // Act – jawnie przekazujemy prywatny klucz ECDSA
             var privateKeyPem = fullCert.GetECDsaPrivateKey()?.ExportPkcs8PrivateKeyPem();
-            var url = _svc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, fullCert, privateKeyPem);
+            var url = _svc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, fullCert, privateKeyPem);
 
             // Assert – format ścieżek
             var segments = new Uri(url).Segments.Select(s => s.Trim('/')).ToArray();
@@ -290,7 +290,7 @@ namespace KSeF.Client.Tests
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() =>
-                _svc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, pubOnly)
+                _svc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, pubOnly)
             );
         }
 
@@ -312,7 +312,7 @@ namespace KSeF.Client.Tests
                 invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
 
             // Act
-            var url = _svc.BuildCertificateVerificationUrl(nip, serial, invoiceHash, certWithKey);
+            var url = _svc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip,    nip, serial, invoiceHash, certWithKey);
 
             // Assert: URL zawiera poprawny ECDSA podpis kodowany w Base64
             Assert.Contains("%3d", url);
