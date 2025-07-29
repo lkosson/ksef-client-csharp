@@ -13,12 +13,12 @@ public class OnlineSessionController : ControllerBase
 {
     private readonly ICryptographyService cryptographyService;
     private static EncryptionData? encryptionData;
-    private readonly IKSeFClient kseClient;
+    private readonly IKSeFClient ksefClient;
 
     public OnlineSessionController(IKSeFClient ksefClient, ICryptographyService cryptographyService)
     {
         this.cryptographyService = cryptographyService;
-        this.kseClient = ksefClient;
+        this.ksefClient = ksefClient;
     }
 
     [HttpPost("open-session")]
@@ -33,7 +33,7 @@ public class OnlineSessionController : ControllerBase
              initializationVector: encryptionData.EncryptionInfo.InitializationVector)
          .Build();
 
-        var openSessionResponse = await kseClient.OpenOnlineSessionAsync(request, accessToken, cancellationToken);
+        var openSessionResponse = await ksefClient.OpenOnlineSessionAsync(request, accessToken, cancellationToken);
         return Ok(openSessionResponse);
     }
 
@@ -56,7 +56,7 @@ public class OnlineSessionController : ControllerBase
             .WithOfflineMode(false)
             .Build();
 
-        var sendInvoiceResponse = await kseClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, referenceNumber, accesToken, cancellationToken)
+        var sendInvoiceResponse = await ksefClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, referenceNumber, accesToken, cancellationToken)
             .ConfigureAwait(false);
         return sendInvoiceResponse;
     }
@@ -64,7 +64,7 @@ public class OnlineSessionController : ControllerBase
     [HttpPost("close-session")]
     public async Task CloseOnlineSessionAsync(string referenceNumber, string accesToken, CancellationToken cancellationToken)
     {
-        await kseClient.CloseOnlineSessionAsync(referenceNumber, accesToken, cancellationToken)
+        await ksefClient.CloseOnlineSessionAsync(referenceNumber, accesToken, cancellationToken)
             .ConfigureAwait(false);
     }
 }
