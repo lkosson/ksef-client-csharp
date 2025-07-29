@@ -64,7 +64,7 @@ Wybrane: **Authorization.cs**, `EntityPermission*.cs`, **OnlineSession.cs**, **T
 - **AuthController.cs**: ➕ `GET /auth-with-ksef-certificate`; 🔧 fallback `contextIdentifier`
 - **BatchSessionController.cs**: ➕ `WithOfflineMode(false)`; 🔧 pętla `var`
 - **CertificateController.cs**: ➕ `serialNumber`, `name`; ➕ builder
-- **OnlineSessionController.cs**: ➕ `WithOfflineMode(false)`
+- **OnlineSessionController.cs**: ➕ `WithOfflineMode(false)` 🔧 `WithInvoiceHash`
 
 ---
 

@@ -49,7 +49,7 @@ public class OnlineSessionController : ControllerBase
 
         var sendOnlineInvoiceRequest = SendInvoiceOnlineSessionRequestBuilder
             .Create()
-            .WithDocumentHash(invoiceMetadata.HashSHA, invoiceMetadata.FileSize)
+            .WithInvoiceHash(invoiceMetadata.HashSHA, invoiceMetadata.FileSize)
             .WithEncryptedDocumentHash(
                encryptedInvoiceMetadata.HashSHA, encryptedInvoiceMetadata.FileSize)
             .WithEncryptedDocumentContent(Convert.ToBase64String(encryptedInvoice))

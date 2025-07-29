@@ -2,10 +2,10 @@
 
 public interface ISendInvoiceOnlineSessionRequestBuilder
 {
-    ISendInvoiceOnlineSessionRequestBuilderWithDocumentHash WithDocumentHash(string documentHash, long documentSize);
+    ISendInvoiceOnlineSessionRequestBuilderWithInvoiceHash WithInvoiceHash(string documentHash, long documentSize);
 }
 
-public interface ISendInvoiceOnlineSessionRequestBuilderWithDocumentHash
+public interface ISendInvoiceOnlineSessionRequestBuilderWithInvoiceHash
 {
     ISendInvoiceOnlineSessionRequestBuilderWithEncryptedDocumentHash WithEncryptedDocumentHash(string encryptedDocumentHash, long encryptedDocumentSize);
 }
@@ -24,7 +24,7 @@ public interface ISendInvoiceOnlineSessionRequestBuilderBuild
 
 internal class SendInvoiceOnlineSessionRequestBuilderImpl
     : ISendInvoiceOnlineSessionRequestBuilder
-    , ISendInvoiceOnlineSessionRequestBuilderWithDocumentHash
+    , ISendInvoiceOnlineSessionRequestBuilderWithInvoiceHash
     , ISendInvoiceOnlineSessionRequestBuilderWithEncryptedDocumentHash
     , ISendInvoiceOnlineSessionRequestBuilderBuild
 {
@@ -40,7 +40,7 @@ internal class SendInvoiceOnlineSessionRequestBuilderImpl
 
     public static ISendInvoiceOnlineSessionRequestBuilder Create() => new SendInvoiceOnlineSessionRequestBuilderImpl();
 
-    public ISendInvoiceOnlineSessionRequestBuilderWithDocumentHash WithDocumentHash(string documentHash, long documentSize)
+    public ISendInvoiceOnlineSessionRequestBuilderWithInvoiceHash WithInvoiceHash(string documentHash, long documentSize)
     {
         if (string.IsNullOrWhiteSpace(documentHash) || documentSize < 0)
             throw new ArgumentException("InvoiceHash parameters are invalid.");
