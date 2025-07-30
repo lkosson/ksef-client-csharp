@@ -9,14 +9,7 @@ public class PersonPermission
     public string AuthorizedIdentifier { get; set; }
     public string AuthorizedIdentifierType { get; set; }
     public string SubunitIdentifier { get; set; }
-    public string SubunitdentifierType { get; set; } 
     public string SubunitIdentifierType { get; set; }
-    
-    [JsonIgnore]
-    public string SubunitIdentifierTypeGet =>  !string.IsNullOrEmpty(SubunitdentifierType)
-            ? SubunitdentifierType 
-            : SubunitIdentifierType;
-
     public string AuthorIdentifier { get; set; }
     public string AuthorIdentifierType { get; set; }
     public string PermissionScope { get; set; }

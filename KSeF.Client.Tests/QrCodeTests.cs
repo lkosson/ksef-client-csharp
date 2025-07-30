@@ -1,4 +1,5 @@
 ﻿using KSeF.Client.Api.Services;
+using KSeFClient.DI;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -12,7 +13,7 @@ namespace KSeF.Client.Tests
 
         public QrCodeTests()
         {
-            _linkSvc = new VerificationLinkService();
+            _linkSvc = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnviromentsUris.TEST });
             _qrSvc = new QrCodeService();
         }
 
@@ -56,7 +57,7 @@ namespace KSeF.Client.Tests
             }
 
             // Act: brak privateKey → użyje wbudowanego klucza
-            var url = _linkSvc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip,nip, serial, invoiceHash, certWithKey);
+            var url = _linkSvc.BuildCertificateVerificationUrl(nip,Core.Models.QRCode.ContextIdentifierType.Nip,nip, serial, invoiceHash, certWithKey);
             byte[] qrBytes = _qrSvc.GenerateQrCode(url, 5);
             byte[] labeled = _qrSvc.AddLabelToQrCode(qrBytes, "CERTYFIKAT");
             string pngBase64 = Convert.ToBase64String(labeled);
@@ -94,7 +95,7 @@ namespace KSeF.Client.Tests
 
             // Act & Assert: brak privateKey i brak wbudowanego → InvalidOperationException
             Assert.Throws<InvalidOperationException>(() =>
-                _linkSvc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, publicCert)
+                _linkSvc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, publicCert)
             );
         }
 
@@ -133,7 +134,7 @@ namespace KSeF.Client.Tests
             }
 
             // Act: nie podajemy privateKey — metoda użyje certWithKey.GetRSAPrivateKey()
-            var url = _linkSvc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip,
+            var url = _linkSvc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip,
                 nip,
                 serial,
                 invoiceHash,
@@ -187,7 +188,7 @@ namespace KSeF.Client.Tests
             }
 
             // Act: brak jawnego klucza prywatnego → używa osadzonego klucza ECDSA
-            var url = _linkSvc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, certWithKey);
+            var url = _linkSvc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, certWithKey);
             var qrBytes = _qrSvc.GenerateQrCode(url, 5);
             var labeled = _qrSvc.AddLabelToQrCode(qrBytes, "CERTYFIKAT");
             var pngBase64 = Convert.ToBase64String(labeled);
@@ -224,7 +225,7 @@ namespace KSeF.Client.Tests
             }
 
             Assert.Throws<InvalidOperationException>(() =>
-                _linkSvc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, publicCert)
+                _linkSvc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, publicCert)
             );
         }
 
@@ -260,7 +261,7 @@ namespace KSeF.Client.Tests
                 );
             }
 
-            var url = _linkSvc.BuildCertificateVerificationUrl(Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, certWithKey);
+            var url = _linkSvc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, certWithKey);
             var qrBytes = _qrSvc.GenerateQrCode(url, 5);
             var labeled = _qrSvc.AddLabelToQrCode(qrBytes, "CERTYFIKAT");
             var pngBase64 = Convert.ToBase64String(labeled);

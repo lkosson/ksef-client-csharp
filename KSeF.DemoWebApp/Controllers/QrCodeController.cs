@@ -47,16 +47,17 @@ public class QrCodeController(
     // 3. Weryfikacja certyfikatu (Kod II)
     [HttpGet("certificate")]
     public ActionResult<QrCodeResult> GetCertificateQr(
-        string nip,
+        string sellerNip,
+        ContextIdentifierType contextIdentifierType,
+        string contextIdentifierValue,
         string certSerial,
         string invoiceHash,
         string certbase64,
-        string privateKey = "",
-        ContextIdentifierType identifierType = ContextIdentifierType.Nip
+        string privateKey = ""        
        )
     {
         var cert = new X509Certificate2(Convert.FromBase64String(certbase64));
-        var url = linkSvc.BuildCertificateVerificationUrl(identifierType, nip, certSerial, invoiceHash, cert, privateKey);
+        var url = linkSvc.BuildCertificateVerificationUrl(sellerNip,contextIdentifierType ,contextIdentifierValue ,certSerial, invoiceHash, cert, privateKey);
         var qrCode = qrSvc.GenerateQrCode(url);
         var labeledQr = qrSvc.AddLabelToQrCode(qrCode, "CERTYFIKAT");
 

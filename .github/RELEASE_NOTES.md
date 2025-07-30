@@ -5,6 +5,7 @@
 ---
 
 ## 1. KSeF.Client
+Zmiana wersji .NET 8.0 na .NET 9/0
 
 ### 1.1 Api/Services
 - **AuthCoordinator.cs**: 🔧 Dodano dodatkowy log `Status.Details`; 🔧 dodano wyjątek przy `Status.Code == 400`; ➖ usunięto `ipAddressPolicy`

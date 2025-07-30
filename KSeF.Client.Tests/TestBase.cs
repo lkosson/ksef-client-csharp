@@ -81,7 +81,7 @@ public class TestBase
             .Create()
             .WithGivenName("A")
             .WithSurname("R")
-            .WithSerialNumber("PNOPL-9" + randomString) // Alternatywnie: TINPL-1234567890
+            .WithSerialNumber("TINPL-" + randomString) // Alternatywnie: TINPL-1234567890 , PNOPL-9
             .WithCommonName("A R")
             .Build();
 

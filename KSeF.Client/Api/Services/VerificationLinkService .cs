@@ -1,35 +1,47 @@
 ﻿using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.QRCode;
+using KSeFClient.DI;
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Web;
 
 namespace KSeF.Client.Api.Services
 {
     public class VerificationLinkService : IVerificationLinkService
     {
-        private const string BaseUrl = "https://ksef.mf.gov.pl/client-app";
+        private readonly string BaseUrl;
+        
+        public VerificationLinkService(KSeFClientOptions options)
+        {        
+            BaseUrl = $"{options.BaseUrl}/client-app";    
+        }
 
-        public string BuildInvoiceVerificationUrl(string nip, DateTime issueDate, string invoicehash)
+        public string BuildInvoiceVerificationUrl(string nip, DateTime issueDate, string invoiceHash)
         {
             var date = issueDate.ToString("dd-MM-yyyy");
-            return $"{BaseUrl}/invoice/{nip}/{date}/{invoicehash}";
+            var bytes = Convert.FromBase64String(invoiceHash);
+            var urlEncoded = Base64Url.EncodeToString(bytes);
+            return $"{BaseUrl}/invoice/{nip}/{date}/{urlEncoded}";
         }
 
         public string BuildCertificateVerificationUrl(
-            ContextIdentifierType identifierType,
-            string identifierValue,
+            string sellerNip,
+            ContextIdentifierType contextIdentifierType,
+            string contextIdentifierValue,
             string certificateSerial,
             string invoiceHash,
             X509Certificate2 signingCertificate,
             string privateKey = ""
         )
-        {
-            var pathToSign = $"{identifierType}/{identifierValue}/{certificateSerial}/{invoiceHash}";
+        {            
+            var bytes = Convert.FromBase64String(invoiceHash);
+            var invoiceHashUrlEncoded = Base64Url.EncodeToString(bytes);
+
+            var pathToSign = $"{BaseUrl}/certificate/{contextIdentifierType}/{contextIdentifierValue}/{sellerNip}/{certificateSerial}/{invoiceHashUrlEncoded}".Replace("https://", "");
             var signedHash = ComputeUrlEncodedSignedHash(pathToSign, signingCertificate, privateKey);
 
-            return $"{BaseUrl}/certificate/{pathToSign}/{signedHash}";
+            return $"{BaseUrl}/certificate/{contextIdentifierType}/{contextIdentifierValue}/{sellerNip}/{certificateSerial}/{invoiceHashUrlEncoded}/{signedHash}";
         }
 
 
@@ -92,9 +104,8 @@ namespace KSeF.Client.Api.Services
                 throw new InvalidOperationException("Certyfikat nie wspiera RSA ani ECDsa.");
             }
 
-            // 3. Base64 + URL-encode
-            var b64 = Convert.ToBase64String(signature);
-            return HttpUtility.UrlEncode(b64);
+            // 3. Base64 + URL-encode            
+            return Base64Url.EncodeToString(signature);            
         }
     }
 }

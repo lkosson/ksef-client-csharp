@@ -15,8 +15,9 @@ namespace KSeF.Client.Core.Interfaces
         /// Buduje link do weryfikacji certyfikatu Wystawcy (offline).
         /// </summary>
         string BuildCertificateVerificationUrl(
-            ContextIdentifierType IdentifierType,
-            string IdentifierValue,
+            string sellerNip,
+            ContextIdentifierType contextIdentifierType,
+            string contextIdentifierValue,
             string certificateSerial,
             string invoiceHash,
             X509Certificate2 signingCertificate,
