@@ -9,7 +9,7 @@ Repozytorium zawiera:
 - **Testy integracyjne klienta KSeF 2.0 (KSeF.Client.Tests)**
 - **Przykładową aplikację napisaną w ASP.NET (KSeF.DemoWebApp)**
 
-Całość napisana jest w języku **C#** z wykorzystaniem platformy **.NET 8** (lub nowszej). Do komunikacji HTTP wykorzystywany jest RestClient, a rejestracja i konfiguracja klienta KSeF odbywa się przez mechanizm Dependency Injection (Microsoft.Extensions.DependencyInjection).
+Całość napisana jest w języku **C#** z wykorzystaniem platformy **.NET 9** (lub nowszej). Do komunikacji HTTP wykorzystywany jest RestClient, a rejestracja i konfiguracja klienta KSeF odbywa się przez mechanizm Dependency Injection (Microsoft.Extensions.DependencyInjection).
 
 ### Struktura katalogów KSeF.Client
 

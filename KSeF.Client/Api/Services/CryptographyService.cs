@@ -16,7 +16,7 @@ public class CryptographyService : ICryptographyService
     private readonly string symetricKeyEncryptionPem;
     private readonly string ksefTokenPem;
 
-    public CryptographyService(IKSeFClient kSeFClient, IRestClient restClient)
+    public CryptographyService(IKSeFClient kSeFClient)
     {
         var certificates = kSeFClient.GetPublicCertificates(default)
             .GetAwaiter().GetResult();
