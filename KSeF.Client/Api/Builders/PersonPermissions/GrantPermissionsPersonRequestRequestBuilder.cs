@@ -14,19 +14,25 @@ public static class GrantPersonPermissionsRequestBuilder
 
     public interface IPermissionsStep
     {
-        IOptionalStep WithPermissions(params StandardPermissionType[] permissions);
+        IDescriptionStep WithPermissions(params StandardPermissionType[] permissions);
     }
 
-    public interface IOptionalStep
+    public interface IDescriptionStep
     {
-        IOptionalStep WithDescription(string description);
+        IBuildStep WithDescription(string description);
+    }
+
+    public interface IBuildStep
+    {
         GrantPermissionsPersonRequest Build();
     }
+    
 
     private sealed class GrantPermissionsRequestBuilderImpl :
         ISubjectStep,
         IPermissionsStep,
-        IOptionalStep
+        IDescriptionStep,
+        IBuildStep
     {
         private SubjectIdentifier _subject;
         private ICollection<StandardPermissionType> _permissions;
@@ -42,7 +48,7 @@ public static class GrantPersonPermissionsRequestBuilder
             return this;
         }
 
-        public IOptionalStep WithPermissions(params StandardPermissionType[] permissions)
+        public IDescriptionStep WithPermissions(params StandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
                 throw new ArgumentException("At least one permission.", nameof(permissions));
@@ -51,7 +57,7 @@ public static class GrantPersonPermissionsRequestBuilder
             return this;
         }
 
-        public IOptionalStep WithDescription(string description)
+        public IBuildStep WithDescription(string description)
         {
             _description = description ?? throw new ArgumentNullException(nameof(description));
             return this;
@@ -63,6 +69,8 @@ public static class GrantPersonPermissionsRequestBuilder
                 throw new InvalidOperationException("WithSubject(...) must be called first.");
             if (_permissions is null)
                 throw new InvalidOperationException("WithPermissions(...) must be called after subject.");
+            if (_description is null)
+                throw new InvalidOperationException("WithDescription(...) must be called after permissions.");
 
             return new GrantPermissionsPersonRequest
             {

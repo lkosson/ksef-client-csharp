@@ -6,7 +6,6 @@ using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Core.Models.Sessions;
 using KSeFClient;
-using KSeFClient.Core.Interfaces;
 
 namespace KSeF.Client.Api.Services;
 
@@ -27,9 +26,44 @@ public class CryptographyService : ICryptographyService
             .OrderBy(ord => ord.ValidFrom)
             .FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.KsefTokenEncryption));
 
-        symetricKeyEncryptionPem = symmetricCert.PublicKeyPem;
-        ksefTokenPem = tokenCert.PublicKeyPem;
+        symetricKeyEncryptionPem = $"-----BEGIN CERTIFICATE-----{Environment.NewLine}{symmetricCert.Certificate}{Environment.NewLine}-----END CERTIFICATE-----";
+
+        ksefTokenPem = $"-----BEGIN CERTIFICATE-----{Environment.NewLine}{tokenCert.Certificate}{Environment.NewLine}-----END CERTIFICATE-----";
     }
+
+    private string GetRSAPublicPem(string certificatePem)
+    {
+        var cert = X509Certificate2.CreateFromPem(certificatePem);
+
+        var rsa = cert.GetRSAPublicKey();
+        if (rsa != null)
+        {
+            string pubKeyPem = ExportPublicKeyToPem(rsa);
+            return pubKeyPem;
+        }
+        else
+        {
+            throw new Exception("Nie znaleziono klucza RSA.");
+        }
+    }
+
+    private string GetECDSAPublicPem(string certificatePem)
+    {
+        var cert = X509Certificate2.CreateFromPem(certificatePem);
+
+        var ecdsa = cert.GetECDsaPublicKey();
+        if (ecdsa != null)
+        {
+            string pubKeyPem = ExportEcdsaPublicKeyToPem(ecdsa);
+            return pubKeyPem;
+        }
+        else
+        {
+            throw new Exception("Nie znaleziono klucza ECDSA.");
+        }
+    }
+
+
 
     /// <inheritdoc />
     public EncryptionData GetEncryptionData()
@@ -76,6 +110,23 @@ public class CryptographyService : ICryptographyService
 
         output.Position = 0;
         return BinaryData.FromStream(output).ToArray();
+    }
+
+    public void EncryptStreamWithAES256(Stream input, Stream output, byte[] key, byte[] iv)
+    {
+        using var aes = Aes.Create();
+        aes.KeySize = 256;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+        aes.BlockSize = 16 * 8;
+        aes.Key = key;
+        aes.IV = iv;
+
+        using var encryptor = aes.CreateEncryptor();
+        using var cryptoStream = new CryptoStream(output, encryptor, CryptoStreamMode.Write, leaveOpen: true);
+        input.CopyTo(cryptoStream);
+        cryptoStream.FlushFinalBlock();
+        output.Position = 0;
     }
 
     /// <inheritdoc />
@@ -151,7 +202,8 @@ public class CryptographyService : ICryptographyService
     public byte[] EncryptWithRSAUsingPublicKey(byte[] content, RSAEncryptionPadding padding)
     {
         var rsa = RSA.Create();
-        rsa.ImportFromPem(symetricKeyEncryptionPem);
+        var publicKey = GetRSAPublicPem(symetricKeyEncryptionPem);
+        rsa.ImportFromPem(publicKey);
         return rsa.Encrypt(content, padding);
     }
 
@@ -159,34 +211,29 @@ public class CryptographyService : ICryptographyService
     public byte[] EncryptKsefTokenWithRSAUsingPublicKey(byte[] content)
     {
         var rsa = RSA.Create();
-        rsa.ImportFromPem(ksefTokenPem);
+        var publicKey = GetRSAPublicPem(ksefTokenPem);
+        rsa.ImportFromPem(publicKey);
         return rsa.Encrypt(content, RSAEncryptionPadding.OaepSHA256);
     }
 
     /// <inheritdoc />
-    /// <summary>
-    /// Szyfruje dane przy pomocy klucza publicznego ECDSA (ECC P-256) wzorując się na ECIES.
-    /// </summary>
     public byte[] EncryptWithECDsaUsingPublicKey(byte[] content)
     {
-        // 1. Import klucza publicznego odbiorcy (ECDH)
         using var ecdhReceiver = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
-        ecdhReceiver.ImportFromPem(ksefTokenPem);
+        var publicKey = GetECDSAPublicPem(ksefTokenPem);
+        ecdhReceiver.ImportFromPem(publicKey);
 
-        // 2. Wygeneruj tymczasową parę (ECDH)
         using var ecdhEphemeral = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
-        byte[] sharedSecret = ecdhEphemeral.DeriveKeyMaterial(ecdhReceiver.PublicKey);
+        var sharedSecret = ecdhEphemeral.DeriveKeyMaterial(ecdhReceiver.PublicKey);
 
-        // 3. Wyprowadź klucz AES z sharedSecret i zaszyfruj AES-GCM
         using var aes = new AesGcm(sharedSecret, AesGcm.TagByteSizes.MaxSize);
-        byte[] nonce = new byte[AesGcm.NonceByteSizes.MaxSize];
+        var nonce = new byte[AesGcm.NonceByteSizes.MaxSize];
         RandomNumberGenerator.Fill(nonce);
-        byte[] ciphertext = new byte[content.Length];
-        byte[] tag = new byte[AesGcm.TagByteSizes.MaxSize];
+        var ciphertext = new byte[content.Length];
+        var tag = new byte[AesGcm.TagByteSizes.MaxSize];
         aes.Encrypt(nonce, content, ciphertext, tag);
 
-        // 4. Zbuduj wynik: [ephemeralPub||nonce||tag||ciphertext]
-        byte[] ephPub = ecdhEphemeral.PublicKey.ExportSubjectPublicKeyInfo();
+        var ephPub = ecdhEphemeral.PublicKey.ExportSubjectPublicKeyInfo();
         return ephPub
             .Concat(nonce)
             .Concat(tag)
@@ -211,5 +258,15 @@ public class CryptographyService : ICryptographyService
 
         return iv;
     }
+    private string ExportEcdsaPublicKeyToPem(ECDsa ecdsa)
+    {
+        var pubKeyBytes = ecdsa.ExportSubjectPublicKeyInfo();
+        return new string(PemEncoding.Write("PUBLIC KEY", pubKeyBytes));
+    }
 
+    private string ExportPublicKeyToPem(RSA rsa)
+    {
+        var pubKeyBytes = rsa.ExportSubjectPublicKeyInfo();
+        return new string(PemEncoding.Write("PUBLIC KEY", pubKeyBytes));
+    }
 }

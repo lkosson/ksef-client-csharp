@@ -50,7 +50,7 @@ public partial class KSeFClient : IKSeFClient
                                                                             accessToken,
                                                                             RestClient.DefaultContentType,
                                                                             cancellationToken,
-                                                                            !string.IsNullOrEmpty(continuationToken) ?
+                                                                           !string.IsNullOrEmpty(continuationToken) ?
                                                                              new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken)} }
                                                                               : null).ConfigureAwait(false);
 
@@ -459,15 +459,15 @@ public partial class KSeFClient : IKSeFClient
 
 
     /// <inheritdoc />
-    public async Task<PagedInvoiceResponse> QueryInvoicesAsync(QueryInvoiceRequest requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default)
+    public async Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceMetadataQueryRequest requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default)
     {
         ValidatePayload(requestPayload, accessToken);
 
-        var urlBuilder = new StringBuilder("/api/v2/invoices/query");
+        var urlBuilder = new StringBuilder("/api/v2/invoices/query/metadata");
 
         Pagination(pageOffset, pageSize, urlBuilder);
 
-        return await restClient.SendAsync<PagedInvoiceResponse, QueryInvoiceRequest>(HttpMethod.Post,
+        return await restClient.SendAsync<PagedInvoiceResponse, InvoiceMetadataQueryRequest>(HttpMethod.Post,
                                                                     urlBuilder.ToString(),
                                                                     requestPayload,
                                                                     accessToken,
@@ -481,7 +481,7 @@ public partial class KSeFClient : IKSeFClient
     {
         ValidatePayload(requestPayload, accessToken);
 
-        return await restClient.SendAsync<OperationStatusResponse, QueryInvoiceRequest>(HttpMethod.Post,
+        return await restClient.SendAsync<OperationStatusResponse, InvoiceMetadataQueryRequest>(HttpMethod.Post,
                                                                     "/api/v2/invoices/async-query",
                                                                     requestPayload,
                                                                     accessToken,
@@ -538,7 +538,7 @@ public partial class KSeFClient : IKSeFClient
     public async Task<OperationResponse> RevokeAuthorizationsPermissionAsync(string permissionId, string accessToken, CancellationToken cancellationToken = default)
     {
         ValidateParams(permissionId, accessToken);
-        return await restClient.SendAsync<OperationResponse, string>(HttpMethod.Delete,                                                            
+        return await restClient.SendAsync<OperationResponse, string>(HttpMethod.Delete,
                                                              $"/api/v2/permissions/authorizations/grants/{Uri.EscapeDataString(permissionId)}",
                                                              default,
                                                              accessToken,
@@ -949,13 +949,34 @@ public partial class KSeFClient : IKSeFClient
         if (parts == null || parts.Count == 0)
             throw new ArgumentException("Brak plików do wysłania.", nameof(parts));
 
-        await SendPartsInternalAsync(openBatchSessionResponse.PartUploadRequests, parts, cancellationToken).ConfigureAwait(false);
+        await SendPartsInternalAsync(
+            openBatchSessionResponse.PartUploadRequests,
+            parts,
+            (info) => new ByteArrayContent(info.Data),
+            cancellationToken
+        ).ConfigureAwait(false);
     }
 
-    private static async Task SendPartsInternalAsync(
-     ICollection<PackagePartSignatureInitResponseType> parts,
-     ICollection<BatchPartSendingInfo> batchPartSendingInfos,
-     CancellationToken cancellationToken)
+    /// <inheritdoc />
+    public async Task SendBatchPartsWithStreamAsync(OpenBatchSessionResponse openBatchSessionResponse, ICollection<BatchPartStreamSendingInfo> parts, CancellationToken cancellationToken = default)
+    {
+        if (parts == null || parts.Count == 0)
+            throw new ArgumentException("Brak plików do wysłania.", nameof(parts));
+
+        await SendPartsInternalAsync(
+            openBatchSessionResponse.PartUploadRequests,
+            parts,
+            (info) => new StreamContent(info.DataStream),
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
+    private static async Task SendPartsInternalAsync<TInfo>(
+        ICollection<PackagePartSignatureInitResponseType> parts,
+        ICollection<TInfo> batchPartSendingInfos,
+        Func<TInfo, HttpContent> contentFactory,
+        CancellationToken cancellationToken)
+        where TInfo : class
     {
         if (parts == null)
             throw new InvalidOperationException("Brak informacji o partach do wysłania.");
@@ -965,10 +986,18 @@ public partial class KSeFClient : IKSeFClient
 
         foreach (var part in parts)
         {
-            var fileInfo = batchPartSendingInfos.First(x => x.OrdinalNumber == part.OrdinalNumber);
-            using var content = new ByteArrayContent(fileInfo.Data);
+            var fileInfo = batchPartSendingInfos.FirstOrDefault(x =>
+                (int)x.GetType().GetProperty("OrdinalNumber")!.GetValue(x)! == part.OrdinalNumber);
+
+            if (fileInfo == null)
+            {
+                errors.Add($"Brak danych dla partu {part.OrdinalNumber}.");
+                continue;
+            }
+
+            using var content = contentFactory(fileInfo);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            // Dodaj wymagane nagłówki
+
             if (part.Headers != null)
             {
                 foreach (var header in part.Headers)
@@ -977,7 +1006,6 @@ public partial class KSeFClient : IKSeFClient
                 }
             }
 
-            // Przygotuj metodę i żądanie
             if (string.IsNullOrWhiteSpace(part.Method))
             {
                 errors.Add($"Brak metody HTTP dla partu {part.OrdinalNumber}.");
@@ -990,7 +1018,7 @@ public partial class KSeFClient : IKSeFClient
                 Content = content
             };
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -1022,15 +1050,13 @@ public partial class KSeFClient : IKSeFClient
         }
     }
 
-    private static void ValidatePayload(object requestPayload, string accessToken)
+    private static void ValidatePayload(object requestPayload, string accessToken = "")
     {
-        ValidateParams(accessToken);
+        if (!string.IsNullOrEmpty(accessToken))
+        {
+            ValidateParams(accessToken);
+        }
 
-        ArgumentNullException.ThrowIfNull(requestPayload);
-    }
-
-    private static void ValidatePayload(object requestPayload)
-    {
         ArgumentNullException.ThrowIfNull(requestPayload);
     }
 

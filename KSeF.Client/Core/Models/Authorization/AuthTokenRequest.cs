@@ -1,6 +1,7 @@
 ﻿using System.Runtime.Serialization;
 using System.Text;
 using System.Xml;
+using System.Xml.Schema;
 using System.Xml.Serialization;
 
 namespace KSeF.Client.Core.Models.Authorization;
@@ -17,21 +18,36 @@ public class AuthTokenRequest
     public IpAddressPolicy IpAddressPolicy { get; set; }    
 }
 
-public class AuthContextIdentifier
+public class AuthContextIdentifier : IXmlSerializable
 {
     public ContextIdentifierType Type { get; set; }
     public string Value { get; set; }
+
+    public XmlSchema GetSchema() => null;
+
+    public void ReadXml(XmlReader reader)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        writer.WriteStartElement(Type.ToString());
+        if (Value != null)
+            writer.WriteString(Value);
+        writer.WriteEndElement();
+    }
 }
 public enum ContextIdentifierType
 {
-    [EnumMember(Value = "nip")]
-    [XmlEnum("nip")]
+    [EnumMember(Value = "Nip")]
+    [XmlEnum("Nip")]
     Nip,
-    [EnumMember(Value = "internalId")]
-    [XmlEnum("internalId")]
+    [EnumMember(Value = "InternalId")]
+    [XmlEnum("InternalId")]
     InternalId,
-    [EnumMember(Value = "nipVatUe")]
-    [XmlEnum("nipVatUe")]
+    [EnumMember(Value = "NipVatUe")]
+    [XmlEnum("NipVatUe")]
     NipVatUe
 }
 

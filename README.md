@@ -39,7 +39,7 @@ var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
 
 builder.Services.AddKSeFClient(options =>
 {
-    options.BaseUrl = KsefEnviromentsUris.DEV;
+    options.BaseUrl = KsefEnviromentsUris.TEST;
 });
 ```
 

@@ -37,13 +37,13 @@ public class InvoicesController : ControllerBase
     /// </summary>
     [HttpPost("query")]
     public async Task<ActionResult<PagedInvoiceResponse>> QueryInvoicesAsync(
-        [FromBody] QueryInvoiceRequest body,
+        [FromBody] InvoiceMetadataQueryRequest body,
         [FromQuery] string accessToken,
         [FromQuery] int? pageOffset,
         [FromQuery] int? pageSize,
         CancellationToken cancellationToken)
     {
-        return await ksefClient.QueryInvoicesAsync(body, accessToken, pageOffset, pageSize, cancellationToken);
+        return await ksefClient.QueryInvoiceMetadataAsync(body, accessToken, pageOffset, pageSize, cancellationToken);
     }
 
     /// <summary>

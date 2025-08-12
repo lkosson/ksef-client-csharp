@@ -23,6 +23,16 @@ public interface ICryptographyService
     /// <param name="iv">Wektro IV klucza symetrycznego.</param>
     /// <returns>Zaszyfrowany plik w formie byte array.</returns>
     byte[] EncryptBytesWithAES256(byte[] content, byte[] key, byte[] iv);
+
+    /// <summary>
+    /// Szyfrowanie danych przy użyciu AES-256 w trybie CBC z PKCS7 paddingiem.
+    /// </summary>
+    /// <param name="input">Input stream - niezaszyfrowany.</param>
+    /// <param name="output">Output stream - zaszyfrowany.</param>
+    /// <param name="key">Klucz symetryczny.</param>
+    /// <param name="iv">Wektro IV klucza symetrycznego.</param>
+    /// <returns>Zaszyfrowany plik w formie stream.</returns>
+    void EncryptStreamWithAES256(Stream input, Stream output, byte[] key, byte[] iv);
     /// <summary>
     /// Generuje żądanie podpisania certyfikatu (CSR) na podstawie przekazanych informacji o certyfikacie.
     /// </summary>

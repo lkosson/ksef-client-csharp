@@ -15,7 +15,8 @@ public class BatchSessionScenarioFixture
     public OpenBatchSessionResponse? OpenBatchSessionResponse { get; internal set; }
     public string? UpoReferenceNumber { get; set; }
 
-    public List<BatchPartSendingInfo> EncryptedParts { get; set; } 
+    public List<BatchPartSendingInfo> EncryptedParts { get; set; }
+    public List<BatchPartStreamSendingInfo> EncryptedStreamParts { get; set; }
 }
 
 [CollectionDefinition("BatchSessionScenario")]
@@ -64,12 +65,41 @@ public class BatchSession : TestBase
         // Step 7: Get session UPO
         await Step7_GetBatchSessionUpoAsync_ReturnsSessionUpo();
     }
+    [Fact]
+    public async Task BatchSession_E2E_Stream_WorksCorrectly()
+    {
+        // Step 1: Open session and prepare stream parts
+        await Step1_OpenBatchSession_Stream_ReturnsReference();
+
+        // Step 2: Send invoice using stream
+        await Step2_SendBatchPartsWithStreamAsync();
+
+        await Task.Delay(2000); // Wait for processing
+
+        // Step 3: Close session
+        await Step3_CloseBatchSessionAsync_ClosesSessionSuccessfully();
+
+        await Task.Delay(8000); // Wait for processing
+
+        // Step 4: Check status
+        await Step4_GetBatchSessionStatusByAsync_ReturnsStatus();
+
+        // Step 5: Get documents
+        await Step5_GetBatchSessionDocumentsAync_ReturnsDocuments();
+
+        // Step 6: Get UPO
+        await Step6_GetBatchSessionInvoiceUpoAsync_ReturnsUpo();
+
+        // Step 7: Get session UPO
+        await Step7_GetBatchSessionUpoAsync_ReturnsSessionUpo();
+    }
+
 
 
     private async Task Step1_OpenBatchSession_ReturnsReference()
     {
         var restClient = new RestClient(httpClientBase);
-        var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
+        var cryptographyService = new CryptographyService(kSeFClient) as ICryptographyService;
 
 
         var encryptionData = cryptographyService.GetEncryptionData();
@@ -164,7 +194,116 @@ public class BatchSession : TestBase
         Assert.NotNull(openBatchSessionResponse.ReferenceNumber);
         _fixture.ReferenceNumber = openBatchSessionResponse.ReferenceNumber;
         _fixture.OpenBatchSessionResponse = openBatchSessionResponse;
-        _fixture.EncryptedParts = encryptedParts; // Przechowaj zaszyfrowane części do wysłania
+        _fixture.EncryptedParts = encryptedParts;
+    }
+
+    private async Task Step1_OpenBatchSession_Stream_ReturnsReference()
+    {
+        var restClient = new RestClient(httpClientBase);
+        var cryptographyService = new CryptographyService(kSeFClient) as ICryptographyService;
+
+        var encryptionData = cryptographyService.GetEncryptionData();
+        string invoicePath = Path.Combine("invoices", "faktura-template.xml");
+
+        var invoices = new List<string>();
+        if (!Directory.Exists(InvoicesDirectory))
+            Directory.CreateDirectory(InvoicesDirectory);
+
+        for (var i = 0; i < 20; i++)
+        {
+            var inv = File.ReadAllText(invoicePath).Replace("#nip#", base.NIP).Replace("#invoice_number#", Guid.NewGuid().ToString());
+            var invoiceName = $"faktura_{i + 1}.xml";
+            invoices.Add(Path.Combine(InvoicesDirectory, invoiceName));
+            File.WriteAllText(Path.Combine(InvoicesDirectory, invoiceName), inv);
+        }
+
+        if (!Directory.Exists(BatchPartsDirectory))
+            Directory.CreateDirectory(BatchPartsDirectory);
+
+        // 1. Stwórz ZIP w pamięci jako stream
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
+        {
+            foreach (var file in invoices)
+            {
+                var entry = archive.CreateEntry(Path.GetFileName(file), CompressionLevel.Optimal);
+                using var entryStream = entry.Open();
+                using var fileStream = File.OpenRead(file);
+                await fileStream.CopyToAsync(entryStream);
+            }
+        }
+        zipStream.Position = 0;
+
+        // 2. Pobierz metadane ZIP-a (przed szyfrowaniem)
+        var zipBytesForMeta = zipStream.ToArray();
+        var zipMetadata = cryptographyService.GetMetaData(zipBytesForMeta);
+
+        // 3. Podziel ZIP na part-y jako streamy i szyfruj je do streamów
+        int partCount = 11;
+        long partSize = (long)Math.Ceiling((double)zipStream.Length / partCount);
+        var encryptedStreamParts = new List<BatchPartStreamSendingInfo>();
+
+        for (int i = 0; i < partCount; i++)
+        {
+            long start = i * partSize;
+            long size = Math.Min(partSize, zipStream.Length - start);
+            if (size <= 0) break;
+
+            // Przygotuj strumień partu
+            zipStream.Position = start;
+            var partInputStream = new MemoryStream();
+            await zipStream.CopyToAsync(partInputStream, (int)size);
+            partInputStream.SetLength(size);
+            partInputStream.Position = 0;
+
+            // Szyfruj part do streamu
+            var encryptedStream = new MemoryStream();
+            cryptographyService.EncryptStreamWithAES256(partInputStream, encryptedStream, encryptionData.CipherKey, encryptionData.CipherIv);
+            encryptedStream.Position = 0;
+
+            // Metadane zaszyfrowanego partu
+            var encryptedBytes = encryptedStream.ToArray();
+            var metadata = cryptographyService.GetMetaData(encryptedBytes);
+
+            // Dodaj do kolekcji
+            encryptedStreamParts.Add(new BatchPartStreamSendingInfo
+            {
+                DataStream = new MemoryStream(encryptedBytes, writable: false),
+                Metadata = metadata,
+                OrdinalNumber = i + 1
+            });
+        }
+
+        // 4. Buduj request
+        var batchFileInfoBuilder = OpenBatchSessionRequestBuilder
+            .Create()
+            .WithFormCode(systemCode: "FA (2)", schemaVersion: "1-0E", value: "FA")
+            .WithBatchFile(
+                fileSize: zipMetadata.FileSize,
+                fileHash: zipMetadata.HashSHA);
+
+        for (int i = 0; i < encryptedStreamParts.Count; i++)
+        {
+            batchFileInfoBuilder = batchFileInfoBuilder.AddBatchFilePart(
+                ordinalNumber: i + 1,
+                fileName: $"faktura_part{i + 1}.zip.aes",
+                fileSize: encryptedStreamParts[i].Metadata.FileSize,
+                fileHash: encryptedStreamParts[i].Metadata.HashSHA);
+        }
+
+        var openBatchRequest = batchFileInfoBuilder.EndBatchFile()
+            .WithEncryption(
+                encryptedSymmetricKey: encryptionData.EncryptionInfo.EncryptedSymmetricKey,
+                initializationVector: encryptionData.EncryptionInfo.InitializationVector)
+            .Build();
+
+        var openBatchSessionResponse = await kSeFClient.OpenBatchSessionAsync(openBatchRequest, AccessToken, CancellationToken.None);
+
+        Assert.NotNull(openBatchSessionResponse);
+        Assert.NotNull(openBatchSessionResponse.ReferenceNumber);
+        _fixture.ReferenceNumber = openBatchSessionResponse.ReferenceNumber;
+        _fixture.OpenBatchSessionResponse = openBatchSessionResponse;
+        _fixture.EncryptedStreamParts = encryptedStreamParts; // Przechowaj part-y streamowe do wysyłki
     }
 
     private async Task Step2_SendBatchPartsAsync()
@@ -177,6 +316,11 @@ public class BatchSession : TestBase
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber)); // Wymuś wykonie kroku 1
 
         await kSeFClient.CloseBatchSessionAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
+    }
+
+    private async Task Step2_SendBatchPartsWithStreamAsync()
+    {
+        await kSeFClient.SendBatchPartsWithStreamAsync(_fixture.OpenBatchSessionResponse, _fixture.EncryptedStreamParts);
     }
 
     private async Task Step4_GetBatchSessionStatusByAsync_ReturnsStatus()

@@ -16,6 +16,9 @@ public class PersonPermission
     public string Description { get; set; }
     public DateTime StartDate { get; set; }
     public bool CanDelegate { get; set; }
+    public string TargetIdentifier { get; set; }
+    public string TargetIdentifierType { get; set; }
+    public string PermissionState { get; set; }
 }
 
 public class SubunitPermission

@@ -22,7 +22,7 @@ public interface IKSeFClient
 {
 
     /// <summary>
-    /// Pobranie listy aktywnych sesji.
+    /// Pobranie listy aktywnych sesji uwierzytelnienia.
     /// </summary>
     /// <param name="accessToken">Access token</param>
     /// <param name="pageSize">Rozmiar strony wyników.</param>
@@ -359,7 +359,7 @@ public interface IKSeFClient
     /// <returns><see cref="PagedInvoiceResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<PagedInvoiceResponse> QueryInvoicesAsync(QueryInvoiceRequest requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default);
+    Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceMetadataQueryRequest requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Rozpoczyna asynchroniczny proces wyszukiwania faktur w systemie KSeF na podstawie przekazanych filtrów
@@ -705,7 +705,7 @@ public interface IKSeFClient
     Task RevokeKsefTokenAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Wysłanie części paczki faktur
+    /// Wysłanie części paczki faktur.
     /// </summary>
     /// <param name="openBatchSessionResponse"><see cref="OpenBatchSessionResponse"/></param>
     /// <param name="parts">Kolekcja trzymająca informacje o partach</param>
@@ -713,4 +713,12 @@ public interface IKSeFClient
     /// <exception cref="AggregateException"></exception>
     Task SendBatchPartsAsync(OpenBatchSessionResponse openBatchSessionResponse, ICollection<BatchPartSendingInfo> parts, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Wysłanie części paczki faktur z wykorzystaniem strumienia.
+    /// </summary>
+    /// <param name="openBatchSessionResponse"><see cref="OpenBatchSessionResponse"/></param>
+    /// <param name="parts">Kolekcja trzymająca informacje o partach</param>
+    /// <param name="cancellationToken">Cancellaton token</param>
+    /// <exception cref="AggregateException"></exception>
+    Task SendBatchPartsWithStreamAsync(OpenBatchSessionResponse openBatchSessionResponse, ICollection<BatchPartStreamSendingInfo> parts, CancellationToken cancellationToken = default);
 }

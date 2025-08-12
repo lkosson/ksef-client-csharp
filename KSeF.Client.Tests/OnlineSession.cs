@@ -35,7 +35,7 @@ public class OnlineSession : TestBase
     [Fact]
     public async Task OnlineSession_E2E_WorksCorrectly()
     {
-        var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
+        var cryptographyService = new CryptographyService(kSeFClient) as ICryptographyService;
         var encryptionData = cryptographyService.GetEncryptionData();
         // Step 1: Open session
         await Step1_OpenOnlineSession_ReturnsReference(encryptionData);

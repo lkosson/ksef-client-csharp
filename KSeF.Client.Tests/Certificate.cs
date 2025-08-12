@@ -77,7 +77,7 @@ namespace KSeF.Client.Tests
         public async Task Step3_SendEnrollmentAsync()
         {
 
-            var cryptographyService = new CryptographyService(kSeFClient, restClient) as ICryptographyService;
+            var cryptographyService = new CryptographyService(kSeFClient) as ICryptographyService;
             var (csr, key) = cryptographyService.GenerateCsr(_testFixture.EnrollmentInfo);
 
             var req = SendCertificateEnrollmentRequestBuilder

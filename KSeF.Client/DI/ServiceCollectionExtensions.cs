@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Net;
+using System.Net.Http.Headers;
 using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
 using KSeFClient.Api.Services;
@@ -32,10 +33,20 @@ public static class ServiceCollectionExtensions
                 if (options.CustomHeaders.Any())
                 {
                     foreach (var header in options.CustomHeaders)
-                        http.DefaultRequestHeaders.Add(header.Key, header.Value);                    
+                        http.DefaultRequestHeaders.Add(header.Key, header.Value);
                 }
                 http.DefaultRequestHeaders.Accept.Add(
                     new MediaTypeWithQualityHeaderValue("application/json"));
+            })
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                var handler = new HttpClientHandler();
+                if (options.WebProxy != null)
+                {
+                    handler.Proxy = options.WebProxy;
+                    handler.UseProxy = true;
+                }
+                return handler;
             });
 
         services.AddScoped<IKSeFClient, Http.KSeFClient>();

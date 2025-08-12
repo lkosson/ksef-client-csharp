@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
 
 namespace KSeFClient.DI;
 
@@ -11,4 +12,5 @@ public class KSeFClientOptions
     [Url(ErrorMessage = "BaseUrl must be a valid URL.")]
     public string BaseUrl { get; set; } = "";
     public Dictionary<string, string> CustomHeaders { get; set; }
+    public IWebProxy WebProxy { get; set; } = null;
 }

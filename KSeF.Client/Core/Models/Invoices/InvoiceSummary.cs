@@ -1,4 +1,4 @@
-﻿
+﻿using KSeF.Client.Core.Models.Invoices.Common;
 using KSeF.Client.Core.Models.Sessions;
 
 namespace KSeF.Client.Core.Models.Invoices;
@@ -7,8 +7,14 @@ public class InvoiceSummary
 {
     public string KsefNumber { get; set; }
     public string InvoiceNumber { get; set; }
-    public DateTime InvoiceDate { get; set; }
-    public DateTime AcquisitionDate { get; set; }
+    public DateTimeOffset InvoiceDate { get; set; }
+
+    public DateTimeOffset IssueDate { get; set; }
+
+    public DateTimeOffset InvoicingDate { get; set; }
+
+    public DateTimeOffset AcquisitionDate { get; set; }
+    public DateTimeOffset PermanentStorageDate { get; set; }
     public PartyInfo Seller { get; set; }
     public Buyer Buyer { get; set; }
     public decimal NetAmount { get; set; }
@@ -18,6 +24,6 @@ public class InvoiceSummary
     public InvoicingMode InvoicingMode { get; set; }
     public InvoiceType InvoiceType { get; set; }
     public FormCode FormCode { get; set; }
-    public bool IsHidden { get; set; }
     public bool IsSelfInvoicing { get; set; }
+    public bool HasAttachment { get; set; }
 }

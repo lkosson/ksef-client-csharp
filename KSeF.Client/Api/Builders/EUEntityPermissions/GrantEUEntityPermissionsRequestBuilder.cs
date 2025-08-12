@@ -12,19 +12,24 @@ public static class GrantEUEntityPermissionsRequestBuilder
 
     public interface IPermissionsStep
     {
-        IOptionalStep WithContext(ContextIdentifier subject);
+        IDescriptionStep WithContext(ContextIdentifier subject);
     }
 
-    public interface IOptionalStep
+    public interface IDescriptionStep
     {
-        IOptionalStep WithDescription(string description);
+        IBuildStep WithDescription(string description);        
+    }
+
+    public interface IBuildStep
+    {       
         GrantPermissionsRequest Build();
     }
 
     private sealed class GrantPermissionsRequestBuilderImpl :
         ISubjectStep,
         IPermissionsStep,
-        IOptionalStep
+        IDescriptionStep,
+        IBuildStep
     {
         private SubjectIdentifier _subject;
         private ContextIdentifier _context;
@@ -40,13 +45,13 @@ public static class GrantEUEntityPermissionsRequestBuilder
             return this;
         }
 
-        public IOptionalStep WithContext(ContextIdentifier context)
+        public IDescriptionStep WithContext(ContextIdentifier context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             return this;
         }
 
-        public IOptionalStep WithDescription(string description)
+        public IBuildStep WithDescription(string description)
         {
             _description = description ?? throw new ArgumentNullException(nameof(description));
             return this;
@@ -58,6 +63,8 @@ public static class GrantEUEntityPermissionsRequestBuilder
                 throw new InvalidOperationException("WithSubject(...) must be called first.");
             if (_context is null)
                 throw new InvalidOperationException("WithContext(...) must be called after subject.");
+            if (_description is null)
+                throw new InvalidOperationException("WithDescription(...) must be called after permissions.");
 
             return new GrantPermissionsRequest
             {

@@ -1,4 +1,130 @@
-# Changelog zmian – `## 2.0.0 (2025-07-14)` (KSeF.Client)
+
+## Changelog zmian – `RC3 (2025-08-12)` (KSeF.Client)
+
+### 1. KSeF.Client
+
+#### 1.1 Api/Services
+- **CryptographyService.cs**  
+  - ➕ Dodano `EncryptWithEciesUsingPublicKey(byte[] content)` — domyślna metoda szyfrowania ECIES (ECDH + AES-GCM) na krzywej P-256.  
+  - 🔧 Metodę `EncryptKsefTokenWithRSAUsingPublicKey(...)` można przełączyć na ECIES lub zachować RSA-OAEP SHA-256 przez parametr `EncryptionMethod`.
+
+- **AuthCoordinator.cs**  
+  - 🔧 Sygnatura `AuthKsefTokenAsync(...)` rozszerzona o opcjonalny parametr:
+    ```csharp
+    EncryptionMethod encryptionMethod = EncryptionMethod.Ecies
+    ```  
+    — domyślnie ECIES, z możliwością fallback do RSA.
+
+#### 1.2 Core/Models
+- **EncryptionMethod.cs**  
+  ➕ Nowy enum:
+  ```csharp
+  public enum EncryptionMethod
+  {
+      Ecies,
+      Rsa
+  }
+  ````
+- **InvoiceSummary.cs** 
+  ➕ Dodano nowe pola:
+  ```csharp
+    public DateTimeOffset IssueDate { get; set; }
+    public DateTimeOffset InvoicingDate { get; set; }
+    public DateTimeOffset PermanentStorageDate { get; set; }
+  ```
+- **InvoiceMetadataQueryRequest.cs**  
+  🔧 w `Seller` oraz `Buyer` odano nowe typy bez pola `Name`:
+
+#### 1.3 Core/Interfaces
+
+* **ICryptographyService.cs**
+  ➕ Dodano metody:
+
+  ```csharp
+  byte[] EncryptWithEciesUsingPublicKey(byte[] content);
+  void EncryptStreamWithAES256(Stream input, Stream output, byte[] key, byte[] iv);
+  ```
+
+* **IAuthCoordinator.cs**
+  🔧 `AuthKsefTokenAsync(...)` przyjmuje dodatkowy parametr:
+
+  ```csharp
+  EncryptionMethod encryptionMethod = EncryptionMethod.Ecies
+  ```
+
+---
+
+### 2. KSeF.Client.Tests
+
+* **AuthorizationTests.cs**
+  ➕ Testy end-to-end dla `AuthKsefTokenAsync(...)` w wariantach `Ecies` i `Rsa`.
+
+* **QrCodeTests.cs**
+  ➕ Rozbudowano testy `BuildCertificateQr` o scenariusze z ECDSA P-256; poprzednie testy RSA pozostawione zakomentowane.
+
+* **VerificationLinkServiceTests.cs**
+  ➕ Dodano testy generowania i weryfikacji linków dla certyfikatów ECDSA P-256.
+
+* **BatchSession.cs**
+  ➕ Testy end-to-end dla wysyłki partów z wykorzystaniem strumieni.
+---
+
+### 3. KSeF.DemoWebApp/Controllers
+
+* **QrCodeController.cs**
+  🔧 Akcja `GetCertificateQr(...)` przyjmuje teraz opcjonalny parametr:
+
+  ```csharp
+  string privateKey = ""
+  ```
+
+  — jeśli nie jest podany, używany jest osadzony klucz w certyfikacie.
+
+---
+
+```
+```
+> • 🔀 przeniesione
+
+## Rozwiązania zgłoszonych issues  - `2025-07-21`
+
+- **#1 Metoda AuthCoordinator.AuthAsync() zawiera błąd**  
+  🔧 `KSeF.Client/Api/Services/AuthCoordinator.cs`: usunięto 2 linie zbędnego kodu challenge 
+
+- **#2 Błąd w AuthController.cs**  
+  🔧 `KSeF.DemoWebApp/Controllers/AuthController.cs`: poprawiono logikę `AuthStepByStepAsync` (2 additions, 6 deletions) — fallback `contextIdentifier`
+
+- **#3 „Śmieciowa” klasa XadeSDummy**  
+  🔀 Przeniesiono `XadeSDummy` z `KSeF.Client.Api.Services` do `WebApplication.Services` (zmiana namespace)
+po
+- **#4 Optymalizacja RestClient**  
+  🔧 `KSeF.Client/Http/RestClient.cs`: uproszczono przeciążenia `SendAsync` (24 additions, 11 deletions), usunięto dead-code, dodano performance benchmark `perf(#4)` 
+
+- **#5 Uporządkowanie języka komunikatów**  
+  ➕ `KSeF.Client/Resources/Strings.en.resx` & `Strings.pl.resx`: dodano 101 nowych wpisów w obu plikach; skonfigurowano lokalizację w DI 
+
+- **#6 Wsparcie dla AOT**  
+  ➕ `KSeF.Client/KSeF.Client.csproj`: dodano `<PublishAot>`, `<SelfContained>`, `<InvariantGlobalization>`, runtime identifiers `win-x64;linux-x64;osx-arm64`
+
+- **#7 Nadmiarowy plik KSeFClient.csproj**  
+  ➖ Usunięto nieużywany plik projektu `KSeFClient.csproj` z repozytorium
+
+---
+
+## Inne zmiany
+
+- **QrCodeService.cs**: ➕ nowa implementacji PNG-QR (`GenerateQrCode`, `ResizePng`, `AddLabelToQrCode`); 
+
+- **PemCertificateInfo.cs**: ➖ Usunięto właściwości PublicKeyPem; 
+
+- **ServiceCollectionExtensions.cs**: ➕ konfiguracjia lokalizacji (`pl-PL`, `en-US`) i rejestracji `IQrCodeService`/`IVerificationLinkService`
+- **AuthTokenRequest.cs**: dostosowanie serializacji XML do nowego schematu XSD
+- **README.md**: poprawione środowisko w przykładzie rejestracji KSeFClient w kontenerze DI.
+---
+
+
+
+## Changelog zmian – `RC2 (2025-07-14)` (KSeF.Client)
 
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte
 
@@ -38,7 +164,9 @@ Zmiana wersji .NET 8.0 na .NET 9/0
 
 ### 1.5 DI & Dependencies
 - **ServiceCollectionExtensions.cs**: ➕ rejestracja `IQrCodeService`, `IVerificationLinkService`
+- **ServiceCollectionExtensions.cs**: ➕ dodano obsługę nowej właściwości `WebProxy` z `KSeFClientOptions`
 - **KSeFClientOptions.cs**: 🔧 walidacja `BaseUrl`
+- **KSeFClientOptions.cs**: ➕ dodano właściwości `WebProxy` typu `IWebProxy`
 ➕ Dodano CustomHeaders - umożliwia dodawanie dodatkowych nagłówków do klienta Http
 - **KSeF.Client.csproj**: ➕ `QRCoder`, `System.Drawing.Common`
 
@@ -78,113 +206,3 @@ Wybrane: **Authorization.cs**, `EntityPermission*.cs`, **OnlineSession.cs**, **T
 | ➖ usunięte | 3 |
 
 ---
-
-## [next-version] – `2025-07-15`
-
-### 1. KSeF.Client
-
-#### 1.1 Api/Services
-- **CryptographyService.cs**  
-  - ➕ Dodano `EncryptWithEciesUsingPublicKey(byte[] content)` — domyślna metoda szyfrowania ECIES (ECDH + AES-GCM) na krzywej P-256.  
-  - 🔧 Metodę `EncryptKsefTokenWithRSAUsingPublicKey(...)` można przełączyć na ECIES lub zachować RSA-OAEP SHA-256 przez parametr `EncryptionMethod`.
-
-- **AuthCoordinator.cs**  
-  - 🔧 Sygnatura `AuthKsefTokenAsync(...)` rozszerzona o opcjonalny parametr:
-    ```csharp
-    EncryptionMethod encryptionMethod = EncryptionMethod.Ecies
-    ```  
-    — domyślnie ECIES, z możliwością fallback do RSA.
-
-#### 1.2 Core/Models
-- **EncryptionMethod.cs**  
-  ➕ Nowy enum:
-  ```csharp
-  public enum EncryptionMethod
-  {
-      Ecies,
-      Rsa
-  }
-  ````
-
-#### 1.3 Core/Interfaces
-
-* **ICryptographyService.cs**
-  ➕ Dodano metodę:
-
-  ```csharp
-  byte[] EncryptWithEciesUsingPublicKey(byte[] content);
-  ```
-
-* **IAuthCoordinator.cs**
-  🔧 `AuthKsefTokenAsync(...)` przyjmuje dodatkowy parametr:
-
-  ```csharp
-  EncryptionMethod encryptionMethod = EncryptionMethod.Ecies
-  ```
-
----
-
-### 2. KSeF.Client.Tests
-
-* **AuthorizationTests.cs**
-  ➕ Testy end-to-end dla `AuthKsefTokenAsync(...)` w wariantach `Ecies` i `Rsa`.
-
-* **QrCodeTests.cs**
-  ➕ Rozbudowano testy `BuildCertificateQr` o scenariusze z ECDSA P-256; poprzednie testy RSA pozostawione zakomentowane.
-
-* **VerificationLinkServiceTests.cs**
-  ➕ Dodano testy generowania i weryfikacji linków dla certyfikatów ECDSA P-256.
-
----
-
-### 3. KSeF.DemoWebApp/Controllers
-
-* **QrCodeController.cs**
-  🔧 Akcja `GetCertificateQr(...)` przyjmuje teraz opcjonalny parametr:
-
-  ```csharp
-  string privateKey = ""
-  ```
-
-  — jeśli nie jest podany, używany jest osadzony klucz w certyfikacie.
-
----
-
-```
-```
-> • 🔀 przeniesione
-
-## Rozwiązania zgłoszonych  - `2025-07-21`
-
-- **#1 Metoda AuthCoordinator.AuthAsync() zawiera błąd**  
-  🔧 `KSeF.Client/Api/Services/AuthCoordinator.cs`: usunięto 2 linie zbędnego kodu challenge 
-
-- **#2 Błąd w AuthController.cs**  
-  🔧 `KSeF.DemoWebApp/Controllers/AuthController.cs`: poprawiono logikę `AuthStepByStepAsync` (2 additions, 6 deletions) — fallback `contextIdentifier`
-
-- **#3 „Śmieciowa” klasa XadeSDummy**  
-  🔀 Przeniesiono `XadeSDummy` z `KSeF.Client.Api.Services` do `WebApplication.Services` (zmiana namespace)
-po
-- **#4 Optymalizacja RestClient**  
-  🔧 `KSeF.Client/Http/RestClient.cs`: uproszczono przeciążenia `SendAsync` (24 additions, 11 deletions), usunięto dead-code, dodano performance benchmark `perf(#4)` 
-
-- **#5 Uporządkowanie języka komunikatów**  
-  ➕ `KSeF.Client/Resources/Strings.en.resx` & `Strings.pl.resx`: dodano 101 nowych wpisów w obu plikach; skonfigurowano lokalizację w DI 
-
-- **#6 Wsparcie dla AOT**  
-  ➕ `KSeF.Client/KSeF.Client.csproj`: dodano `<PublishAot>`, `<SelfContained>`, `<InvariantGlobalization>`, runtime identifiers `win-x64;linux-x64;osx-arm64`
-
-- **#7 Nadmiarowy plik KSeFClient.csproj**  
-  ➖ Usunięto nieużywany plik projektu `KSeFClient.csproj` z repozytorium
-
----
-
-## Inne zmiany
-
-- **QrCodeService.cs**: ➕ nowa implementacji PNG-QR (`GenerateQrCode`, `ResizePng`, `AddLabelToQrCode`); 
-
-- **ServiceCollectionExtensions.cs**: ➕ konfiguracjia lokalizacji (`pl-PL`, `en-US`) i rejestracji `IQrCodeService`/`IVerificationLinkService`
----
-
-```
-```
