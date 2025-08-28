@@ -35,6 +35,5 @@ public enum SubjectIdentifierType
 
 public enum TargetIdentifierType
 {
-    Nip,
-    InternalId
+    Nip   
 }

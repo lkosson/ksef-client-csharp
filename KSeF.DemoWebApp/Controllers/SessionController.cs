@@ -82,7 +82,7 @@ public class SessionController : ControllerBase
     }
 
     [HttpGet("failed-invoices")]
-    public async Task<ActionResult<SessionInvoicesResponse>> GetFailedInvoicesAsync(string accessToken, string referenceNumber, CancellationToken cancellationToken)
+    public async Task<ActionResult<SessionFailedInvoicesResponse>> GetFailedInvoicesAsync(string accessToken, string referenceNumber, CancellationToken cancellationToken)
     {
         var failedInvoices = await ksefClient.GetSessionFailedInvoicesAsync(referenceNumber, accessToken, null, null, cancellationToken);
         return Ok(failedInvoices);

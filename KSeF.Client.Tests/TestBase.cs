@@ -1,11 +1,7 @@
-﻿using KSeF.Client.Api.Builders.X509Certificates;
 using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
-using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Tests.config;
 using KSeFClient;
-using KSeFClient.Api.Builders.Auth;
-using KSeFClient.Core.Models;
 using KSeFClient.Http;
 using Microsoft.Extensions.Configuration;
 
@@ -14,33 +10,27 @@ namespace KSeF.Client.Tests;
 
 public class TestBase
 {
-    internal string AccessToken { get; private set; }
-    internal string RefreshToken { get; private set; }
-    internal IKSeFClient kSeFClient { get; private set; }
+    internal IKSeFClient ksefClient { get; private set; }
 
     internal string env = TestConfig.Load()["ApiSettings:BaseUrl"] ?? KSeFClient.DI.KsefEnviromentsUris.TEST;
-    internal Dictionary<string,string> customHeaders = TestConfig.Load()
+    internal Dictionary<string, string> customHeaders = TestConfig.Load()
                 .GetSection("ApiSettings:customHeaders")
                 .Get<Dictionary<string, string>>()
               ?? new Dictionary<string, string>();
 
-    internal Random randomGenerator;
-    internal string NIP;
-
     internal ISignatureService signatureService { get; private set; }
-
     internal readonly HttpClient httpClientBase;
     internal readonly RestClient restClient;
-    internal ContextIdentifierType contextIdentifierType;
     internal const int sleepTime = 500;
-    internal TestBase(ContextIdentifierType contextIdentifierType = ContextIdentifierType.Nip)
+    internal TestBase()
     {
-        this.contextIdentifierType = contextIdentifierType;
-        randomGenerator = new Random();
-
         signatureService = new SignatureService();
+        HttpClientHandler handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        };
+        httpClientBase = new HttpClient(handler) { BaseAddress = new Uri(env) };
 
-        httpClientBase = new HttpClient { BaseAddress = new Uri(env) };
         if (customHeaders.Keys.Any())
         {
             foreach (var customHeader in customHeaders)
@@ -50,83 +40,8 @@ public class TestBase
         }
         restClient = new RestClient(httpClientBase);
 
-        kSeFClient = new KSeFClient.Http.KSeFClient(
+        ksefClient = new KSeFClient.Http.KSeFClient(
             restClient
         );
-
-        AuthenticateAsync().GetAwaiter().GetResult();
-    }
-
-    internal async Task<AuthOperationStatusResponse> AuthenticateAsync()
-    {
-        var random = randomGenerator.Next(100000000, 999999999);
-        var randomString = 7 + random.ToString();
-        NIP = randomString;
-
-        var challengeResponse = await kSeFClient
-            .GetAuthChallengeAsync();
-
-
-        var authTokenRequest = AuthTokenRequestBuilder
-           .Create()
-           .WithChallenge(challengeResponse.Challenge)
-           .WithContext(contextIdentifierType, randomString)
-           .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject) // or Fingerprint
-           .WithIpAddressPolicy(new IpAddressPolicy { /* ... */ })
-           .Build();
-
-        var unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
-
-        var certificate = SelfSignedCertificateForSignatureBuilder
-            .Create()
-            .WithGivenName("A")
-            .WithSurname("R")
-            .WithSerialNumber("TINPL-" + randomString) // Alternatywnie: TINPL-1234567890 , PNOPL-9
-            .WithCommonName("A R")
-            .Build();
-
-        var signedXml = await signatureService.SignAsync(unsignedXml, certificate);
-
-        var authOperationInfo = await kSeFClient
-          .SubmitXadesAuthRequestAsync(signedXml,false,CancellationToken.None);
-
-
-        AuthStatus accessTokenResponse;
-        var startTime = DateTime.UtcNow;
-        var timeout = TimeSpan.FromMinutes(2);
-
-        do
-        {
-            accessTokenResponse = await kSeFClient
-                .GetAuthStatusAsync(authOperationInfo.ReferenceNumber,authOperationInfo.AuthenticationToken.Token);
-
-            Console.WriteLine(
-                $"Polling: StatusCode={accessTokenResponse.Status.Code}, " +
-                $"Description='{accessTokenResponse.Status.Description}', " +
-                $"Elapsed={DateTime.UtcNow - startTime:mm\\:ss}");
-
-            if (accessTokenResponse.Status.Code != 200)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1));
-            }
-        }
-        while (accessTokenResponse.Status.Code == 100
-               && (DateTime.UtcNow - startTime) < timeout);
-
-
-        if (accessTokenResponse.Status.Code != 200)
-        {
-            var msg = $"Authentication failed. Status code: {accessTokenResponse?.Status.Code}, description: {accessTokenResponse?.Status.Description}.";
-           
-            throw new Exception(msg);
-        }
-
-        var authResult = await kSeFClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
-
-        // Simulate authentication and set the access token
-        AccessToken = authResult.AccessToken.Token;
-        RefreshToken = authResult.RefreshToken.Token;
-
-        return authResult;
     }
 }

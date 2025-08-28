@@ -16,7 +16,7 @@ public class SessionInvoice
     public string InvoiceHash { get; set; }
     public string InvoiceFileName { get; set; }
 
-    public DateTimeOffset ReceiveDate { get; set; }
+    public DateTimeOffset InvoicingDate { get; set; }
 
     public StatusInfo Status { get; set; }
 }

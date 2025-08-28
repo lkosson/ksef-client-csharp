@@ -1,6 +1,7 @@
-﻿using KSeF.Client.Api.Services;
+using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.Certificates;
+using KSeF.Client.Tests.Utils;
 using KSeFClient.Api.Builders.Certificates;
 
 namespace KSeF.Client.Tests
@@ -28,7 +29,8 @@ namespace KSeF.Client.Tests
         public CertificateE2ETests(CertificateScenarioFixture f)
         {
             _testFixture = f;
-            _testFixture.AccessToken = AccessToken;
+            var authInfo = AuthenticationUtils.AuthenticateAsync(ksefClient, signatureService).GetAwaiter().GetResult();
+            _testFixture.AccessToken = authInfo.AccessToken.Token;
         }
 
         [Fact]
@@ -58,7 +60,7 @@ namespace KSeF.Client.Tests
 
         public async Task Step1_GetLimitsAsync()
         {
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GetCertificateLimitsAsync(_testFixture.AccessToken, CancellationToken.None);
             Assert.NotNull(resp);
             Assert.True(resp.CanRequest);
@@ -67,7 +69,7 @@ namespace KSeF.Client.Tests
 
         public async Task Step2_GetEnrollmentInfoAsync()
         {
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GetCertificateEnrollmentDataAsync(_testFixture.AccessToken, CancellationToken.None);
             Assert.NotNull(resp);
             Assert.NotEmpty(resp.SerialNumber);
@@ -77,17 +79,18 @@ namespace KSeF.Client.Tests
         public async Task Step3_SendEnrollmentAsync()
         {
 
-            var cryptographyService = new CryptographyService(kSeFClient) as ICryptographyService;
+            var cryptographyService = new CryptographyService(ksefClient) as ICryptographyService;
             var (csr, key) = cryptographyService.GenerateCsr(_testFixture.EnrollmentInfo);
 
             var req = SendCertificateEnrollmentRequestBuilder
                 .Create()
                 .WithCertificateName("E2E Test Cert")
+                .WithCertificateType(CertificateType.Authentication)
                 .WithCsr(csr)
                 .WithValidFrom(DateTimeOffset.UtcNow.AddDays(1))
                 .Build();
 
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .SendCertificateEnrollmentAsync(req, _testFixture.AccessToken, CancellationToken.None);
             Assert.NotNull(resp);
             Assert.False(string.IsNullOrWhiteSpace(resp.ReferenceNumber));
@@ -96,14 +99,14 @@ namespace KSeF.Client.Tests
 
         public async Task Step4_GetEnrollmentStatusAsync()
         {
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GetCertificateEnrollmentStatusAsync(_testFixture.EnrollmentReference, _testFixture.AccessToken, CancellationToken.None);
             Assert.NotNull(resp);
 
             while(resp.Status.Code == 100)
             {
                 await Task.Delay(1000);
-                resp = await kSeFClient
+                resp = await ksefClient
                                 .GetCertificateEnrollmentStatusAsync(_testFixture.EnrollmentReference, _testFixture.AccessToken, CancellationToken.None);
                 
             }
@@ -114,7 +117,7 @@ namespace KSeF.Client.Tests
         public async Task Step5_GetCertificateAsync()
         {
             _testFixture.SerialNumbers = new List<string> { _testFixture.EnrollmentStatus.CertificateSerialNumber };
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GetCertificateListAsync(new CertificateListRequest { CertificateSerialNumbers = _testFixture.SerialNumbers }, _testFixture.AccessToken, CancellationToken.None);
             Assert.NotNull(resp);
             //TODO
@@ -131,13 +134,13 @@ namespace KSeF.Client.Tests
                 .WithRevocationReason(CertificateRevocationReason.KeyCompromise)
                 .Build();
 
-            await kSeFClient
+            await ksefClient
                 .RevokeCertificateAsync(req, serial, _testFixture.AccessToken, CancellationToken.None);
         }
 
         public async Task Step7_GetMetadataListAsync()
         {
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GetCertificateMetadataListAsync(_testFixture.AccessToken, null, null, null, CancellationToken.None);
             Assert.NotNull(resp);
             Assert.Contains(resp.Certificates.ToList(), m => _testFixture.SerialNumbers.Contains(m.CertificateSerialNumber));

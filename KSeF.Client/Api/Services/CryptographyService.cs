@@ -1,4 +1,4 @@
-﻿using System.Formats.Asn1;
+using System.Formats.Asn1;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -34,10 +34,10 @@ public class CryptographyService : ICryptographyService
     private string GetRSAPublicPem(string certificatePem)
     {
         var cert = X509Certificate2.CreateFromPem(certificatePem);
-
+                
         var rsa = cert.GetRSAPublicKey();
         if (rsa != null)
-        {
+        {            
             string pubKeyPem = ExportPublicKeyToPem(rsa);
             return pubKeyPem;
         }
@@ -46,14 +46,14 @@ public class CryptographyService : ICryptographyService
             throw new Exception("Nie znaleziono klucza RSA.");
         }
     }
-
+    
     private string GetECDSAPublicPem(string certificatePem)
     {
         var cert = X509Certificate2.CreateFromPem(certificatePem);
 
         var ecdsa = cert.GetECDsaPublicKey();
         if (ecdsa != null)
-        {
+        {            
             string pubKeyPem = ExportEcdsaPublicKeyToPem(ecdsa);
             return pubKeyPem;
         }
@@ -63,7 +63,17 @@ public class CryptographyService : ICryptographyService
         }
     }
 
+    string ExportEcdsaPublicKeyToPem(ECDsa ecdsa)
+    {
+        var pubKeyBytes = ecdsa.ExportSubjectPublicKeyInfo();
+        return new string(PemEncoding.Write("PUBLIC KEY", pubKeyBytes));
+    }
 
+    string ExportPublicKeyToPem(RSA rsa)
+    {
+        var pubKeyBytes = rsa.ExportSubjectPublicKeyInfo();
+        return new string(PemEncoding.Write("PUBLIC KEY", pubKeyBytes));
+    }
 
     /// <inheritdoc />
     public EncryptionData GetEncryptionData()
@@ -202,7 +212,7 @@ public class CryptographyService : ICryptographyService
     public byte[] EncryptWithRSAUsingPublicKey(byte[] content, RSAEncryptionPadding padding)
     {
         var rsa = RSA.Create();
-        var publicKey = GetRSAPublicPem(symetricKeyEncryptionPem);
+        var publicKey =  GetRSAPublicPem(symetricKeyEncryptionPem);
         rsa.ImportFromPem(publicKey);
         return rsa.Encrypt(content, padding);
     }
@@ -258,15 +268,5 @@ public class CryptographyService : ICryptographyService
 
         return iv;
     }
-    private string ExportEcdsaPublicKeyToPem(ECDsa ecdsa)
-    {
-        var pubKeyBytes = ecdsa.ExportSubjectPublicKeyInfo();
-        return new string(PemEncoding.Write("PUBLIC KEY", pubKeyBytes));
-    }
 
-    private string ExportPublicKeyToPem(RSA rsa)
-    {
-        var pubKeyBytes = rsa.ExportSubjectPublicKeyInfo();
-        return new string(PemEncoding.Write("PUBLIC KEY", pubKeyBytes));
-    }
 }

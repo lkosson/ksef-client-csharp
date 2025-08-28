@@ -5,4 +5,5 @@ public class CertificateResponse
     public string Certificate { get; set; }
     public string CertificateName { get; set; }
     public string CertificateSerialNumber { get; set; }
+    public CertificateType CertificateType { get; set; }
 }

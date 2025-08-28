@@ -1,12 +1,15 @@
 using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.Sessions;
+using KSeF.Client.Tests.Utils;
 using System.Text;
 
 namespace KSeF.Client.Tests;
 
 public class OnlineSessionScenarioFixture
 {
+    public string? NIP { get; set; }
+
     public string? ReferenceNumber { get; set; }
     public string? InvoiceReferenceNumber { get; set; }
     public string? UpoDocument { get; set; }
@@ -28,14 +31,79 @@ public class OnlineSession : TestBase
     public OnlineSession(OnlineSessionScenarioFixture fixture)
     {
         _fixture = fixture;
-        _fixture.AccessToken = AccessToken;
+        _fixture.NIP = MiscellaneousUtils.GetRandomNip();
+        var authInfo = AuthenticationUtils.AuthenticateAsync(ksefClient, signatureService, _fixture.NIP).GetAwaiter().GetResult();
+        _fixture.AccessToken = authInfo.AccessToken.Token;
     }
 
+    [Fact]
+    public async Task SendInvoiceInOnlineSession_E2E_ShouldReturnUpo()
+    {
+
+        // authenticated in constructor
+        Assert.NotNull(_fixture.AccessToken);
+        
+        // proceed with invoice online session
+        var cryptographyService = new CryptographyService(ksefClient) as ICryptographyService;
+        var encryptionData = cryptographyService.GetEncryptionData();
+
+        var openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(ksefClient,
+          encryptionData,
+          _fixture.AccessToken);
+        Assert.NotNull(openSessionRequest);
+        Assert.NotNull(openSessionRequest.ReferenceNumber);
+
+        var sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(ksefClient,
+            openSessionRequest.ReferenceNumber,
+            _fixture.AccessToken,
+            _fixture.NIP,
+            encryptionData,
+            cryptographyService);
+        Assert.NotNull(sendInvoiceResponse);
+        Assert.NotNull(sendInvoiceResponse.ReferenceNumber);
+
+        var sendedSessionStatus = await OnlineSessionUtils.GetOnlineSessionStatusAsync(ksefClient,
+            openSessionRequest.ReferenceNumber,
+            _fixture.AccessToken);
+        Assert.NotNull(sendedSessionStatus);
+        Assert.True(sendedSessionStatus.Status.Code > 0);
+        Assert.NotNull(sendedSessionStatus.InvoiceCount);
+
+        await OnlineSessionUtils.CloseOnlineSessionAsync(ksefClient,
+            openSessionRequest.ReferenceNumber,
+            _fixture.AccessToken);
+
+
+        do
+        {
+            await Task.Delay(3000);
+            sendedSessionStatus = await OnlineSessionUtils.GetOnlineSessionStatusAsync(ksefClient,
+                    openSessionRequest.ReferenceNumber,
+                    _fixture.AccessToken);
+        } while (sendedSessionStatus.Status.Code == 170);
+
+        Assert.False(sendedSessionStatus.Status.Code == 445);
+
+        var metadata = await OnlineSessionUtils.GetSessionInvoicesMetadataAsync(ksefClient,
+            openSessionRequest.ReferenceNumber,
+            _fixture.AccessToken);
+        Assert.NotNull(metadata);
+        Assert.NotEmpty(metadata.Invoices);
+
+        foreach (var item in metadata.Invoices)
+        {
+            var invoiceMetadata = await OnlineSessionUtils.GetSessionInvoiceUpoAsync(ksefClient,
+            openSessionRequest.ReferenceNumber,
+            item.KsefNumber,
+            _fixture.AccessToken);
+            Assert.NotNull(invoiceMetadata);
+        }
+    }
 
     [Fact]
     public async Task OnlineSession_E2E_WorksCorrectly()
     {
-        var cryptographyService = new CryptographyService(kSeFClient) as ICryptographyService;
+        var cryptographyService = new CryptographyService(ksefClient) as ICryptographyService;
         var encryptionData = cryptographyService.GetEncryptionData();
         // Step 1: Open session
         await Step1_OpenOnlineSession_ReturnsReference(encryptionData);
@@ -70,7 +138,7 @@ public class OnlineSession : TestBase
            initializationVector: encryptionData.EncryptionInfo.InitializationVector)
        .Build();
 
-        var openOnlineSessionResponse = await kSeFClient.OpenOnlineSessionAsync(openOnlineSessionRequest, _fixture.AccessToken);
+        var openOnlineSessionResponse = await ksefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, _fixture.AccessToken);
 
         Assert.NotNull(openOnlineSessionResponse);
         Assert.NotNull(openOnlineSessionResponse.ReferenceNumber);
@@ -86,7 +154,7 @@ public class OnlineSession : TestBase
         //nip podmienić w fakturze
         var path = Path.Combine(AppContext.BaseDirectory, "invoices", "faktura-online.xml");
         var xml = File.ReadAllText(path, Encoding.UTF8);
-        xml= xml.Replace("{{TEST_NIP}}",NIP);
+        xml= xml.Replace("{{TEST_NIP}}",_fixture.NIP);
         xml = xml.Replace("{{SEED_TEST_NIP_MONTH_YEAR}}",$"{Guid.NewGuid().ToString()}");
         using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
 
@@ -104,7 +172,7 @@ public class OnlineSession : TestBase
             .WithEncryptedDocumentContent(Convert.ToBase64String(encryptedInvoice))
             .Build();
 
-        var sendInvoiceResponse = await kSeFClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, _fixture.ReferenceNumber, _fixture.AccessToken);
+        var sendInvoiceResponse = await ksefClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, _fixture.ReferenceNumber, _fixture.AccessToken);
                 
         Assert.NotNull(sendInvoiceResponse);
         Assert.False(string.IsNullOrWhiteSpace(sendInvoiceResponse.ReferenceNumber));
@@ -116,7 +184,7 @@ public class OnlineSession : TestBase
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
         SessionStatusResponse statusResponse = null;
         do {
-            statusResponse = await kSeFClient.GetSessionStatusAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
+            statusResponse = await ksefClient.GetSessionStatusAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
             await Task.Delay(sleepTime); // Wait for the status to update
         } while (statusResponse.SuccessfulInvoiceCount is null); 
         Assert.NotNull(statusResponse);
@@ -135,7 +203,7 @@ public class OnlineSession : TestBase
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
 
-        var upoResponse = await kSeFClient.GetSessionInvoiceUpoByKsefNumberAsync(_fixture.ReferenceNumber, _fixture.KsefNumber ,_fixture.AccessToken, CancellationToken.None);
+        var upoResponse = await ksefClient.GetSessionInvoiceUpoByKsefNumberAsync(_fixture.ReferenceNumber, _fixture.KsefNumber ,_fixture.AccessToken, CancellationToken.None);
 
         Assert.NotNull(upoResponse);
         Assert.False(string.IsNullOrWhiteSpace(upoResponse));
@@ -146,7 +214,7 @@ public class OnlineSession : TestBase
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber)); // Wymuś wykonie kroku 1
 
-        await kSeFClient.CloseOnlineSessionAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
+        await ksefClient.CloseOnlineSessionAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
     }
 
 
@@ -154,7 +222,7 @@ public class OnlineSession : TestBase
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
 
-        var statusResponse = await kSeFClient.GetSessionStatusAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
+        var statusResponse = await ksefClient.GetSessionStatusAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
 
         Assert.NotNull(statusResponse);
         _fixture.UpoReferenceNumber = statusResponse.Upo.Pages.First().ReferenceNumber;
@@ -164,7 +232,7 @@ public class OnlineSession : TestBase
     private async Task Step5_GetOnlineSessionDocumentsAync_ReturnsDocuments()
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
-        var documents = await kSeFClient.GetSessionInvoicesAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
+        var documents = await ksefClient.GetSessionInvoicesAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
         Assert.NotNull(documents);
         Assert.NotEmpty(documents.Invoices);
         Assert.Single(documents.Invoices);
@@ -174,7 +242,7 @@ public class OnlineSession : TestBase
     private async Task Step8_GetOnlineSessionUpoAsync_ReturnsSessionUpo()
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
-        var upoResponse = await kSeFClient.GetSessionUpoAsync(_fixture.ReferenceNumber, _fixture.UpoReferenceNumber, _fixture.AccessToken, CancellationToken.None);
+        var upoResponse = await ksefClient.GetSessionUpoAsync(_fixture.ReferenceNumber, _fixture.UpoReferenceNumber, _fixture.AccessToken, CancellationToken.None);
         Assert.NotNull(upoResponse);
         Assert.False(string.IsNullOrWhiteSpace(upoResponse));
         _fixture.UpoSession = upoResponse;

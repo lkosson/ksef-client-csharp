@@ -8,6 +8,7 @@ public interface IGetCertificateListRequestBuilder
     IGetCertificateListRequestBuilder WithName(string name);
     IGetCertificateListRequestBuilder WithStatus(CertificateStatusEnum status);
     IGetCertificateListRequestBuilder WithExpiresAfter(DateTimeOffset expiresAfter);
+    IGetCertificateListRequestBuilder WithCertificateType(CertificateType certificateType); // Added
     CertificateMetadataListRequest Build();
 }
 
@@ -38,6 +39,12 @@ internal class GetCertificateListRequestBuilderImpl : IGetCertificateListRequest
     public IGetCertificateListRequestBuilder WithExpiresAfter(DateTimeOffset expiresAfter)
     {
         _request.ExpiresAfter = expiresAfter;
+        return this;
+    }
+
+    public IGetCertificateListRequestBuilder WithCertificateType(CertificateType certificateType)
+    {
+        _request.CertificateType = certificateType;
         return this;
     }
 

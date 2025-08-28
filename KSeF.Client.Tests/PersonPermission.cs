@@ -1,6 +1,7 @@
 ﻿using KSeF.Client.Api.Builders.PersonPermissions;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Person;
+using KSeF.Client.Tests.Utils;
 
 namespace KSeF.Client.Tests
 {
@@ -35,9 +36,10 @@ namespace KSeF.Client.Tests
         public PersonPermissionE2ETests(PersonPermissionScenarioFixture f)
         {
             _f = f;
-            _f.Person.Value = NIP;
-            _f.AccessToken = AccessToken;
-            _f.Person.Value = randomGenerator.Next(900000000, 999999999).ToString() + "00";
+            var authInfo = AuthenticationUtils.AuthenticateAsync(ksefClient, signatureService).GetAwaiter().GetResult();
+            _f.Person.Value = MiscellaneousUtils.GetRandomNip();
+            _f.AccessToken = authInfo.AccessToken.Token;
+            _f.Person.Value = MiscellaneousUtils.GetRandomPesel();
         }
 
         [Fact]
@@ -67,7 +69,7 @@ namespace KSeF.Client.Tests
                 .WithDescription("E2E test grant")
                 .Build();
 
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GrantsPermissionPersonAsync(req, _f.AccessToken, CancellationToken.None);
 
             Assert.NotNull(resp);
@@ -86,7 +88,7 @@ namespace KSeF.Client.Tests
                 }
             };
 
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .SearchGrantedPersonPermissionsAsync(
                     query,
                     _f.AccessToken,
@@ -117,7 +119,7 @@ namespace KSeF.Client.Tests
         {
             foreach (var permission in _f.SearchResponse.Permissions)
             {
-                var resp = await kSeFClient
+                var resp = await ksefClient
                 .RevokeCommonPermissionAsync(permission.Id, _f.AccessToken, CancellationToken.None);
 
                 Assert.NotNull(resp);
@@ -129,7 +131,7 @@ namespace KSeF.Client.Tests
             foreach (var revokeStatus in _f.RevokeResponse)
             {
                 await Task.Delay(sleepTime);
-                var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
+                var status = await ksefClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, _f.AccessToken);
                 if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" && status.Status.Details.First() == "Permission cannot be revoked.")
                 {
                     _f.ExpectedPermissionsAfterRevoke += 1;

@@ -1,6 +1,7 @@
 ﻿using KSeF.Client.Api.Builders.ProxyEntityPermissions;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.ProxyEntity;
+using KSeF.Client.Tests.Utils;
 
 namespace KSeF.Client.Tests
 {
@@ -32,11 +33,9 @@ namespace KSeF.Client.Tests
         public ProxyPermissionsE2ETests(ProxyPermissionsScenarioFixture f)
         {
             _f = f;
-            _f.AccessToken = AccessToken;
-            _f.Entity.Value = NIP;
-            _f.Entity.Value = randomGenerator
-                .Next(900000000, 999999999)
-                .ToString() + "00";
+            var authInfo = AuthenticationUtils.AuthenticateAsync(ksefClient, signatureService).GetAwaiter().GetResult();
+            _f.AccessToken = authInfo.AccessToken.Token;
+            _f.Entity.Value = MiscellaneousUtils.GetRandomNip();
         }
 
         [Fact]
@@ -68,7 +67,7 @@ namespace KSeF.Client.Tests
                 .WithDescription("E2E test grant")
                 .Build();
 
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GrantsPermissionProxyEntityAsync(req, _f.AccessToken, CancellationToken.None);
 
             Assert.NotNull(resp);
@@ -78,7 +77,7 @@ namespace KSeF.Client.Tests
 
         public async Task Step2_SearchGrantedRolesAsync(bool expectAny)
         {
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .SearchEntityInvoiceRolesAsync(
                     _f.AccessToken,
                     pageOffset: 0,
@@ -87,19 +86,19 @@ namespace KSeF.Client.Tests
                 );
 
             //500 ???
-            var rsp = await kSeFClient
+            var rsp = await ksefClient
             .SearchEntityAuthorizationGrantsAsync(new Core.Models.Permissions.Entity.EntityAuthorizationsQueryRequest() { QueryType = Core.Models.Permissions.Entity.QueryType.Received,  }, _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
-            var resp3 = await kSeFClient
+            var resp3 = await ksefClient
                 .SearchSubunitAdminPermissionsAsync(new Core.Models.Permissions.SubUnit.SubunitPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
-            var resp1 = await kSeFClient
+            var resp1 = await ksefClient
                 .SearchGrantedPersonPermissionsAsync(new Core.Models.Permissions.Person.PersonPermissionsQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
-            var resp2 = await kSeFClient
+            var resp2 = await ksefClient
                 .SearchSubordinateEntityInvoiceRolesAsync(new Core.Models.Permissions.SubUnit.SubordinateEntityRolesQueryRequest(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
-            var resp4 = await kSeFClient
+            var resp4 = await ksefClient
                 .SearchGrantedEuEntityPermissionsAsync(new(), _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
             
             Assert.NotNull(resp);
@@ -126,7 +125,7 @@ namespace KSeF.Client.Tests
 
             foreach (var permission in _f.SearchResponse.Roles)
             {
-                var resp = await kSeFClient
+                var resp = await ksefClient
                 .RevokeAuthorizationsPermissionAsync(permission.Role, _f.AccessToken, CancellationToken.None);
 
                 Assert.NotNull(resp);
@@ -137,7 +136,7 @@ namespace KSeF.Client.Tests
             foreach (var revokeStatus in _f.RevokeResponse)
             {
                 await Task.Delay(sleepTime);
-                var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
+                var status = await ksefClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, _f.AccessToken);
                 if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" && status.Status.Details.First() == "Permission cannot be revoked.")
                 {
                     _f.ExpectedPermissionsAfterRevoke += 1;

@@ -28,10 +28,10 @@ public interface IKSeFClient
     /// <param name="pageSize">Rozmiar strony wyników.</param>
     /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
     /// <param name="cancellationToken">Cancellation token./param>
-    /// <returns><see cref="ActiveSessionsResponse"/></returns>
+    /// <returns><see cref="AuthenticationListResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<ActiveSessionsResponse> GetActiveSessions(string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
+    Task<AuthenticationListResponse> GetActiveSessions(string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Unieważnia sesję powiązaną z tokenem użytym do wywołania tej operacji.
@@ -216,7 +216,7 @@ public interface IKSeFClient
     /// <param name="pageSize">Rozmiar strony wyników.</param>
     /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
     /// <param name="cancellationToken">Cancellation token./param>
-    /// <returns><see cref="ActiveSessionsResponse"/></returns>
+    /// <returns><see cref="SessionsListResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
     Task<SessionsListResponse> GetSessionsAsync(SessionType sessionType, string accessToken, int? pageSize, string continuationToken, SessionsFilter sessionsFilter = null, CancellationToken cancellationToken = default);
@@ -236,20 +236,21 @@ public interface IKSeFClient
     Task<SessionStatusResponse> GetSessionStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Pobranie statusów dokumentów sesji
+    /// Pobranie statusów faktur sesji
     /// </summary>
     /// <remarks>
-    /// Zwraca listę dokumentów przesłanych w sesji wraz z ich statusami, oraz informacje na temat ilości poprawnie i niepoprawnie przetworzonych dokumentów.
+    /// Zwraca listę faktur przesłanych w sesji wraz z ich statusami, oraz informacje na temat ilości poprawnie i niepoprawnie przetworzonych faktur.
     /// </remarks>
     /// <param name="referenceNumber">Numer referencyjny sesji</param>
     /// <param name="accessToken">Access token.</param>
-    /// <param name="pageOffset">Numer strony wyników.</param>
     /// <param name="pageSize">Rozmiar strony wyników.</param>
+    /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
     /// <param name="cancellationToken">Cancellation token./param>
     /// <returns><see cref="SessionInvoicesResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<SessionInvoicesResponse> GetSessionInvoicesAsync(string referenceNumber, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default);
+    /// <exception cref="ApiException">Brak uprawnień. (403 Forbidden)</exception>
+    Task<SessionInvoicesResponse> GetSessionInvoicesAsync(string referenceNumber, string accessToken, int? pageSize = null, string continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie statusu faktury z sesji
@@ -275,10 +276,10 @@ public interface IKSeFClient
     /// <param name="pageSize">Rozmiar strony wyników.</param>
     /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
     /// <param name="cancellationToken">Cancellation token./param>
-    /// <returns><see cref="SessionInvoicesResponse"/></returns>
+    /// <returns><see cref="SessionFailedInvoicesResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<SessionInvoicesResponse> GetSessionFailedInvoicesAsync(string referenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
+    Task<SessionFailedInvoicesResponse> GetSessionFailedInvoicesAsync(string referenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
 
     /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
     /// <summary>
@@ -336,17 +337,6 @@ public interface IKSeFClient
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
     Task<string> GetInvoiceAsync(string ksefReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Pobranie faktury na podstawie numeru KSeF oraz danych faktury.
-    /// </summary>
-    /// <param name="requestPayload"><see cref="InvoiceRequest"/>Dane faktury.</param>
-    /// <param name="accessToken">Access token.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Faktura w formie XML.</returns>
-    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
-    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<string> DownloadInvoiceAsync(InvoiceRequest requestPayload, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Zwraca listę metadanych faktur spełniające podane kryteria wyszukiwania.

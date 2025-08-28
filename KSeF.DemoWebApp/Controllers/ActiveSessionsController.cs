@@ -19,11 +19,11 @@ public class ActiveSessionsController : ControllerBase
     /// Pobranie listy aktywnych sesji.
     /// </summary>
     [HttpGet("list")]
-    public async Task<ActionResult<ICollection<Item>>> GetSessionsAsync([FromQuery] string accessToken, CancellationToken cancellationToken)
+    public async Task<ActionResult<ICollection<AuthenticationListItem>>> GetSessionsAsync([FromQuery] string accessToken, CancellationToken cancellationToken)
     {
         const int pageSize = 20;
         string? continuationToken = null;
-        var activeSessions = new List<Item>();
+        var activeSessions = new List<AuthenticationListItem>();
         do
         {
             var response = await ksefClient.GetActiveSessions(accessToken, pageSize, continuationToken, cancellationToken);

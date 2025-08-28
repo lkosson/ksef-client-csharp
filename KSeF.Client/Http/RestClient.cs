@@ -39,6 +39,7 @@ public class RestClient : IRestClient
 
         if (requestBody != null && method != HttpMethod.Get)
         {
+            
             var requestContent = contentType == DefaultContentType
                 ? JsonUtil.Serialize(requestBody)
                 : requestBody.ToString();

@@ -1,6 +1,7 @@
 ﻿using KSeF.Client.Api.Builders.IndirectEntityPermissions;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.IndirectEntity;
+using KSeF.Client.Tests.Utils;
 
 namespace KSeF.Client.Tests
 {
@@ -33,13 +34,10 @@ namespace KSeF.Client.Tests
         public IndirectPermissionE2ETests(IndirectPermissionScenarioFixture f)
         {
             _f = f;
-            _f.AccessToken = AccessToken;
-            _f.Subject.Value = randomGenerator
-                .Next(900000000, 999999999)
-                .ToString();
-            _f.Target = randomGenerator
-                .Next(900000000, 999999999)
-                .ToString();
+            var authInfo = AuthenticationUtils.AuthenticateAsync(ksefClient, signatureService).GetAwaiter().GetResult();
+            _f.AccessToken = authInfo.AccessToken.Token;
+            _f.Subject.Value = MiscellaneousUtils.GetRandomNip("9");
+            _f.Target = MiscellaneousUtils.GetRandomNip("9");
         }
 
         [Fact]
@@ -69,21 +67,21 @@ namespace KSeF.Client.Tests
                 .WithDescription("E2E indirect grant")
                 .Build();
 
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GrantsPermissionIndirectEntityAsync(req, _f.AccessToken, CancellationToken.None);
 
             Assert.NotNull(resp);
             Assert.False(string.IsNullOrEmpty(resp.OperationReferenceNumber));
             _f.GrantResponse = resp;
 
-            var status = await kSeFClient.OperationsStatusAsync(resp.OperationReferenceNumber,AccessToken);
+            var status = await ksefClient.OperationsStatusAsync(resp.OperationReferenceNumber,_f.AccessToken);
 
             Assert.True(status.Status.Code == 100);
         }
 
         public async Task Step2_SearchIndirectAsync(bool expectAny)
         {
-           var resp = await kSeFClient
+           var resp = await ksefClient
                 .SearchGrantedPersonPermissionsAsync(new Core.Models.Permissions.Person.PersonPermissionsQueryRequest() { QueryType = Core.Models.Permissions.Person.QueryTypeEnum.PermissionsGrantedInCurrentContext, PermissionState = Core.Models.Permissions.Person.PermissionState.Inactive}, _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
             Assert.NotNull(resp);
@@ -110,7 +108,7 @@ namespace KSeF.Client.Tests
 
             foreach (var permission in _f.SearchResponse.Permissions)
             {
-                var resp = await kSeFClient.RevokeAuthorizationsPermissionAsync(permission.Id, _f.AccessToken, CancellationToken.None);
+                var resp = await ksefClient.RevokeAuthorizationsPermissionAsync(permission.Id, _f.AccessToken, CancellationToken.None);
 
                 Assert.NotNull(resp);
                 Assert.False(string.IsNullOrEmpty(resp.OperationReferenceNumber));
@@ -120,7 +118,7 @@ namespace KSeF.Client.Tests
             foreach (var revokeStatus in _f.RevokeResponse)
             {
                 await Task.Delay(sleepTime);
-                var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
+                var status = await ksefClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, _f.AccessToken);
                 if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" && status.Status.Details.First() == "Permission cannot be revoked.")
                 {
                     _f.ExpectedPermissionsAfterRevoke += 1;

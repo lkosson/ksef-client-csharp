@@ -1,6 +1,7 @@
 using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.Sessions.BatchSession;
+using KSeF.Client.Tests.Utils;
 using KSeFClient.Http;
 using System.IO.Compression;
 
@@ -14,6 +15,7 @@ public class BatchSessionScenarioFixture
     public string? AccessToken { get; set; }
     public OpenBatchSessionResponse? OpenBatchSessionResponse { get; internal set; }
     public string? UpoReferenceNumber { get; set; }
+    public string SellerNIP { get; set; }
 
     public List<BatchPartSendingInfo> EncryptedParts { get; set; }
     public List<BatchPartStreamSendingInfo> EncryptedStreamParts { get; set; }
@@ -32,7 +34,10 @@ public class BatchSession : TestBase
     public BatchSession(BatchSessionScenarioFixture fixture)
     {
         _fixture = fixture;
-        _fixture.AccessToken = AccessToken;
+        var nip = MiscellaneousUtils.GetRandomNip();
+        var authInfo = AuthenticationUtils.AuthenticateAsync(ksefClient, signatureService, nip).GetAwaiter().GetResult();
+        _fixture.AccessToken = authInfo.AccessToken.Token;
+        _fixture.SellerNIP = nip;
     }
 
 
@@ -65,6 +70,7 @@ public class BatchSession : TestBase
         // Step 7: Get session UPO
         await Step7_GetBatchSessionUpoAsync_ReturnsSessionUpo();
     }
+
     [Fact]
     public async Task BatchSession_E2E_Stream_WorksCorrectly()
     {
@@ -94,12 +100,10 @@ public class BatchSession : TestBase
         await Step7_GetBatchSessionUpoAsync_ReturnsSessionUpo();
     }
 
-
-
     private async Task Step1_OpenBatchSession_ReturnsReference()
     {
         var restClient = new RestClient(httpClientBase);
-        var cryptographyService = new CryptographyService(kSeFClient) as ICryptographyService;
+        var cryptographyService = new CryptographyService(ksefClient) as ICryptographyService;
 
 
         var encryptionData = cryptographyService.GetEncryptionData();
@@ -108,10 +112,9 @@ public class BatchSession : TestBase
         var invoices = new List<string>();
         if (!Directory.Exists(InvoicesDirectory))
             Directory.CreateDirectory(InvoicesDirectory);
-
         for (var i = 0; i < 20; i++)
         {
-            var inv = File.ReadAllText(invoicePath).Replace("#nip#", base.NIP).Replace("#invoice_number#", Guid.NewGuid().ToString());
+            var inv = File.ReadAllText(invoicePath).Replace("#nip#", _fixture.SellerNIP).Replace("#invoice_number#", Guid.NewGuid().ToString());
             var invoiceName = $"faktura_{i + 1}.xml";
             invoices.Add(Path.Combine(InvoicesDirectory, invoiceName));
             File.WriteAllText(Path.Combine(InvoicesDirectory, invoiceName), inv);
@@ -188,7 +191,7 @@ public class BatchSession : TestBase
                 initializationVector: encryptionData.EncryptionInfo.InitializationVector)
         .Build();
 
-        var openBatchSessionResponse = await kSeFClient.OpenBatchSessionAsync(openBatchRequest, AccessToken, CancellationToken.None);
+        var openBatchSessionResponse = await ksefClient.OpenBatchSessionAsync(openBatchRequest, _fixture.AccessToken, CancellationToken.None);
 
         Assert.NotNull(openBatchSessionResponse);
         Assert.NotNull(openBatchSessionResponse.ReferenceNumber);
@@ -200,7 +203,7 @@ public class BatchSession : TestBase
     private async Task Step1_OpenBatchSession_Stream_ReturnsReference()
     {
         var restClient = new RestClient(httpClientBase);
-        var cryptographyService = new CryptographyService(kSeFClient) as ICryptographyService;
+        var cryptographyService = new CryptographyService(ksefClient) as ICryptographyService;
 
         var encryptionData = cryptographyService.GetEncryptionData();
         string invoicePath = Path.Combine("invoices", "faktura-template.xml");
@@ -208,10 +211,9 @@ public class BatchSession : TestBase
         var invoices = new List<string>();
         if (!Directory.Exists(InvoicesDirectory))
             Directory.CreateDirectory(InvoicesDirectory);
-
         for (var i = 0; i < 20; i++)
         {
-            var inv = File.ReadAllText(invoicePath).Replace("#nip#", base.NIP).Replace("#invoice_number#", Guid.NewGuid().ToString());
+            var inv = File.ReadAllText(invoicePath).Replace("#nip#", _fixture.SellerNIP).Replace("#invoice_number#", Guid.NewGuid().ToString());
             var invoiceName = $"faktura_{i + 1}.xml";
             invoices.Add(Path.Combine(InvoicesDirectory, invoiceName));
             File.WriteAllText(Path.Combine(InvoicesDirectory, invoiceName), inv);
@@ -297,7 +299,7 @@ public class BatchSession : TestBase
                 initializationVector: encryptionData.EncryptionInfo.InitializationVector)
             .Build();
 
-        var openBatchSessionResponse = await kSeFClient.OpenBatchSessionAsync(openBatchRequest, AccessToken, CancellationToken.None);
+        var openBatchSessionResponse = await ksefClient.OpenBatchSessionAsync(openBatchRequest, _fixture.AccessToken, CancellationToken.None);
 
         Assert.NotNull(openBatchSessionResponse);
         Assert.NotNull(openBatchSessionResponse.ReferenceNumber);
@@ -308,26 +310,26 @@ public class BatchSession : TestBase
 
     private async Task Step2_SendBatchPartsAsync()
     {
-        await kSeFClient.SendBatchPartsAsync(_fixture.OpenBatchSessionResponse, _fixture.EncryptedParts);
+        await ksefClient.SendBatchPartsAsync(_fixture.OpenBatchSessionResponse, _fixture.EncryptedParts);
     }
 
     private async Task Step3_CloseBatchSessionAsync_ClosesSessionSuccessfully()
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber)); // Wymuś wykonie kroku 1
 
-        await kSeFClient.CloseBatchSessionAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
+        await ksefClient.CloseBatchSessionAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
     }
 
     private async Task Step2_SendBatchPartsWithStreamAsync()
     {
-        await kSeFClient.SendBatchPartsWithStreamAsync(_fixture.OpenBatchSessionResponse, _fixture.EncryptedStreamParts);
+        await ksefClient.SendBatchPartsWithStreamAsync(_fixture.OpenBatchSessionResponse, _fixture.EncryptedStreamParts);
     }
 
     private async Task Step4_GetBatchSessionStatusByAsync_ReturnsStatus()
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
 
-        var statusResponse = await kSeFClient.GetSessionStatusAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
+        var statusResponse = await ksefClient.GetSessionStatusAsync(_fixture.ReferenceNumber, _fixture.AccessToken);
 
         Assert.NotNull(statusResponse);
         Assert.True(statusResponse.SuccessfulInvoiceCount == 20);
@@ -341,7 +343,7 @@ public class BatchSession : TestBase
     private async Task Step5_GetBatchSessionDocumentsAync_ReturnsDocuments()
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
-        var documents = await kSeFClient.GetSessionInvoicesAsync(_fixture.ReferenceNumber, _fixture.AccessToken, 0, 20);
+        var documents = await ksefClient.GetSessionInvoicesAsync(_fixture.ReferenceNumber, _fixture.AccessToken, 20);
         Assert.NotNull(documents);
         Assert.NotEmpty(documents.Invoices);
         Assert.Equal(20, documents.Invoices.Count);
@@ -353,7 +355,7 @@ public class BatchSession : TestBase
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
 
-        var upoResponse = await kSeFClient.GetSessionInvoiceUpoByKsefNumberAsync(_fixture.ReferenceNumber, _fixture.KsefNumber, _fixture.AccessToken, CancellationToken.None);
+        var upoResponse = await ksefClient.GetSessionInvoiceUpoByKsefNumberAsync(_fixture.ReferenceNumber, _fixture.KsefNumber, _fixture.AccessToken, CancellationToken.None);
 
         Assert.NotNull(upoResponse);
         Assert.False(string.IsNullOrWhiteSpace(upoResponse));
@@ -363,7 +365,7 @@ public class BatchSession : TestBase
     private async Task Step7_GetBatchSessionUpoAsync_ReturnsSessionUpo()
     {
         Assert.False(string.IsNullOrWhiteSpace(_fixture.ReferenceNumber));
-        var upoResponse = await kSeFClient.GetSessionUpoAsync(_fixture.ReferenceNumber, _fixture.UpoReferenceNumber, _fixture.AccessToken, CancellationToken.None);
+        var upoResponse = await ksefClient.GetSessionUpoAsync(_fixture.ReferenceNumber, _fixture.UpoReferenceNumber, _fixture.AccessToken, CancellationToken.None);
         Assert.NotNull(upoResponse);
         Assert.False(string.IsNullOrWhiteSpace(upoResponse));
         _fixture.UpoDocument = upoResponse;

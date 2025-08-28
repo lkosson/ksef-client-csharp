@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Core.Models.Permissions;
@@ -29,13 +29,13 @@ public partial class KSeFClient : IKSeFClient
     public KSeFClient(IRestClient restClient) => this.restClient = restClient;
 
     /// <inheritdoc />
-    public async Task<ActiveSessionsResponse> GetActiveSessions(string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default)
+    public async Task<AuthenticationListResponse> GetActiveSessions(string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default)
     {
         ValidateParams(accessToken);
 
         var urlBuilder = new StringBuilder();
 
-        urlBuilder.Append("/api/v2/auth/sessions/");
+        urlBuilder.Append("/api/v2/auth/sessions");
 
         if (pageSize.HasValue)
         {
@@ -44,7 +44,7 @@ public partial class KSeFClient : IKSeFClient
 
         var url = urlBuilder.ToString();
 
-        return await restClient.SendAsync<ActiveSessionsResponse, object>(HttpMethod.Get,
+        return await restClient.SendAsync<AuthenticationListResponse, object>(HttpMethod.Get,
                                                                             url,
                                                                             default,
                                                                             accessToken,
@@ -137,7 +137,7 @@ public partial class KSeFClient : IKSeFClient
         ValidateParams(authenticationToken);
 
         return await restClient.SendAsync<AuthOperationStatusResponse, string>(HttpMethod.Post,
-                                                                               $"/api/v2/auth/token/redeem",//TODO
+                                                                               $"/api/v2/auth/token/redeem",
                                                                                default,
                                                                                authenticationToken,
                                                                                RestClient.DefaultContentType,
@@ -313,7 +313,7 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<SessionInvoicesResponse> GetSessionInvoicesAsync(string referenceNumber, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default)
+    public async Task<SessionInvoicesResponse> GetSessionInvoicesAsync(string referenceNumber, string accessToken, int? pageSize = null, string continuationToken = null, CancellationToken cancellationToken = default)
     {
         ValidateParams(referenceNumber, accessToken);
 
@@ -323,11 +323,23 @@ public partial class KSeFClient : IKSeFClient
         urlBuilder.Append(Uri.EscapeDataString(referenceNumber));
         urlBuilder.Append("/invoices");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        if (pageSize.HasValue)
+        {
+            urlBuilder.Append($"?pageSize={pageSize.Value}");
+        }
+
         var url = urlBuilder.ToString();
 
 
-        return await restClient.SendAsync<SessionInvoicesResponse, object>(HttpMethod.Get, url, default, accessToken, RestClient.DefaultContentType, cancellationToken).ConfigureAwait(false);
+        return await restClient.SendAsync<SessionInvoicesResponse, object>(HttpMethod.Get,
+                                                                                       url,
+                                                                                       default,
+                                                                                       accessToken,
+                                                                                       RestClient.DefaultContentType,
+                                                                                       cancellationToken,
+                                                                                       !string.IsNullOrEmpty(continuationToken) ?
+                                                                                        new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken) } }
+                                                                                        : null).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -347,7 +359,7 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<SessionInvoicesResponse> GetSessionFailedInvoicesAsync(string referenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default)
+    public async Task<SessionFailedInvoicesResponse> GetSessionFailedInvoicesAsync(string referenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default)
     {
         ValidateParams(referenceNumber, accessToken);
 
@@ -364,7 +376,7 @@ public partial class KSeFClient : IKSeFClient
 
         var url = urlBuilder.ToString();
 
-        return await restClient.SendAsync<SessionInvoicesResponse, object>(HttpMethod.Get,
+        return await restClient.SendAsync<SessionFailedInvoicesResponse, object>(HttpMethod.Get,
                                                                             url,
                                                                             default,
                                                                             accessToken,
@@ -444,21 +456,6 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<string> DownloadInvoiceAsync(InvoiceRequest requestPayload, string accessToken, CancellationToken cancellationToken = default)
-    {
-        ValidatePayload(requestPayload, accessToken);
-
-        return await restClient.SendAsync<string, InvoiceRequest>(HttpMethod.Post,
-                                                                    "/api/v2/invoices/download",
-                                                                    requestPayload,
-                                                                    accessToken,
-                                                                    RestClient.DefaultContentType,
-                                                                    cancellationToken)
-                                                                    .ConfigureAwait(false);
-    }
-
-
-    /// <inheritdoc />
     public async Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceMetadataQueryRequest requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default)
     {
         ValidatePayload(requestPayload, accessToken);
@@ -495,8 +492,12 @@ public partial class KSeFClient : IKSeFClient
     {
         ValidateParams(operationReferenceNumber, accessToken);
 
+        var urlBuilder = new StringBuilder();
+        urlBuilder.Append("/api/v2/invoices/async-query/");
+        urlBuilder.Append(Uri.EscapeDataString(operationReferenceNumber));
+
         return await restClient.SendAsync<AsyncQueryInvoiceStatusResponse, object>(HttpMethod.Get,
-                                                                    "/api/v2/invoices/async-query",
+                                                                    urlBuilder.ToString(),
                                                                     default,
                                                                     accessToken,
                                                                     RestClient.DefaultContentType,

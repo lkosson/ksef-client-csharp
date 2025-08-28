@@ -2,6 +2,7 @@
 using KSeF.Client.Api.Builders.EUEntityPermissions;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
+using KSeF.Client.Tests.Utils;
 
 namespace KSeF.Client.Tests
 {
@@ -13,6 +14,7 @@ namespace KSeF.Client.Tests
             Type = SubjectIdentifierType.Fingerprint,
             Value = "EU123456789"
         };
+        public string NipVatUe { get; set; }
         public OperationResponse GrantResponse { get; set; }
         public IList<OperationResponse> RevokeResponse { get; set; } = new List<OperationResponse>();
         public PagedPermissionsResponse<EuEntityPermission> SearchResponse { get; set; }
@@ -32,8 +34,11 @@ namespace KSeF.Client.Tests
         public EuEntityPermissionE2ETests(EuEntityScenarioFixture f)
         {
             _f = f;
-            _f.AccessToken = AccessToken;
-            _f.EuEntity.Value = "EU" + randomGenerator.Next(100000000, 999999999);
+            var nip = MiscellaneousUtils.GetRandomNip();
+            _f.NipVatUe = MiscellaneousUtils.GetRandomNipVatEU(nip, "CZ");
+            var authInfo = AuthenticationUtils.AuthenticateAsync(ksefClient, signatureService, nip).GetAwaiter().GetResult();
+            _f.AccessToken = authInfo.AccessToken.Token;
+            _f.EuEntity.Value = MiscellaneousUtils.GetRandomNipVatEU("CZ");
         }
 
         [Fact]
@@ -57,11 +62,11 @@ namespace KSeF.Client.Tests
             var req = GrantEUEntityPermissionsRequestBuilder
                 .Create()
                 .WithSubject(_f.EuEntity)
-                .WithContext(new ContextIdentifier() { Type = ContextIdentifierType.NipVatUe, Value = NIP})
+                .WithContext(new ContextIdentifier() { Type = ContextIdentifierType.NipVatUe, Value = _f.NipVatUe })
                 .WithDescription("E2E EU ")
                 .Build();
 
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .GrantsPermissionEUEntityAsync(req, _f.AccessToken, CancellationToken.None);
 
             Assert.NotNull(resp);
@@ -72,7 +77,7 @@ namespace KSeF.Client.Tests
         public async Task Step2_SearchEuAsync(bool expectAny)
         {
             var query = new EuEntityPermissionsQueryRequest { /* e.g. filtrowanie */ };
-            var resp = await kSeFClient
+            var resp = await ksefClient
                 .SearchGrantedEuEntityPermissionsAsync(
                     query, _f.AccessToken, pageOffset: 0, pageSize: 10, CancellationToken.None);
 
@@ -99,7 +104,7 @@ namespace KSeF.Client.Tests
         {
             foreach (var permission in _f.SearchResponse.Permissions)
             {
-                var resp = await kSeFClient
+                var resp = await ksefClient
                 .RevokeCommonPermissionAsync(permission.Id, _f.AccessToken, CancellationToken.None);
 
                 Assert.NotNull(resp);
@@ -111,7 +116,7 @@ namespace KSeF.Client.Tests
 
             foreach (var revokeStatus in _f.RevokeResponse)
             {
-                var status = await kSeFClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, AccessToken);
+                var status = await ksefClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, _f.AccessToken);
                 if (status.Status.Code == 400 && status.Status.Description == "Operacja zakończona niepowodzeniem" &&  status.Status.Details.First() == "Permission cannot be revoked.")
                 {
                     _f.ExpectedPermissionsAfterRevoke+=1;

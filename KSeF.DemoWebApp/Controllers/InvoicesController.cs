@@ -24,15 +24,6 @@ public class InvoicesController : ControllerBase
     }
 
     /// <summary>
-    /// Pobieranie faktury na podstawie danych faktury.
-    /// </summary>
-    [HttpPost("download")]
-    public async Task<ActionResult<string>> DownloadInvoiceAsync([FromBody] InvoiceRequest body, [FromQuery] string accessToken, CancellationToken cancellationToken)
-    {
-        return await ksefClient.DownloadInvoiceAsync(body, accessToken, cancellationToken);
-    }
-
-    /// <summary>
     /// Zapytanie o metadane faktur według filtrów.
     /// </summary>
     [HttpPost("query")]

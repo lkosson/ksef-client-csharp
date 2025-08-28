@@ -61,6 +61,32 @@ public class OnlineSessionController : ControllerBase
         return sendInvoiceResponse;
     }
 
+
+    [HttpPost("send-technical-correction")]
+    public async Task<ActionResult<SendInvoiceResponse>> SendTechnicalCorrectionAsync(string referenceNumber, string hashOfCorrectedInvoice, string accesToken, CancellationToken cancellationToken)
+    {
+        var invoice = System.IO.File.ReadAllBytes("faktura-online.xml");
+        var encryptedInvoice = cryptographyService.EncryptBytesWithAES256(invoice, encryptionData!.CipherKey, encryptionData!.CipherIv);
+
+        var invoiceMetadata = cryptographyService.GetMetaData(invoice);
+        var encryptedInvoiceMetadata = cryptographyService.GetMetaData(encryptedInvoice);
+
+        var sendOnlineInvoiceRequest = SendInvoiceOnlineSessionRequestBuilder
+            .Create()
+            .WithInvoiceHash(invoiceMetadata.HashSHA, invoiceMetadata.FileSize)
+            .WithEncryptedDocumentHash(
+               encryptedInvoiceMetadata.HashSHA, encryptedInvoiceMetadata.FileSize)
+            .WithEncryptedDocumentContent(Convert.ToBase64String(encryptedInvoice))
+            .WithOfflineMode(true)
+            .WithHashOfCorrectedInvoice(hashOfCorrectedInvoice)
+            .Build();
+
+        var sendInvoiceResponse = await ksefClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, referenceNumber, accesToken, cancellationToken)
+            .ConfigureAwait(false);
+
+        return sendInvoiceResponse;
+    }
+
     [HttpPost("close-session")]
     public async Task CloseOnlineSessionAsync(string referenceNumber, string accesToken, CancellationToken cancellationToken)
     {
