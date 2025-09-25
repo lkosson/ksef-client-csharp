@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Permissions.EUEntity;
+using KSeF.Client.Core.Models.Permissions.EUEntity;
 namespace KSeF.Client.Api.Builders.EUEntityPermissions;
 
 public static class GrantEUEntityPermissionsRequestBuilder
@@ -7,7 +7,12 @@ public static class GrantEUEntityPermissionsRequestBuilder
 
     public interface ISubjectStep
     {
-        IPermissionsStep WithSubject(SubjectIdentifier subject);
+        ISubjectNameStep WithSubject(SubjectIdentifier subject);
+    }
+
+    public interface ISubjectNameStep
+    {
+        IPermissionsStep WithSubjectName(string subjectName);
     }
 
     public interface IPermissionsStep
@@ -17,16 +22,17 @@ public static class GrantEUEntityPermissionsRequestBuilder
 
     public interface IDescriptionStep
     {
-        IBuildStep WithDescription(string description);        
+        IBuildStep WithDescription(string description);
     }
 
     public interface IBuildStep
-    {       
+    {
         GrantPermissionsRequest Build();
     }
 
     private sealed class GrantPermissionsRequestBuilderImpl :
         ISubjectStep,
+        ISubjectNameStep,
         IPermissionsStep,
         IDescriptionStep,
         IBuildStep
@@ -34,14 +40,23 @@ public static class GrantEUEntityPermissionsRequestBuilder
         private SubjectIdentifier _subject;
         private ContextIdentifier _context;
         private string _description;
+        private string _subjectName;
 
         private GrantPermissionsRequestBuilderImpl() { }
 
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
-        public IPermissionsStep WithSubject(SubjectIdentifier subject)
+        public ISubjectNameStep WithSubject(SubjectIdentifier subject)
         {
             _subject = subject ?? throw new ArgumentNullException(nameof(subject));
+            return this;
+        }
+
+        public IPermissionsStep WithSubjectName(string subjectName)
+        {
+            if (string.IsNullOrWhiteSpace(subjectName))
+                throw new ArgumentException("Wartość nie może być pusta ani zawierać wyłącznie białych znaków.", nameof(subjectName));
+            _subjectName = subjectName;
             return this;
         }
 
@@ -60,17 +75,18 @@ public static class GrantEUEntityPermissionsRequestBuilder
         public GrantPermissionsRequest Build()
         {
             if (_subject is null)
-                throw new InvalidOperationException("WithSubject(...) must be called first.");
+                throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
             if (_context is null)
-                throw new InvalidOperationException("WithContext(...) must be called after subject.");
+                throw new InvalidOperationException("Metoda WithContext(...) musi zostać wywołana po ustawieniu podmiotu.");
             if (_description is null)
-                throw new InvalidOperationException("WithDescription(...) must be called after permissions.");
+                throw new InvalidOperationException("Metoda WithDescription(...) musi zostać wywołana po ustawieniu uprawnień.");
 
             return new GrantPermissionsRequest
             {
                 SubjectIdentifier = _subject,
                 ContextIdentifier = _context,
                 Description = _description,
+                SubjectName = _subjectName
             };
         }
     }

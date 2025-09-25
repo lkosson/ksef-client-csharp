@@ -1,6 +1,6 @@
-﻿using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.QRCode;
-using KSeFClient.DI;
+using KSeF.Client.DI;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -45,7 +45,7 @@ namespace KSeF.Client.Api.Services
         }
 
 
-        private static string ComputeUrlEncodedSignedHash(string pathToSign, X509Certificate2 cert, string privateKey = "")
+        private static string ComputeUrlEncodedSignedHash(string pathToSign, X509Certificate2 cert, string privateKey = "", DSASignatureFormat dSASignatureFormat = DSASignatureFormat.IeeeP1363FixedFieldConcatenation)
         {
             // 1. SHA-256
             byte[] sha;
@@ -93,11 +93,11 @@ namespace KSeF.Client.Api.Services
             byte[] signature;
             if (cert.GetRSAPrivateKey() is RSA rsa)
             {
-                signature = rsa.SignHash(sha, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                signature = rsa.SignHash(sha, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
             }
             else if (cert.GetECDsaPrivateKey() is ECDsa ecdsa)
             {
-                signature = ecdsa.SignHash(sha);
+                signature = ecdsa.SignHash(sha, dSASignatureFormat);
             }
             else
             {

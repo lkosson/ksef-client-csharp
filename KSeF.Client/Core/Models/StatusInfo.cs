@@ -1,4 +1,6 @@
-﻿namespace KSeFClient.Core.Models;
+using KSeF.Client.Core.Models.Sessions.ActiveSessions;
+
+namespace KSeFClient.Core.Models;
 
 public class StatusInfo
 {
@@ -9,5 +11,7 @@ public class StatusInfo
 
 public class AuthStatus
 {
+    public DateTime StartDate { get; set; }
+    public AuthenticationMethodEnum AuthenticationMethod { get; set; }
     public StatusInfo Status { get; set; }
 }

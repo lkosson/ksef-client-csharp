@@ -1,4 +1,4 @@
-﻿
+
 namespace KSeF.Client.Core.Models.Authorization;
 
 public enum AuthenticationKsefTokenStatus

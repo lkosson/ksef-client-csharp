@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Xml;
 using System.Xml.Schema;
@@ -15,7 +15,7 @@ public class AuthTokenRequest
 
     public SubjectIdentifierTypeEnum SubjectIdentifierType { get; set; }
 
-    public IpAddressPolicy IpAddressPolicy { get; set; }    
+    public AuthorizationPolicy AuthorizationPolicy { get; set; }    
 }
 
 public class AuthContextIdentifier : IXmlSerializable
@@ -48,7 +48,10 @@ public enum ContextIdentifierType
     InternalId,
     [EnumMember(Value = "NipVatUe")]
     [XmlEnum("NipVatUe")]
-    NipVatUe
+    NipVatUe,
+    [EnumMember(Value = "PeppolId")]
+    [XmlEnum("PeppolId")]
+    PeppolId
 }
 
 public enum SubjectIdentifierTypeEnum
@@ -56,39 +59,26 @@ public enum SubjectIdentifierTypeEnum
     [EnumMember(Value = "certificateSubject")]
     [XmlEnum("certificateSubject")]
     CertificateSubject,
-    [EnumMember(Value = "certificateFingerprint ")]
-    [XmlEnum("certificateFingerprint ")]
+    [EnumMember(Value = "certificateFingerprint")]
+    [XmlEnum("certificateFingerprint")]
     CertificateFingerprint
 }
 
-public class IpAddressPolicy
+public class AuthorizationPolicy
 {
-    public IpChangePolicy OnClientIpChange { get; set; }
-
-    public AllowedIps AllowedIps { get; set; }
-}
-
-public enum IpChangePolicy
-{
-    [XmlEnum("reject")]
-    [EnumMember(Value = "reject")]
-    Reject,
-
-    [XmlEnum("ignore")]
-    [EnumMember(Value = "ignore")]
-    Ignore
+    public AllowedIps AllowedIps { get; set; } = new();
 }
 
 public class AllowedIps
 {
-    [XmlElement("IpAddress")]
-    public List<string> IpAddress { get; set; } = new();
+    [XmlElement("Ip4Address")]
+    public List<string> Ip4Addresses { get; set; } = new();
 
-    [XmlElement("IpRange")]
-    public List<string> IpRange { get; set; } = new();
+    [XmlElement("Ip4Range")]
+    public List<string> Ip4Ranges { get; set; } = new();
 
-    [XmlElement("IpMask")]
-    public List<string> IpMask { get; set; } = new();
+    [XmlElement("Ip4Mask")]
+    public List<string> Ip4Masks { get; set; } = new();
 }
 
 public class Utf8StringWriter : StringWriter

@@ -1,27 +1,37 @@
-﻿namespace KSeFClient.Core.Exceptions;
+namespace KSeF.Client.Core.Exceptions;
 
 /// <summary>
-/// Contains detailed exception metadata including code, description, and timestamp.
+/// Zawiera szczegółowe metadane wyjątku, w tym kod, opis i znacznik czasu.
 /// </summary>
 public class ApiExceptionContent
 {
     /// <summary>
-    /// List of detailed exceptions describing individual issues.
+    /// Lista szczegółów wyjątków opisujących poszczególne problemy.
     /// </summary>
     public List<ApiExceptionDetail> ExceptionDetailList { get; set; }
 
     /// <summary>
-    /// Unique code representing the service instance that generated the error.
+    /// Unikalny kod reprezentujący instancję usługi, która wygenerowała błąd.
     /// </summary>
     public string ServiceCode { get; set; }
 
     /// <summary>
-    /// Timestamp when the exception occurred.
+    /// Znacznik czasu wystąpienia wyjątku.
     /// </summary>
     public DateTime Timestamp { get; set; }
 
+    /// <summary>
+    /// Nazwa usługi, w której wystąpił błąd.
+    /// </summary>
     public string ServiceName { get; set; }
+
+    /// <summary>
+    /// Numer referencyjny służący do korelacji żądania i błędu.
+    /// </summary>
     public string ReferenceNumber { get; set; }
 
+    /// <summary>
+    /// Dodatkowy kontekst usługi/
+    /// </summary>
     public string ServiceCtx { get; set; }
 }

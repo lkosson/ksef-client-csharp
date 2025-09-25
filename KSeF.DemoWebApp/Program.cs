@@ -1,4 +1,4 @@
-using KSeFClient.DI;
+using KSeF.Client.DI;
 using Microsoft.AspNetCore.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -9,12 +9,16 @@ var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
 
 builder.Services.AddKSeFClient(options =>
 {
-    options.BaseUrl = KsefEnviromentsUris.TEST;
-    options.CustomHeaders = 
+    options.BaseUrl = 
+        builder.Configuration.GetSection("ApiSettings")
+                .GetValue<string>("BaseUrl")
+                ?? KsefEnviromentsUris.TEST;
+    
+    options.CustomHeaders =
         builder.Configuration
                 .GetSection("ApiSettings:customHeaders")
                 .Get<Dictionary<string, string>>()
-              ?? new Dictionary<string, string>();    
+              ?? new Dictionary<string, string>();
 });
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
@@ -39,13 +43,12 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.Configure<JsonOptions>(options =>
 {
-    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.SerializerOptions.ReadCommentHandling = JsonCommentHandling.Skip;
     options.SerializerOptions.AllowTrailingCommas = true;
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     options.SerializerOptions.AllowOutOfOrderMetadataProperties = true;
 
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 var app = builder.Build();

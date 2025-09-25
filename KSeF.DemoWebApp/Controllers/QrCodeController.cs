@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Api.Services;
+using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.QRCode;
 using Microsoft.AspNetCore.Mvc;

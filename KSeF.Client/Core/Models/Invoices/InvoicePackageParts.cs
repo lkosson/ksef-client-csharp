@@ -1,4 +1,4 @@
-﻿
+
 using KSeF.Client.Core.Models.Sessions.BatchSession;
 
 namespace KSeF.Client.Core.Models.Invoices;

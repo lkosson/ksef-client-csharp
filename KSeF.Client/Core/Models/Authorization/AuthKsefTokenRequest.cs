@@ -1,4 +1,4 @@
-﻿
+
 namespace KSeF.Client.Core.Models.Authorization;
 
 public class AuthKsefTokenRequest
@@ -7,5 +7,5 @@ public class AuthKsefTokenRequest
     public AuthContextIdentifier ContextIdentifier { get; set; }
     public string EncryptedToken { get; set; }
 
-    public IpAddressPolicy IpAddressPolicy { get; set; } 
+    public AuthorizationPolicy AuthorizationPolicy { get; set; } 
 }

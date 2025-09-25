@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.QRCode;
+using KSeF.Client.Core.Models.QRCode;
 using System.Security.Cryptography.X509Certificates;
 
 

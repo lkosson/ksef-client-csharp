@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Sessions.BatchSession;
+using KSeF.Client.Core.Models.Sessions.BatchSession;
 using KSeF.Client.Core.Models.Sessions;
 
 public interface IOpenBatchSessionRequestBuilder
@@ -49,7 +49,7 @@ internal class OpenBatchSessionRequestBuilderImpl
     public IOpenBatchSessionRequestBuilderWithFormCode WithFormCode(string systemCode, string schemaVersion, string value)
     {
         if (string.IsNullOrWhiteSpace(systemCode) || string.IsNullOrWhiteSpace(schemaVersion) || string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("FormCode parameters cannot be null or empty.");
+            throw new ArgumentException("Parametry FormCode nie mogą być puste ani null.");
 
         _formCode = new FormCode
         {
@@ -63,17 +63,17 @@ internal class OpenBatchSessionRequestBuilderImpl
     public IOpenBatchSessionRequestBuilderBatchFile WithBatchFile(long fileSize, string fileHash)
     {
         if (fileSize < 0 || string.IsNullOrWhiteSpace(fileHash))
-            throw new ArgumentException("BatchFile parameters are invalid.");
+            throw new ArgumentException("Parametry BatchFile są nieprawidłowe.");
 
         _batchFileSize = fileSize;
         _batchFileHash = fileHash;
         return this;
     }
 
-    public IOpenBatchSessionRequestBuilderBatchFile AddBatchFilePart(string fileName,int ordinalNumber, long fileSize, string fileHash)
+    public IOpenBatchSessionRequestBuilderBatchFile AddBatchFilePart(string fileName, int ordinalNumber, long fileSize, string fileHash)
     {
-        if (string.IsNullOrWhiteSpace(fileName) || ordinalNumber < 0 || fileSize < 0 || string.IsNullOrWhiteSpace(fileHash) )
-            throw new ArgumentException("BatchFilePart parameters are invalid.");
+        if (string.IsNullOrWhiteSpace(fileName) || ordinalNumber < 0 || fileSize < 0 || string.IsNullOrWhiteSpace(fileHash))
+            throw new ArgumentException("Parametry BatchFilePart są nieprawidłowe.");
 
         _parts.Add(new BatchFilePartInfo
         {
@@ -87,16 +87,15 @@ internal class OpenBatchSessionRequestBuilderImpl
 
     public IOpenBatchSessionRequestBuilderEncryption EndBatchFile()
     {
-        // fileParts can be empty, but batchFile must be set
         if (string.IsNullOrWhiteSpace(_batchFileHash))
-            throw new InvalidOperationException("BatchFile hash must be set.");
+            throw new InvalidOperationException("Hash BatchFile musi być ustawiony.");
         return this;
     }
 
     public IOpenBatchSessionRequestBuilderBuild WithEncryption(string encryptedSymmetricKey, string initializationVector)
     {
         if (string.IsNullOrWhiteSpace(encryptedSymmetricKey) || string.IsNullOrWhiteSpace(initializationVector))
-            throw new ArgumentException("Encryption parameters cannot be null or empty.");
+            throw new ArgumentException("Parametry szyfrowania nie mogą być puste ani null.");
 
         _encryption.EncryptedSymmetricKey = encryptedSymmetricKey;
         _encryption.InitializationVector = initializationVector;
@@ -110,9 +109,9 @@ internal class OpenBatchSessionRequestBuilderImpl
 
     public OpenBatchSessionRequest Build()
     {
-        if (_formCode == null) throw new InvalidOperationException("FormCode is required.");
+        if (_formCode == null) throw new InvalidOperationException("FormCode jest wymagany.");
         if (string.IsNullOrWhiteSpace(_encryption.EncryptedSymmetricKey) || string.IsNullOrWhiteSpace(_encryption.InitializationVector))
-            throw new InvalidOperationException("Encryption configuration is incomplete.");
+            throw new InvalidOperationException("Konfiguracja szyfrowania jest niekompletna.");
 
         return new OpenBatchSessionRequest
         {

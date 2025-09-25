@@ -1,4 +1,4 @@
-﻿namespace KSeFClient.DI;
+namespace KSeF.Client.DI;
 
 public static class KsefEnviromentsUris
 {

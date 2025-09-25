@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Authorization;
+namespace KSeF.Client.Core.Models.Authorization;
 
 
 public class RefreshTokenResponse

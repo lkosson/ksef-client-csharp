@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Sessions.OnlineSession;
+using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeF.Client.Core.Models.Sessions;
 
 public interface IOpenOnlineSessionRequestBuilder
@@ -31,7 +31,7 @@ internal class OpenOnlineSessionRequestBuilderImpl
     public IOpenOnlineSessionRequestBuilderWithFormCode WithFormCode(string systemCode, string schemaVersion, string value)
     {
         if (string.IsNullOrWhiteSpace(systemCode) || string.IsNullOrWhiteSpace(schemaVersion) || string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("FormCode parameters cannot be null or empty.");
+            throw new ArgumentException("Parametry FormCode nie mogą być puste ani null.");
 
         _formCode = new FormCode
         {
@@ -45,7 +45,7 @@ internal class OpenOnlineSessionRequestBuilderImpl
     public IOpenOnlineSessionRequestBuilderWithEncryption WithEncryption(string encryptedSymmetricKey, string initializationVector)
     {
         if (string.IsNullOrWhiteSpace(encryptedSymmetricKey) || string.IsNullOrWhiteSpace(initializationVector))
-            throw new ArgumentException("Encryption parameters cannot be null or empty.");
+            throw new ArgumentException("Parametry szyfrowania nie mogą być puste ani null.");
 
         _encryption.EncryptedSymmetricKey = encryptedSymmetricKey;
         _encryption.InitializationVector = initializationVector;
@@ -54,9 +54,9 @@ internal class OpenOnlineSessionRequestBuilderImpl
 
     public OpenOnlineSessionRequest Build()
     {
-        if (_formCode == null) throw new InvalidOperationException("FormCode is required.");
+        if (_formCode == null) throw new InvalidOperationException("FormCode jest wymagany.");
         if (string.IsNullOrWhiteSpace(_encryption.EncryptedSymmetricKey) || string.IsNullOrWhiteSpace(_encryption.InitializationVector))
-            throw new InvalidOperationException("Encryption configuration is incomplete.");
+            throw new InvalidOperationException("Konfiguracja szyfrowania jest niekompletna.");
 
         return new OpenOnlineSessionRequest
         {

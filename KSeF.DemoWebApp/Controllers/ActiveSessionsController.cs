@@ -1,7 +1,6 @@
-﻿using KSeF.Client.Core.Models.Sessions.ActiveSessions;
-using KSeFClient;
+using KSeF.Client.Core.Models.Sessions.ActiveSessions;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
 
 namespace WebApplication.Controllers;
 [Route("active-sessions")]
@@ -51,9 +50,9 @@ public class ActiveSessionsController : ControllerBase
     /// Unieważnia sesję o podanym numerze referencyjnym.
     /// </summary>
     [HttpDelete("revoke-session")]
-    public async Task<ActionResult> RevokeSessionAsync([FromQuery] string referenceNumber, [FromQuery] string accessToken, CancellationToken cancellationToken)
+    public async Task<ActionResult> RevokeSessionAsync([FromQuery] string sessionReferenceNumber, [FromQuery] string accessToken, CancellationToken cancellationToken)
     {
-        await ksefClient.RevokeSessionAsync(referenceNumber, accessToken, cancellationToken);
+        await ksefClient.RevokeSessionAsync(sessionReferenceNumber, accessToken, cancellationToken);
         return NoContent();
     }
 }

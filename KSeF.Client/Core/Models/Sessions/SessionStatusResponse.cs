@@ -1,6 +1,6 @@
-﻿using KSeFClient.Core.Models;
+using KSeF.Client.Core.Models.Sessions;
 
-namespace KSeF.Client.Core.Models.Sessions;
+namespace KSeFClient.Core.Models.Sessions;
 
 public class SessionStatusResponse
 {

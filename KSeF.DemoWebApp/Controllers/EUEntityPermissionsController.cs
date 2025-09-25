@@ -1,7 +1,7 @@
-﻿using KSeF.Client.Api.Builders.EUEntityPermissions;
+using KSeF.Client.Api.Builders.EUEntityPermissions;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
-using KSeFClient;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KSeF.DemoWebApp.Controllers;
@@ -16,6 +16,7 @@ public class EUEntityPermissionsController(IKSeFClient ksefClient) : ControllerB
         var request = GrantEUEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(grantPermissionsRequest.SubjectIdentifier)
+            .WithSubjectName("Sample Subject Name")
             .WithContext(grantPermissionsRequest.ContextIdentifier)
             .WithDescription("Access for quarterly review")
             .Build();

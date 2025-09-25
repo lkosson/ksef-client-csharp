@@ -1,4 +1,4 @@
-﻿using KSeFClient;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Models.Authorization;
 
@@ -25,8 +25,8 @@ public class KsefTokenController : ControllerBase
                 ],
             Description = "Demo token",
         };
-        var token = await ksefClient.GenerateKsefTokenAsync(tokenRequest, accessToken, cancellationToken);
-        return Ok(token);
+        KsefTokenResponse ksefToken = await ksefClient.GenerateKsefTokenAsync(tokenRequest, accessToken, cancellationToken);
+        return Ok(ksefToken);
     }
 
     [HttpGet("query-tokens")]
@@ -39,7 +39,7 @@ public class KsefTokenController : ControllerBase
 
         do
         {
-            var tokens = await ksefClient.QueryKsefTokensAsync(accessToken, [status], continuationToken, pageSize, cancellationToken);
+            var tokens = await ksefClient.QueryKsefTokensAsync(accessToken, [status], continuationToken, pageSize : pageSize, cancellationToken: cancellationToken);
             result.AddRange(tokens.Tokens);
             continuationToken = tokens.ContinuationToken;
         } while (!string.IsNullOrEmpty(continuationToken));
@@ -47,16 +47,16 @@ public class KsefTokenController : ControllerBase
         return Ok(result);
     }
     [HttpGet("get-token")]
-    public async Task<ActionResult<AuthenticationKsefToken>> GetTokenAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken)
+    public async Task<ActionResult<AuthenticationKsefToken>> GetTokenAsync(string tokenRefrenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        var token = await ksefClient.GetKsefTokenAsync(referenceNumber, accessToken, cancellationToken);
-        return Ok(token);
+        AuthenticationKsefToken ksefToken = await ksefClient.GetKsefTokenAsync(tokenRefrenceNumber, accessToken, cancellationToken);
+        return Ok(ksefToken);
     }
 
     [HttpDelete]
-    public async Task<ActionResult> RevokeAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken)
+    public async Task<ActionResult> RevokeAsync(string tokenRefrenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        await ksefClient.RevokeKsefTokenAsync(referenceNumber, accessToken, cancellationToken);
+        await ksefClient.RevokeKsefTokenAsync(tokenRefrenceNumber, accessToken, cancellationToken);
         return NoContent();
     }
 }

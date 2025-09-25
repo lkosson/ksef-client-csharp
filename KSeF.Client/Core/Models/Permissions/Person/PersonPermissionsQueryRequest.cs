@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Permissions.Person;
+namespace KSeF.Client.Core.Models.Permissions.Person;
 
 public class PersonPermissionsQueryRequest
 {
@@ -34,7 +34,9 @@ public enum PersonPermissionType
     InvoiceRead,
     Introspection,
     SubunitManage,
-    EnforcementOperations
+    EnforcementOperations,
+    VatUeManage,
+    Owner
 }
 public enum PermissionState
 {

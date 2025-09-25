@@ -1,6 +1,6 @@
-﻿using KSeF.Client.Core.Models.Certificates;
+using KSeF.Client.Core.Models.Certificates;
 
-namespace KSeFClient.Api.Builders.Certificates;
+namespace KSeF.Client.Api.Builders.Certificates;
 
 public interface IGetCertificateListRequestBuilder
 {
@@ -8,7 +8,7 @@ public interface IGetCertificateListRequestBuilder
     IGetCertificateListRequestBuilder WithName(string name);
     IGetCertificateListRequestBuilder WithStatus(CertificateStatusEnum status);
     IGetCertificateListRequestBuilder WithExpiresAfter(DateTimeOffset expiresAfter);
-    IGetCertificateListRequestBuilder WithCertificateType(CertificateType certificateType); // Added
+    IGetCertificateListRequestBuilder WithCertificateType(CertificateType certificateType);
     CertificateMetadataListRequest Build();
 }
 

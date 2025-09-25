@@ -1,8 +1,8 @@
-﻿namespace KSeF.Client.Core.Models.Certificates;
+namespace KSeF.Client.Core.Models.Certificates;
 
 public class CertificateEnrollmentsInfoResponse
 {
-    public ICollection<string> GivenNames { get; set; }
+    public string GivenName { get; set; }
     public string Surname { get; set; }
     public string CommonName { get; set; }
     public string SerialNumber { get; set; }

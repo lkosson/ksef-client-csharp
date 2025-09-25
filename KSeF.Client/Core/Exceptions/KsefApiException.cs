@@ -1,33 +1,39 @@
-﻿using System.Net;
+using System.Net;
 
-
-namespace KSeFClient.Core.Exceptions;
+namespace KSeF.Client.Core.Exceptions;
 
 /// <summary>
-/// Represents a structured API exception containing error details returned from the API.
+/// Reprezentuje ustrukturyzowany wyjątek API zawierający szczegóły błędu zwrócone przez interfejs API.
 /// </summary>
 public class KsefApiException : Exception
 {
     /// <summary>
-    /// Gets the HTTP status code of the response.
+    /// Kod stanu HTTP odpowiedzi.
     /// </summary>
     public HttpStatusCode StatusCode { get; }
 
     /// <summary>
-    /// Gets the optional service code from the API error payload.
+    /// Opcjonalny kod usługi z błędu API.
     /// </summary>
     public string ServiceCode { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="KsefApiException"/> class.
+    /// Opcjonalna odpowiedź błędu z API.
     /// </summary>
-    /// <param name="message">The detailed exception message.</param>
-    /// <param name="statusCode">The HTTP status code.</param>
-    /// <param name="serviceCode">Optional service code from the API.</param>
-    public KsefApiException(string message, HttpStatusCode statusCode, string serviceCode = null)
+    public ApiErrorResponse Error { get; }
+
+    /// <summary>
+    /// Inicjalizuje nową instancję klasy <see cref="KsefApiException"/>.
+    /// </summary>
+    /// <param name="message">Szczegółowy komunikat wyjątku.</param>
+    /// <param name="statusCode">Kod stanu HTTP.</param>
+    /// <param name="serviceCode">Opcjonalny kod usługi z API.</param>
+    /// <param name="error">Szczegóły błędu zwrócone przez API (opcjonalnie).</param>
+    public KsefApiException(string message, HttpStatusCode statusCode, string serviceCode = null, ApiErrorResponse error = null)
         : base(message)
     {
         StatusCode = statusCode;
         ServiceCode = serviceCode;
+        Error = error;
     }
 }

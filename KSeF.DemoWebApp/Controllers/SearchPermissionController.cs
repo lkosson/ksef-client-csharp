@@ -2,7 +2,7 @@ using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
-using KSeFClient;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApplication.Controllers;

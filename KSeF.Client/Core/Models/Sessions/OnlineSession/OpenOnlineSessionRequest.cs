@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Sessions.OnlineSession;
+namespace KSeF.Client.Core.Models.Sessions.OnlineSession;
 
 public class OpenOnlineSessionRequest
 {

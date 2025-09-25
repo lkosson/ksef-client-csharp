@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Permissions.EUEntityRepresentative;
+namespace KSeF.Client.Core.Models.Permissions.EUEntityRepresentative;
 
 public class GrantPermissionsEUEntitRepresentativeRequest
 {

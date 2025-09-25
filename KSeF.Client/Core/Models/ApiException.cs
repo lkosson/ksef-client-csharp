@@ -1,4 +1,4 @@
-﻿namespace KSeFClient.Core.Models;
+namespace KSeF.Client.Core.Models;
 
 public class ApiException : Exception
 {

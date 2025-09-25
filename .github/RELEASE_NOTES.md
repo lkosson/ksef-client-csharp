@@ -1,6 +1,108 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
 
 ---
+# Changelog zmian – ### Wersja 2.0.0 RC5
+---
+
+## Wersja 2.0.0 RC5
+
+### Nowe
+- **Auth**
+  - `ContextIdentifierType` → dodano wartość `PeppolId`
+  - `AuthenticationMethod` → dodano wartość `PeppolSignature`
+  - `AuthTokenRequest` → nowe property `AuthorizationPolicy`
+  - `AuthorizationPolicy` → nowy model zastępujący `IpAddressPolicy`
+  - `AllowedIps` → nowy model z listami `Ip4Address`, `Ip4Range`, `Ip4Mask`
+  - `AuthTokenRequestBuilder` → nowa metoda `WithAuthorizationPolicy(...)`
+  - `ContextIdentifierType` → dodano wartość `PeppolId`
+- **Models**
+  - `StatusInfo` → dodano property `StartDate`, `AuthenticationMethod`
+  - `AuthorizedSubject` → nowy model (`Nip`, `Name`, `Role`)
+  - `ThirdSubjects` → nowy model (`IdentifierType`, `Identifier`, `Name`, `Role`)
+  - `InvoiceSummary` → dodano property `HashOfCorrectedInvoice`, `AuthorizedSubject`, `ThirdSubjects`
+  - `AuthenticationKsefToken` → dodano property `LastUseDate`, `StatusDetails`
+  - `InvoiceExportRequest`, `ExportInvoicesResponse`, `InvoiceExportStatusResponse`, `InvoicePackage` → nowe modele eksportu faktur (zastępują poprzednie)
+  - `FormType` → nowy enum (`FA`, `PEF`, `RR`) używany w `InvoiceQueryFilters`
+  - `OpenOnlineSessionResponse`
+      - dodano property `ValidUntil : DateTimeOffset`
+      - zmiana modelu requesta w dokumentacji endpointu `QueryInvoiceMetadataAsync` (z `QueryInvoiceRequest` na `InvoiceMetadataQueryRequest`)
+      - zmiana namespace z `KSeFClient` na `KSeF.Client`
+- **Enums**
+  - `InvoicePermissionType` → dodano wartości `RRInvoicing`, `PefInvoicing`
+  - `AuthorizationPermissionType` → dodano wartość `PefInvoicing`
+  - `KsefTokenPermissionType` → dodano wartości `SubunitManage`, `EnforcementOperations`, `PeppolId`
+  - `ContextIdentifierType (Tokens)` → nowy enum (`Nip`, `Pesel`, `Fingerprint`)
+  - `PersonPermissionsTargetIdentifierType` → dodano wartość `AllPartners`
+  - `SubjectIdentifierType` → dodano wartość `PeppolId`
+- **Interfaces**
+  - `IKSeFClient` → nowe metody:
+    - `ExportInvoicesAsync` – `POST /api/v2/invoices/exports`
+    - `GetInvoiceExportStatusAsync` – `GET /api/v2/invoices/exports/{operationReferenceNumber}`
+    - `GetAttachmentPermissionStatusAsync` – poprawiony na `GET /api/v2/permissions/attachments/status`
+    - `SearchGrantedPersonalPermissionsAsync` – `POST /api/v2/permissions/query/personal/grants`
+    - `GrantsPermissionAuthorizationAsync` – `POST /api/v2/permissions/authorizations/grants`
+    - `QueryPeppolProvidersAsync` – `GET /api/v2/peppol/query`
+- **Tests**
+  - `Authenticate.feature.cs` → dodano testy end-to-end dla procesu uwierzytelniania.
+
+### Zmodyfikowane
+- **authv2.xsd**
+  - ➖ Usunięto:
+    - element `OnClientIpChange (tns:IpChangePolicyEnum)`
+    - regułę unikalności `oneIp`
+    - cały model `IpAddressPolicy` (`IpAddress`, `IpRange`, `IpMask`)
+  - Dodano:
+    - element `AuthorizationPolicy` (zamiast `IpAddressPolicy`)
+    - nowy model `AllowedIps` z kolekcjami:
+      - `Ip4Address` – pattern z walidacją zakresów IPv4 (0–255)
+      - `Ip4Range` – rozszerzony pattern z walidacją zakresu adresów
+      - `Ip4Mask` – rozszerzony pattern z walidacją maski (`/8`, `/16`, `/24`, `/32`)
+  - Zmieniono:
+    - `minOccurs/maxOccurs` dla `Ip4Address`, `Ip4Range`, `Ip4Mask`:  
+      wcześniej `minOccurs="0" maxOccurs="unbounded"` → teraz `minOccurs="0" maxOccurs="10"`
+  - Podsumowanie:
+    - Zmieniono nazwę `IpAddressPolicy` → `AuthorizationPolicy`
+    - Wprowadzono precyzyjniejsze regexy dla IPv4
+    - Ograniczono maksymalną liczbę wpisów do 10
+- **Invoices**
+  - `InvoiceMetadataQueryRequest` → usunięto `SchemaType`
+  - `PagedInvoiceResponse` → `TotalCount` opcjonalny
+  - `Seller.Identifier` → opcjonalny, dodano `Seller.Nip` jako wymagane
+  - `AuthorizedSubject.Identifier` → usunięty, dodano `AuthorizedSubject.Nip`
+  - `fileHash` → usunięty
+  - `invoiceHash` → dodany
+  - `invoiceType` → teraz `InvoiceType` zamiast `InvoiceMetadataInvoiceType`
+  - `InvoiceQueryFilters` → `InvoicingMode` stał się opcjonalny (`InvoicingMode?`), dodano `FormType`, usunięto `IsHidden`
+  - `SystemCodes.cs` → dodano kody systemowe dla PEF oraz zaktualizowano mapowanie pod `FormType.PEF`
+- **Permissions**
+  - `EuEntityAdministrationPermissionsGrantRequest` → dodano wymagane `SubjectName`
+  - `ProxyEntityPermissions` → uspójniono nazewnictwo poprzez zmianę na `AuthorizationPermissions`
+- **Tokens**
+  - `QueryKsefTokensAsync` → dodano parametry `authorIdentifier`, `authorIdentifierType`, `description`; usunięto domyślną wartość `pageSize=10`
+  - poprawiono generowanie query string: `status` powtarzany zamiast listy `statuses`
+
+### Poprawki i zmiany dokumentacji
+- poprawiono i uzupełniono opisy działania metod w interfejsach `IAuthCoordinator` oraz `ISignatureService`
+  - w implementacjach zastosowano `<inheritdoc />` dla spójności dokumentacji
+
+### Zmiany kryptografii
+- dodano obsługę ECDSA przy generowaniu CSR (domyślnie algorytm IEEE P1363, możliwość nadpisania na RFC 3279 DER)
+- zmieniono padding RSA z PKCS#1 na PSS zgodnie ze specyfikacją KSeF API w implementacji `SignatureService`
+
+### Usunięte
+- **Invoices**
+  - `AsyncQueryInvoicesAsync` i `GetAsyncQueryInvoicesStatusAsync` → zastąpione przez metody eksportu
+  - `AsyncQueryInvoiceRequest`, `AsyncQueryInvoiceStatusResponse` → usunięte
+  - `InvoicesExportRequest` → zastąpione przez `InvoiceExportRequest`
+  - `InvoicesExportPackage` → zastąpione przez `InvoicePackage`
+  - `InvoicesMetadataQueryRequest` → zastąpione przez `InvoiceQueryFilters`
+  - `InvoiceExportFilters` → włączone do `InvoiceQueryFilters`
+
+
+
+
+
+---
 # Changelog zmian – ### Wersja 2.0.0 RC4
 
 ---
@@ -247,3 +349,6 @@ po
   🔧 Zmiana kodu statusu dla zamknięcia sesji interaktywnej z 300 na 170.
   🔧 Zmiana kodu statusu dla zamknięcia sesji wsadowej z 300 na 150.
 ---
+
+```
+```

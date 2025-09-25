@@ -1,22 +1,22 @@
-﻿namespace KSeFClient.Core.Exceptions;
+namespace KSeF.Client.Core.Exceptions;
 
 /// <summary>
-/// Represents a single exception detail within an API error response.
+/// Reprezentuje pojedynczy szczegół wyjątku w odpowiedzi błędu API.
 /// </summary>
 public class ApiExceptionDetail
 {
     /// <summary>
-    /// Numeric code representing the type of exception.
+    /// Numeryczny kod reprezentujący typ wyjątku.
     /// </summary>
     public int ExceptionCode { get; set; }
 
     /// <summary>
-    /// Human-readable description of the exception.
+    /// Czytelny dla człowieka opis wyjątku.
     /// </summary>
     public string ExceptionDescription { get; set; }
 
     /// <summary>
-    /// Optional list of additional context messages.
+    /// Opcjonalna lista dodatkowych komunikatów kontekstowych.
     /// </summary>
     public List<string> Details { get; set; }
 }

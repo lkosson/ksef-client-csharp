@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace KSeF.Client.Core;
 
@@ -12,10 +12,10 @@ public static class KsefNumberValidator
     private const int ChecksumLength = 2;
 
     /// <summary>
-    /// Validates a KSeF number by verifying its checksum and format.
+    /// Weryfikuje numer KSeF poprzez sprawdzenie jego sumy kontrolnej i formatu.
     /// </summary>
-    /// <param name="ksefNumber">The KSeF number to validate.</param>
-    /// <param name="errorMessage">Outputs an error message if the number is invalid.</param>
+    /// <param name="ksefNumber">Numer KSeF do walidacji.</param>
+    /// <param name="errorMessage">Zwraca komunikat błędu, jeśli numer jest nieprawidłowy.</param>
     public static bool IsValid(string ksefNumber, out string errorMessage)
     {
         errorMessage = string.Empty;
@@ -55,6 +55,6 @@ public static class KsefNumberValidator
             }
         }
 
-        return crc.ToString("X2"); // always 2-char hex
+        return crc.ToString("X2"); // zawsze 2-znakowy hex
     }
 }

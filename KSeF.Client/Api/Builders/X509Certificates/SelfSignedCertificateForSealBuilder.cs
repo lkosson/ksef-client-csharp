@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace KSeF.Client.Api.Builders.X509Certificates;
@@ -23,7 +23,6 @@ public interface ISelfSignedCertificateForSealBuilderReady
     X509Certificate2 Build();
 }
 
-// Implementation
 internal class SelfSignedCertificateForSealBuilderImpl
     : ISelfSignedCertificateForSealBuilder
     , ISelfSignedCertificateForSealBuilderWithOrganizationName
@@ -58,8 +57,8 @@ internal class SelfSignedCertificateForSealBuilderImpl
 
         var subjectName = string.Join(", ", _subjectParts);
 
-        var certificate = new CertificateRequest(subjectName, RSA.Create(2048), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
-            .CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.Now.AddYears(2));
+        var certificate = new CertificateRequest(subjectName, RSA.Create(2048), HashAlgorithmName.SHA256, RSASignaturePadding.Pss)
+            .CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-61), DateTimeOffset.Now.AddYears(2));
 
         return certificate;
     }

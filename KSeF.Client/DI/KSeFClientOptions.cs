@@ -1,7 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 
-namespace KSeFClient.DI;
+namespace KSeF.Client.DI;
 
 /// <summary>
 /// Opcje konfiguracyjne dla klienta KSeF.

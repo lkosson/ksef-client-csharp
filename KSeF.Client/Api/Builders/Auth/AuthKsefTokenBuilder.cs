@@ -1,6 +1,6 @@
-﻿using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models.Authorization;
 
-namespace KSeFClient.Api.Builders.Auth;
+namespace KSeF.Client.Api.Builders.Auth;
 
 public static class AuthKsefTokenRequestBuilder
 {
@@ -25,7 +25,7 @@ public interface IAuthKsefTokenRequestBuilderWithContext
 
 public interface IAuthKsefTokenRequestBuilderWithEncryptedToken
 {
-    IAuthKsefTokenRequestBuilderWithEncryptedToken WithIpAddressPolicy(IpAddressPolicy ipPolicy); // optional
+    IAuthKsefTokenRequestBuilderWithEncryptedToken WithAuthorizationPolicy(AuthorizationPolicy authorizationPolicy);
     AuthKsefTokenRequest Build();
 }
 
@@ -38,7 +38,7 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
     private string _challenge;
     private AuthContextIdentifier _contextIdentifier;
     private string _encryptedToken;
-    private IpAddressPolicy _ipPolicy; // optional
+    private AuthorizationPolicy _authorizationPolicy; 
 
     private AuthKsefTokenRequestBuilderImpl() { }
 
@@ -72,23 +72,23 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
         return this;
     }
 
-    public IAuthKsefTokenRequestBuilderWithEncryptedToken WithIpAddressPolicy(IpAddressPolicy ipPolicy)
+    public IAuthKsefTokenRequestBuilderWithEncryptedToken WithAuthorizationPolicy(AuthorizationPolicy authorizationPolicy)
     {
-        _ipPolicy = ipPolicy ?? throw new ArgumentNullException(nameof(ipPolicy));
+        _authorizationPolicy = authorizationPolicy ?? throw new ArgumentNullException(nameof(authorizationPolicy));
         return this;
     }
 
     public AuthKsefTokenRequest Build()
     {
         if (_challenge is null || _contextIdentifier is null || _encryptedToken is null)
-            throw new InvalidOperationException("Builder is missing required properties.");
+            throw new InvalidOperationException("Brak wymaganych pól.");
 
         return new AuthKsefTokenRequest
         {
             Challenge = _challenge,
             ContextIdentifier = _contextIdentifier,
             EncryptedToken = _encryptedToken,
-            IpAddressPolicy = _ipPolicy // may be null (optional)
+            AuthorizationPolicy = _authorizationPolicy
         };
     }
 }

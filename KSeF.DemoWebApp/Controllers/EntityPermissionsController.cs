@@ -1,7 +1,7 @@
-﻿using KSeF.Client.Api.Builders.EntityPermissions;
+using KSeF.Client.Api.Builders.EntityPermissions;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Entity;
-using KSeFClient;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KSeF.DemoWebApp.Controllers;

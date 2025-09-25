@@ -1,4 +1,4 @@
-﻿
+
 namespace KSeF.Client.Core.Models.Authorization;
 
 public enum KsefTokenPermissionType
@@ -6,5 +6,8 @@ public enum KsefTokenPermissionType
     InvoiceRead,
     InvoiceWrite,
     CredentialsRead,
-    CredentialsManage
+    CredentialsManage,
+    SubunitManage,
+    EnforcementOperations,    
+    PeppolId
 }

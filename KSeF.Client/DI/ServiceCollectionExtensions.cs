@@ -1,13 +1,10 @@
-﻿using System.Net;
 using System.Net.Http.Headers;
 using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
-using KSeFClient.Api.Services;
-using KSeFClient.Core.Interfaces;
-using KSeFClient.Http;
+using KSeF.Client.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-namespace KSeFClient.DI;
+namespace KSeF.Client.DI;
 
 /// <summary>
 /// Extension methods do rejestracji KSeF SDK w kontenerze DI.
@@ -22,7 +19,7 @@ public static class ServiceCollectionExtensions
         var options = new KSeFClientOptions();
         configure(options);
         if (string.IsNullOrEmpty(options.BaseUrl))
-            throw new ArgumentException("BaseUrl must be a valid URL.", nameof(options.BaseUrl));
+            throw new ArgumentException("BaseUrl musi być poprawnym URL.", nameof(options.BaseUrl));
 
         services.AddSingleton(options);
 
@@ -51,7 +48,19 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IKSeFClient, Http.KSeFClient>();
         services.AddScoped<IAuthCoordinator, AuthCoordinator>();
-        services.AddScoped<ICryptographyService, CryptographyService>();
+        services.AddHostedService<CryptographyWarmupHostedService>();
+        services.AddSingleton<ICryptographyService, CryptographyService>(sp =>
+        {
+
+            return new CryptographyService(async ct =>
+            {
+                using var scope = sp.CreateScope(); // krótki scope do utworzenia IKSeFClient
+                var ksefCLient = scope.ServiceProvider.GetRequiredService<IKSeFClient>();
+                return await ksefCLient.GetPublicCertificatesAsync(ct);
+            });
+        });
+        
+        
         services.AddScoped<ISignatureService, SignatureService>();
         services.AddScoped<IQrCodeService, QrCodeService>();
         services.AddScoped<IVerificationLinkService, VerificationLinkService>();

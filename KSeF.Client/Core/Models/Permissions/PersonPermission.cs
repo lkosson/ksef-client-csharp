@@ -1,5 +1,4 @@
-﻿using KSeF.Client.Core.Models.Permissions.Person;
-using System.Text.Json.Serialization;
+using KSeF.Client.Core.Models.Permissions.Person;
 
 namespace KSeF.Client.Core.Models.Permissions;
 

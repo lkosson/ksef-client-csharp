@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Invoices.Common
+namespace KSeF.Client.Core.Models.Invoices.Common
 {
     /// <summary>
     /// Tryb wystawienia faktury.

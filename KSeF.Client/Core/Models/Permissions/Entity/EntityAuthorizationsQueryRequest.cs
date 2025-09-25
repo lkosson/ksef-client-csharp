@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Permissions.Entity;
+namespace KSeF.Client.Core.Models.Permissions.Entity;
 
 public class EntityAuthorizationsQueryRequest
 {
@@ -25,5 +25,7 @@ public enum QueryType
 public enum InvoicePermissionType
 {
     SelfInvoicing,
-    TaxRepresentative
+    TaxRepresentative,
+    RRInvoicing,
+    PefInvoicing
 }

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
@@ -7,11 +7,13 @@ using KSeF.Client.Core.Interfaces;
 
 namespace KSeF.Client.Api.Services;
 
+/// <inheritdoc />
 public class SignatureService : ISignatureService
 {
     private static readonly string _xadesNsUrl = "http://uri.etsi.org/01903/v1.3.2#";
     private static readonly string _signedPropertiesType = "http://uri.etsi.org/01903#SignedProperties";
-
+    
+    /// <inheritdoc />
     public Task<string> SignAsync(string xml, X509Certificate2 certificate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(xml);

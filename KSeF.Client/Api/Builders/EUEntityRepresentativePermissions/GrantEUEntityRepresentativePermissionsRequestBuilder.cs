@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Permissions.EUEntityRepresentative;
+using KSeF.Client.Core.Models.Permissions.EUEntityRepresentative;
 using StandardPermissionType = KSeF.Client.Core.Models.Permissions.EUEntityRepresentative.StandardPermissionType;
 
 namespace KSeF.Client.Api.Builders.EUEntityRepresentativePermissions;
@@ -45,7 +45,7 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
         public IOptionalStep WithPermissions(params StandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
-                throw new ArgumentException("At least one permission.", nameof(permissions));
+                throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));
 
             _permissions = permissions;
             return this;
@@ -60,9 +60,9 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
         public GrantPermissionsEUEntitRepresentativeRequest Build()
         {
             if (_subject is null)
-                throw new InvalidOperationException("WithSubject(...) must be called first.");
+                throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
             if (_permissions is null)
-                throw new InvalidOperationException("WithPermissions(...) must be called after subject.");
+                throw new InvalidOperationException("Metoda WithPermissions(...) musi zostać wywołana po ustawieniu podmiotu.");
 
             return new GrantPermissionsEUEntitRepresentativeRequest
             {

@@ -1,4 +1,4 @@
-﻿namespace WebApplication.Services;
+namespace WebApplication.Services;
 
 public static class XadeSDummy
 {

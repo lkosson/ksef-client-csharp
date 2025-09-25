@@ -1,6 +1,6 @@
-﻿using KSeF.Client.Core.Models.Certificates;
+using KSeF.Client.Core.Models.Certificates;
 
-namespace KSeFClient.Api.Builders.Certificates;
+namespace KSeF.Client.Api.Builders.Certificates;
 
 public interface IRevokeCertificateRequestBuilder
 {
@@ -24,7 +24,6 @@ internal class RevokeCertificateRequestBuilderImpl : IRevokeCertificateRequestBu
 
     public CertificateRevokeRequest Build()
     {
-        // If not set, default to Unspecified
         return new CertificateRevokeRequest
         {
             RevocationReason = _revocationReasonSet ? _revocationReason : CertificateRevocationReason.Unspecified

@@ -1,22 +1,25 @@
-﻿
+
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Core.Models.Invoices;
+using KSeF.Client.Core.Models.Peppol;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.EUEntityRepresentative;
 using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using KSeF.Client.Core.Models.Permissions.Person;
-using KSeF.Client.Core.Models.Permissions.ProxyEntity;
+using KSeF.Client.Core.Models.Permissions.AuthorizationEntity;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Models.Sessions.ActiveSessions;
 using KSeF.Client.Core.Models.Sessions.BatchSession;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
+using KSeF.Client.Core.Models;
+using KSeFClient.Core.Models.Sessions;
 using KSeFClient.Core.Models;
 
-namespace KSeFClient;
+namespace KSeF.Client;
 
 public interface IKSeFClient
 {
@@ -49,12 +52,12 @@ public interface IKSeFClient
     /// Unieważnienie sesji sprawia, że powiązany z nią refresh token przestaje działać i nie można już za jego pomocą uzyskać kolejnych access tokenów.
     /// Aktywne access tokeny działają do czasu minięcia ich termin ważności.
     /// </summary>
-    /// <param name="referenceNumber">Numer referencyjny sesji.</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji.</param>
     /// <param name="accessToken">Access token lub Refresh token.</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task RevokeSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task RevokeSessionAsync(string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Inicjalizacja mechanizmu uwierzytelnienia i autoryzacji
@@ -88,13 +91,13 @@ public interface IKSeFClient
     /// <summary>
     /// Sprawdza bieżący status operacji uwierzytelniania dla podanego tokena.
     /// </summary>
-    /// <param name="referenceNumber">Numer referencyjny otrzymany w wyniku inicjalizacji uwierzytelnienia.</param>
+    /// <param name="authOperationReferenceNumber">Numer referencyjny otrzymany w wyniku inicjalizacji uwierzytelnienia.</param>
     /// <param name="authenticationToken">Tymczasowy token otrzymany w wyniku inicjalizacji uwierzytelnienia.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><see cref="StatusInfo"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<AuthStatus> GetAuthStatusAsync(string referenceNumberstring, string authenticationToken, CancellationToken cancellationToken = default);
+    Task<AuthStatus> GetAuthStatusAsync(string authOperationReferenceNumber, string authenticationToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie tokena dostępowego.
@@ -122,24 +125,14 @@ public interface IKSeFClient
     /// <exception cref="ApiException">W przypadku podania accessToken zamiast refreshToken. (403 Forbidden)</exception>
     Task<RefreshTokenResponse> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
 
-
-    /// <summary>
-    /// Unieważnia aktualny token autoryzacyjny przekazany w nagłówku żądania. Po unieważnieniu token nie może być używany do żadnych operacji.
-    /// </summary>
-    /// <param name="accessToken">Access token.</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
-    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task RevokeAccessTokenAsync(string accessToken, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Zwraca informacje o kluczach publicznych używanych do szyfrowania danych przesyłanych do systemu KSeF.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
-    Task<ICollection<PemCertificateInfo>> GetPublicCertificates(CancellationToken cancellationToken);
+    Task<ICollection<PemCertificateInfo>> GetPublicCertificatesAsync(CancellationToken cancellationToken);
 
-    /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <summary>
     /// Otwarcie sesji interaktywnej
     /// </summary>
@@ -161,13 +154,13 @@ public interface IKSeFClient
     /// Przyjmuje zaszyfrowaną fakturę oraz jej metadane i rozpoczyna jej przetwarzanie.
     /// </remarks>
     /// <param name="requestPayload"><see cref="SendInvoiceRequest"/>Zaszyfrowana faktura wraz z metadanymi.</param>
-    /// <param name="referenceNumber">Numer referencyjny sesji</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji</param>
     /// <param name="accessToken">Access token.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><see cref="SendInvoiceResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<SendInvoiceResponse> SendOnlineSessionInvoiceAsync(SendInvoiceRequest requestPayload, string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<SendInvoiceResponse> SendOnlineSessionInvoiceAsync(SendInvoiceRequest requestPayload, string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Zamknięcie sesji interaktywnej
@@ -175,12 +168,12 @@ public interface IKSeFClient
     /// <remarks>
     /// Zamyka sesję interaktywną i rozpoczyna generowanie zbiorczego UPO.
     /// </remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji</param>
     /// <param name="accessToken"></param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="ApiException">A server side error occurred.</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task CloseOnlineSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task CloseOnlineSessionAsync(string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Otwarcie sesji wsadowej
@@ -202,12 +195,12 @@ public interface IKSeFClient
     /// <remarks>
     /// Zamyka sesję wsadową, rozpoczyna procesowanie paczki faktur i generowanie UPO dla prawidłowych faktur oraz zbiorczego UPO dla sesji.
     /// </remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji wsadowej.</param>
+    /// <param name="batchSessionReferenceNumber">Numer referencyjny sesji wsadowej.</param>
     /// <param name="accessToken">Access token.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task CloseBatchSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task CloseBatchSessionAsync(string batchSessionReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Zwraca listę sesji spełniających podane kryteria wyszukiwania.
@@ -227,13 +220,13 @@ public interface IKSeFClient
     /// <remarks>
     /// Zwraca informacje o statusie sesji.
     /// </remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji</param>
     /// <param name="accessToken">Access token</param>
     /// <param name="cancellationToken">Cancellation token.</param>"
     /// <returns><see cref="SessionStatusResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<SessionStatusResponse> GetSessionStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<SessionStatusResponse> GetSessionStatusAsync(string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie statusów faktur sesji
@@ -241,7 +234,7 @@ public interface IKSeFClient
     /// <remarks>
     /// Zwraca listę faktur przesłanych w sesji wraz z ich statusami, oraz informacje na temat ilości poprawnie i niepoprawnie przetworzonych faktur.
     /// </remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji</param>
+    /// <param name="sessionReferenceNumber\">Numer referencyjny sesji</param>
     /// <param name="accessToken">Access token.</param>
     /// <param name="pageSize">Rozmiar strony wyników.</param>
     /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
@@ -250,20 +243,20 @@ public interface IKSeFClient
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
     /// <exception cref="ApiException">Brak uprawnień. (403 Forbidden)</exception>
-    Task<SessionInvoicesResponse> GetSessionInvoicesAsync(string referenceNumber, string accessToken, int? pageSize = null, string continuationToken = null, CancellationToken cancellationToken = default);
+    Task<SessionInvoicesResponse> GetSessionInvoicesAsync(string sessionReferenceNumber, string accessToken, int? pageSize = null, string continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie statusu faktury z sesji
     /// </summary>
     /// <remarks>Zwraca fakturę przesłaną w sesji wraz ze statusem.</remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji.</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji.</param>
     /// <param name="invoiceReferenceNumber">Numer referencyjny faktury.</param>
     /// <param name="accessToken">Access token.</param>
     /// <param name="cancellationToken">Cancellation token./param>
     /// <returns><see cref="SessionInvoice"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<SessionInvoice> GetSessionInvoiceAsync(string referenceNumber, string invoiceReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<SessionInvoice> GetSessionInvoiceAsync(string sessionReferenceNumber, string invoiceReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie niepoprawnie przetworzonych dokumentów sesji
@@ -271,7 +264,7 @@ public interface IKSeFClient
     /// <remarks>
     /// Zwraca listę niepoprawnie przetworzonych dokumentów przesłanych w sesji wraz z ich statusami.
     /// </remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji</param>
     /// <param name="accessToken">Access token</param>
     /// <param name="pageSize">Rozmiar strony wyników.</param>
     /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
@@ -279,7 +272,7 @@ public interface IKSeFClient
     /// <returns><see cref="SessionFailedInvoicesResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<SessionFailedInvoicesResponse> GetSessionFailedInvoicesAsync(string referenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
+    Task<SessionFailedInvoicesResponse> GetSessionFailedInvoicesAsync(string sessionReferenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
 
     /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
     /// <summary>
@@ -288,14 +281,14 @@ public interface IKSeFClient
     /// <remarks>
     /// Zwraca UPO faktuy przesłanej w sesji na podstawie jego numeru KSeF.
     /// </remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji</param>
     /// <param name="ksefNumber">Numer KSeF faktuy</param>
     /// <param name="accessToken">Access token</param>
     /// <param name="cancellationToken">Cancellation token./param>
     /// <returns>UPO w formie XML</returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<string> GetSessionInvoiceUpoByKsefNumberAsync(string referenceNumber, string ksefNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<string> GetSessionInvoiceUpoByKsefNumberAsync(string sessionReferenceNumber, string ksefNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie UPO faktury z sesji na podstawie numeru referencyjnego faktury.
@@ -303,14 +296,14 @@ public interface IKSeFClient
     /// <remarks>
     /// Zwraca UPO faktury przesłanego w sesji na podstawie jego numeru KSeF.
     /// </remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji</param>
     /// <param name="invoiceReferenceNumber">Numer referencyjny faktury</param>
     /// <param name="accessToken">Access token</param>
     /// <param name="cancellationToken">Cancellation token./param>
     /// <returns>UPO w formie XML</returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<string> GetSessionInvoiceUpoByReferenceNumberAsync(string referenceNumber, string invoiceReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<string> GetSessionInvoiceUpoByReferenceNumberAsync(string sessionReferenceNumber, string invoiceReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie UPO dla sesji
@@ -318,14 +311,14 @@ public interface IKSeFClient
     /// <remarks>
     /// Zwraca XML zawierający zbiorcze UPO dla sesji.
     /// </remarks>
-    /// <param name="referenceNumber">Numer referencyjny sesji</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji</param>
     /// <param name="upoReferenceNumber">Numer referencyjny UPO</param>
     /// <param name="accessToken">Access token</param>
     /// <param name="cancellationToken">Cancellation token./param>
     /// <returns>Zbiorcze UPO w formie XML</returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<string> GetSessionUpoAsync(string referenceNumber, string upoReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<string> GetSessionUpoAsync(string sessionReferenceNumber, string upoReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie faktury po numerze KSeF
@@ -341,7 +334,7 @@ public interface IKSeFClient
     /// <summary>
     /// Zwraca listę metadanych faktur spełniające podane kryteria wyszukiwania.
     /// </summary>
-    /// <param name="requestPayload"><see cref="QueryInvoiceRequest"/>zestaw filtrów</param>
+    /// <param name="requestPayload"><see cref="InvoiceQueryFilters"/>zestaw filtrów</param>
     /// <param name="accessToken">Access token.</param>
     /// <param name="pageOffset">Numer strony wyników.</param>
     /// <param name="pageSize">Rozmiar strony wyników.</param>
@@ -349,43 +342,18 @@ public interface IKSeFClient
     /// <returns><see cref="PagedInvoiceResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceMetadataQueryRequest requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Rozpoczyna asynchroniczny proces wyszukiwania faktur w systemie KSeF na podstawie przekazanych filtrów
-    /// </summary>
-    /// <param name="requestPayload"><see cref="AsyncQueryInvoiceRequest"/> zestaw filtrów i informacja o szyfrowaniu</param>
-    /// <param name="accessToken">Access token.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns><see cref="OperationStatusResponse"/></returns>
-    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
-    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<OperationStatusResponse> AsyncQueryInvoicesAsync(AsyncQueryInvoiceRequest requestPayload, string accessToken, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Pobiera status wcześniej zainicjalizowanego zapytania asynchronicznego na podstawie identyfikatora operacji.
-    /// Umożliwia śledzenie postępu przetwarzania zapytania oraz pobranie gotowych paczek z wynikami, jeśli są już dostępne.
-    /// </summary>
-    /// <param name="operationReferenceNumber">Numer referencyjny operacji.</param>
-    /// <param name="accessToken">Access token.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns><see cref="AsyncQueryInvoiceStatusResponse"/></returns>
-    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
-    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<AsyncQueryInvoiceStatusResponse> GetAsyncQueryInvoicesStatusAsync(string operationReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceQueryFilters requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pobranie statusu operacji - uprawnienia
     /// </summary>
-    /// <param name="referenceNumber">Numer referencyjny operacji.</param>
+    /// <param name="operationReferenceNumber">Numer referencyjny operacji.</param>
     /// <param name="accessToken">Access token.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns><see cref="AsyncQueryInvoiceStatusResponse"/></returns>
+    /// <returns><see cref="PermissionsOperationStatusResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<PermissionsOperationStatusResponse> OperationsStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
-
-
+    Task<PermissionsOperationStatusResponse> OperationsStatusAsync(string operationReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Rozpoczyna asynchroniczną operację odbierania uprawnienia o podanym identyfikatorze.
@@ -411,10 +379,35 @@ public interface IKSeFClient
     Task<OperationResponse> RevokeAuthorizationsPermissionAsync(string permissionId, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sprawdzenie czy obecny kontekst posiada zgodę na wystawianie faktur z załącznikiem.
+    ///Wymagane uprawnienia: CredentialsManage, CredentialsRead.
+    /// </summary>    
+    /// <param name="accessToken">Token dostępu.</param>
+    /// <param name="cancellationToken">Canccelation token.</param>
+    /// <returns><see cref="OperationResponse"/></returns>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task<OperationResponse> GetAttachmentPermissionStatusAsync(string accessToken, CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// Pobranie listy moich uprawnień.
+    /// </summary>
+    /// <param name="requestPayload"><see cref="PersonalPermissionsQueryRequest"/></param>
+    /// <param name="accessToken">Acces token</param>
+    /// <param name="pageSize">Ilość elementów na stronie (domyślnie 10)</param>
+    /// <param name="pageOffset">Index strony wyników (domyślnie 0)</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns><see cref="PagedPermissionsResponse{PersonalPermission}>"/></returns>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task<PagedPermissionsResponse<PersonalPermission>> SearchGrantedPersonalPermissionsAsync(PersonalPermissionsQueryRequest requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Pobranie listy uprawnień do pracy w KSeF nadanych osobom fizycznym lub podmiotom.
     /// </summary>
     /// <param name="requestPayload"><see cref="PersonPermissionsQueryRequest"/></param>
-    /// <param name="accessToken">Acces token</param>
+    /// <param name="accessToken">Access token</param>
     /// <param name="pageSize">Ilość elementów na stronie (domyślnie 10)</param>
     /// <param name="pageOffset">Index strony wyników (domyślnie 0)</param>
     /// <param name="cancellationToken"></param>
@@ -427,7 +420,7 @@ public interface IKSeFClient
     /// Pobranie listy uprawnień administratora podmiotu podrzędnego.
     /// </summary>
     /// <param name="requestPayload"><see cref="SubunitPermissionsQueryRequest"/></param>
-    /// <param name="accessToken">Acces token</param>
+    /// <param name="accessToken">Access token</param>
     /// <param name="pageSize">Ilość elementów na stronie (domyślnie 10)</param>
     /// <param name="pageOffset">Index strony wyników (domyślnie 0)</param>
     /// <param name="cancellationToken"></param>
@@ -440,7 +433,7 @@ public interface IKSeFClient
     /// <summary>
     /// Pobranie listy uprawnień administratora podmiotu podrzędnego.
     /// </summary>
-    /// <param name="accessToken">Acces token</param>
+    /// <param name="accessToken">Access token</param>
     /// <param name="pageSize">Ilość elementów na stronie (domyślnie 10)</param>
     /// <param name="pageOffset">Index strony wyników (domyślnie 0)</param>
     /// <param name="cancellationToken"></param>
@@ -453,7 +446,7 @@ public interface IKSeFClient
     /// Pobranie listy uprawnień do obsługi faktur nadanych podmiotom.
     /// </summary>
     /// <param name="requestPayload"><see cref="SubordinateEntityRolesQueryRequest"/></param>
-    /// <param name="accessToken">Acces token</param>
+    /// <param name="accessToken">Access token</param>
     /// <param name="pageSize">Ilość elementów na stronie (domyślnie 10)</param>
     /// <param name="pageOffset">Index strony wyników (domyślnie 0)</param>
     /// <param name="cancellationToken"></param>
@@ -466,7 +459,7 @@ public interface IKSeFClient
     /// Pobranie listy uprawnień o charakterze uprawnień nadanych podmiotom.
     /// </summary>
     /// <param name="requestPayload"><see cref="EntityAuthorizationsQueryRequest"/></param>
-    /// <param name="accessToken">Acces token</param>
+    /// <param name="accessToken">Access token</param>
     /// <param name="pageSize">Ilość elementów na stronie (domyślnie 10)</param>
     /// <param name="pageOffset">Index strony wyników (domyślnie 0)</param>
     /// <param name="cancellationToken"></param>
@@ -479,7 +472,7 @@ public interface IKSeFClient
     /// Pobranie listy uprawnień nadanych podmiotom unijnym.
     /// </summary>
     /// <param name="requestPayload"><see cref="EuEntityPermissionsQueryRequest"/></param>
-    /// <param name="accessToken">Acces token</param>
+    /// <param name="accessToken">Access token</param>
     /// <param name="pageSize">Ilość elementów na stronie (domyślnie 10)</param>
     /// <param name="pageOffset">Index strony wyników (domyślnie 0)</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -516,13 +509,28 @@ public interface IKSeFClient
     /// <summary>
     /// Nadanie podmiotom uprawnień o charakterze upoważnień
     /// </summary>
-    /// <param name="requestPayload"><see cref="GrantPermissionsProxyEntityRequest"/></param>
+    /// <param name="requestPayload"><see cref="GrantAuthorizationPermissionsRequest"/></param>
     /// <param name="accessToken">Access token</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns><see cref="OperationResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<OperationResponse> GrantsPermissionProxyEntityAsync(GrantPermissionsProxyEntityRequest requestPayload, string accessToken, CancellationToken cancellationToken = default);
+    Task<OperationResponse> GrantsAuthorizationPermissionAsync(GrantAuthorizationPermissionsRequest requestPayload, string accessToken, CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// Rozpoczyna asynchroniczną operację nadawania uprawnień podmiotowych.
+    /// </summary>
+    /// <param name="requestPayload"><see cref="GrantPermissionsAuthorizationRequest"/></param>
+    /// <param name="accessToken">Access token</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns><see cref="OperationResponse"/></returns>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task<OperationResponse> GrantsPermissionAuthorizationAsync(
+     GrantPermissionsAuthorizationRequest requestPayload,
+     string accessToken,
+     CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Nadanie uprawnień w sposób pośredni
@@ -605,13 +613,13 @@ public interface IKSeFClient
     /// <summary>
     /// Zwraca informacje o statusie wniosku certyfikacyjnego.
     /// </summary>
-    /// <param name="referenceNumber">Numer refrencyjny wniosku certyfikacyjnego.</param>
+    /// <param name="certificateRequestReferenceNumber">Numer refrencyjny wniosku certyfikacyjnego.</param>
     /// <param name="accessToken">Access token</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns><see cref="CertificateEnrollmentStatusResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<CertificateEnrollmentStatusResponse> GetCertificateEnrollmentStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<CertificateEnrollmentStatusResponse> GetCertificateEnrollmentStatusAsync(string certificateRequestReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
    
     /// <summary>
     /// Zwraca certyfikaty o podanych numerach seryjnych w formacie DER zakodowanym w Base64.
@@ -664,35 +672,43 @@ public interface IKSeFClient
     /// Pobranie listy wygenerowanych tokenów.
     /// </summary>
     /// <param name="accessToken">Access token.</param>
-    /// <param name="statuses">Statusy</param>
-    /// <param name="continuationToken">Contnuation token.</param>
+    /// <param name="status">Status tokenów do zwrócenia (można podać wielokrotnie).</param>
+    /// <param name="continuationToken">Continuation token.</param>
     /// <param name="pageSize">Ilość elementów na stronie (domyślnie 10)</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><see cref="QueryKsefTokensResponse"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<QueryKsefTokensResponse> QueryKsefTokensAsync(string accessToken, ICollection<AuthenticationKsefTokenStatus> statuses = null, string continuationToken = null, int? pageSize = null, CancellationToken cancellationToken = default);
-   
+    Task<QueryKsefTokensResponse> QueryKsefTokensAsync(
+    string accessToken,
+    ICollection<AuthenticationKsefTokenStatus> statuses = null,
+    string authorIdentifier = null,
+    KSeF.Client.Core.Models.Token.ContextIdentifierType? authorIdentifierType = null,
+    string description = null,
+    string continuationToken = null,
+    int? pageSize = null,
+    CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Pobranie statusu tokena
     /// </summary>
-    /// <param name="referenceNumber">Numer referencyjny tokena.</param>
+    /// <param name="tokenRefrenceNumber">Numer referencyjny tokena.</param>
     /// <param name="accessToken">Access token.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><see cref="AuthenticationKsefToken"/></returns>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task<AuthenticationKsefToken> GetKsefTokenAsync(string refrenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthenticationKsefToken> GetKsefTokenAsync(string tokenRefrenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Unieważnienie tokena.
     /// </summary>
-    /// <param name="referenceNumber">Numer referencyjny tokena.</param>
+    /// <param name="tokenReferenceNumber">Numer referencyjny tokena.</param>
     /// <param name="accessToken">Access token.</param>
     /// <param name="cancellationToken">Cancellation toke.</param>
     /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
     /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-    Task RevokeKsefTokenAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default);
+    Task RevokeKsefTokenAsync(string tokenReferenceNumber, string accessToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Wysłanie części paczki faktur.
@@ -711,4 +727,49 @@ public interface IKSeFClient
     /// <param name="cancellationToken">Cancellaton token</param>
     /// <exception cref="AggregateException"></exception>
     Task SendBatchPartsWithStreamAsync(OpenBatchSessionResponse openBatchSessionResponse, ICollection<BatchPartStreamSendingInfo> parts, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Pobranie listy dostawców usług Peppol.
+    /// </summary>
+    /// <param name="accessToken">Bearer access token.</param>
+    /// <param name="pageOffset">Numer strony wyników (opcjonalny).</param>
+    /// <param name="pageSize">Rozmiar strony wyników (opcjonalny).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see cref="QueryPeppolProvidersResponse"/></returns>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task<QueryPeppolProvidersResponse> QueryPeppolProvidersAsync(
+        string accessToken,
+        int? pageOffset = null,
+        int? pageSize = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Inicjuje eksport paczki faktur zgodnie z podanymi filtrami.
+    /// </summary>
+    /// <param name="requestPayload">Żądanie eksportu faktur (filtry + szyfrowanie).</param>
+    /// <param name="accessToken">Access token.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see cref="ExportInvoicesResponse"/> zawierający numer referencyjny operacji.</returns>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task<ExportInvoicesResponse> ExportInvoicesAsync(
+        InvoiceExportRequest requestPayload,
+        string accessToken,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Pobiera status operacji eksportu paczki faktur.
+    /// </summary>
+    /// <param name="operationReferenceNumber">Numer referencyjny operacji eksportu.</param>
+    /// <param name="accessToken">Access token.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see cref="InvoiceExportStatusResponse"/> zawierający status oraz paczkę faktur (jeśli dostępna).</returns>
+    /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+    /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+    Task<InvoiceExportStatusResponse> GetInvoiceExportStatusAsync(
+        string operationReferenceNumber,
+        string accessToken,
+        CancellationToken cancellationToken = default);
+
 }

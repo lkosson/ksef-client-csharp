@@ -1,8 +1,8 @@
-﻿using KSeF.Client.Core.Interfaces;
-using KSeFClient;
+using KSeF.Client.Core.Interfaces;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Models.Certificates;
-using KSeFClient.Api.Builders.Certificates;
+using KSeF.Client.Api.Builders.Certificates;
 
 namespace WebApplication.Controllers;
 
@@ -33,7 +33,7 @@ public class CertificateController : ControllerBase
     [HttpPost("send-enrollment")]
     public async Task<ActionResult<CertificateEnrollmentResponse>> SendEnrollmentAsync([FromBody] CertificateEnrollmentsInfoResponse requestPayload, [FromServices] ICryptographyService cryptographyService, string accessToken, CancellationToken cancellationToken)
     {
-        (var csrBase64encoded, var privateKeyBase64Encoded) = cryptographyService.GenerateCsr(requestPayload);
+        (var csrBase64encoded, var privateKeyBase64Encoded) = cryptographyService.GenerateCsrWithRSA(requestPayload);
         var enrollmentRequest = SendCertificateEnrollmentRequestBuilder.Create()
             .WithCertificateName("Testowy certyfikat")
             .WithCsr(csrBase64encoded)
@@ -45,9 +45,9 @@ public class CertificateController : ControllerBase
     }
 
     [HttpGet("enrollment-status/{referenceNumber}")]
-    public async Task<ActionResult<CertificateEnrollmentStatusResponse>> GetEnrollmentStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken)
+    public async Task<ActionResult<CertificateEnrollmentStatusResponse>> GetEnrollmentStatusAsync(string certificateRequestReferenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        return await kSeFClient.GetCertificateEnrollmentStatusAsync(referenceNumber, accessToken, cancellationToken)
+        return await kSeFClient.GetCertificateEnrollmentStatusAsync(certificateRequestReferenceNumber, accessToken, cancellationToken)
             .ConfigureAwait(false);
     }
 

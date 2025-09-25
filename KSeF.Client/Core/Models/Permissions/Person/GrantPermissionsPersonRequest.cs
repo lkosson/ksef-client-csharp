@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Permissions.Person;
+namespace KSeF.Client.Core.Models.Permissions.Person;
 
 public class GrantPermissionsPersonRequest
 {
@@ -40,5 +40,6 @@ public enum AuthorizedIdentifierType
 
 public enum TargetIdentifierType
 {
-    Nip    
+    Nip,
+    AllPartners
 }

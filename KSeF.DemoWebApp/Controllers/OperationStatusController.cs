@@ -1,5 +1,5 @@
-﻿using KSeF.Client.Core.Models.Permissions;
-using KSeFClient;
+using KSeF.Client.Core.Models.Permissions;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KSeF.DemoWebApp.Controllers;
@@ -8,10 +8,10 @@ namespace KSeF.DemoWebApp.Controllers;
 [Route("[controller]")]
 public class OperationStatusController(IKSeFClient ksefClient) : ControllerBase
 {
-    [HttpGet("{referenceNumber}/status")]
-    public async Task<ActionResult<PermissionsOperationStatusResponse>> GetOperationStatusAsync([FromRoute] string referenceNumber, string accessToken, CancellationToken cancellationToken)
+    [HttpGet("{operationReferenceNumber}/status")]
+    public async Task<ActionResult<PermissionsOperationStatusResponse>> GetOperationStatusAsync([FromRoute] string operationReferenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        var status = await ksefClient.OperationsStatusAsync(referenceNumber, accessToken, cancellationToken); 
+        var status = await ksefClient.OperationsStatusAsync(operationReferenceNumber, accessToken, cancellationToken); 
         return Ok(status); 
     }
 }

@@ -1,12 +1,12 @@
-﻿namespace KSeFClient.Core.Exceptions;
+namespace KSeF.Client.Core.Exceptions;
 
 /// <summary>
-/// Represents a structured error response returned by the API.
+/// Reprezentuje ustrukturyzowaną odpowiedź błędu zwracaną przez interfejs API.
 /// </summary>
 public class ApiErrorResponse
 {
     /// <summary>
-    /// The main exception content with details.
+    /// Zawiera główną treść wyjątku wraz ze szczegółami.
     /// </summary>
     public ApiExceptionContent Exception { get; set; }
 }

@@ -1,14 +1,19 @@
-﻿namespace KSeF.Client.Core.Models.Invoices.Common;
+namespace KSeF.Client.Core.Models.Invoices.Common;
 /// <summary>
 /// Typ faktury (metadane).
 /// </summary>
 public enum InvoiceType
 {
-    Vat,      // Faktura podstawowa
-    Zal,      // Faktura zaliczkowa
-    Kor,      // Faktura korygująca
-    Roz,      // Faktura rozliczeniowa
-    Upr,      // Faktura uproszczona
-    KorZal,   // Korygująca do faktury zaliczkowej
-    KorRoz    // Korygująca do faktury rozliczeniowej
+    Vat,        // (FA) Podstawowa
+    Zal,        // (FA) Zaliczkowa
+    Kor,        // (FA) Korygująca
+    Roz,        // (FA) Rozliczeniowa
+    Upr,        // (FA) Uproszczona
+    KorZal,     // (FA) Korygująca fakturę zaliczkową
+    KorRoz,     // (FA) Korygująca fakturę rozliczeniową
+    VatPef,     // (PEF) Podstawowowa
+    VatPefSp,   // (PEF) Specjalizowana
+    KorPef,     // (PEF) Korygująca
+    VatRr,      // (RR) Podstawowa
+    KorVatRr    // (RR) Korygująca
 }

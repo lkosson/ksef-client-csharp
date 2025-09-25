@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Sessions.BatchSession;
+namespace KSeF.Client.Core.Models.Sessions.BatchSession;
 
 
 public class BatchFileInfo

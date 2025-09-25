@@ -1,4 +1,4 @@
-﻿using KSeFClient.Core.Models;
+using KSeFClient.Core.Models;
 
 namespace KSeF.Client.Core.Models.Permissions;
 

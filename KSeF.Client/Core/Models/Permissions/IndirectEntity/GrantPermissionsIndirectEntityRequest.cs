@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Permissions.IndirectEntity;
+namespace KSeF.Client.Core.Models.Permissions.IndirectEntity;
 
 public class GrantPermissionsIndirectEntityRequest
 {
@@ -35,5 +35,6 @@ public enum SubjectIdentifierType
 
 public enum TargetIdentifierType
 {
-    Nip   
+    Nip,
+    AllPartners,
 }

@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Sessions;
+using KSeF.Client.Core.Models.Sessions;
 
 public interface ISendInvoiceOnlineSessionRequestBuilder
 {
@@ -43,7 +43,7 @@ internal class SendInvoiceOnlineSessionRequestBuilderImpl
     public ISendInvoiceOnlineSessionRequestBuilderWithInvoiceHash WithInvoiceHash(string documentHash, long documentSize)
     {
         if (string.IsNullOrWhiteSpace(documentHash) || documentSize < 0)
-            throw new ArgumentException("InvoiceHash parameters are invalid.");
+            throw new ArgumentException("Parametry InvoiceHash są nieprawidłowe.");
 
         _documentHash = documentHash;
         _documentSize = documentSize;
@@ -53,7 +53,7 @@ internal class SendInvoiceOnlineSessionRequestBuilderImpl
     public ISendInvoiceOnlineSessionRequestBuilderWithEncryptedDocumentHash WithEncryptedDocumentHash(string encryptedDocumentHash, long encryptedDocumentSize)
     {
         if (string.IsNullOrWhiteSpace(encryptedDocumentHash) || encryptedDocumentSize < 0)
-            throw new ArgumentException("EncryptedInvoiceHash parameters are invalid.");
+            throw new ArgumentException("Parametry EncryptedInvoiceHash są nieprawidłowe.");
 
         _encryptedDocumentHash = encryptedDocumentHash;
         _encryptedDocumentSize = encryptedDocumentSize;
@@ -63,7 +63,7 @@ internal class SendInvoiceOnlineSessionRequestBuilderImpl
     public ISendInvoiceOnlineSessionRequestBuilderBuild WithEncryptedDocumentContent(string encryptedDocumentContent)
     {
         if (string.IsNullOrWhiteSpace(encryptedDocumentContent))
-            throw new ArgumentException("EncryptedInvoiceContent cannot be null or empty.");
+            throw new ArgumentException("EncryptedInvoiceContent nie może być puste ani null.");
 
         _encryptedDocumentContent = encryptedDocumentContent;
         return this;
@@ -72,7 +72,7 @@ internal class SendInvoiceOnlineSessionRequestBuilderImpl
     public ISendInvoiceOnlineSessionRequestBuilderBuild WithHashOfCorrectedInvoice(string hashOfCorrectedInvoice)
     {
         if (string.IsNullOrWhiteSpace(hashOfCorrectedInvoice))
-            throw new ArgumentException("HashOfCorrectedInvoice cannot be null or empty.");
+            throw new ArgumentException("HashOfCorrectedInvoice nie może być puste ani null.");
 
         _hashOfCorrectedInvoice = hashOfCorrectedInvoice;
         return this;
@@ -87,11 +87,11 @@ internal class SendInvoiceOnlineSessionRequestBuilderImpl
     public SendInvoiceRequest Build()
     {
         if (string.IsNullOrWhiteSpace(_documentHash))
-            throw new InvalidOperationException("InvoiceHash is required.");
+            throw new InvalidOperationException("InvoiceHash jest wymagany.");
         if (string.IsNullOrWhiteSpace(_encryptedDocumentHash))
-            throw new InvalidOperationException("EncryptedInvoiceHash is required.");
+            throw new InvalidOperationException("EncryptedInvoiceHash jest wymagany.");
         if (string.IsNullOrWhiteSpace(_encryptedDocumentContent))
-            throw new InvalidOperationException("EncryptedInvoiceContent is required.");
+            throw new InvalidOperationException("EncryptedInvoiceContent jest wymagany.");
 
         return new SendInvoiceRequest
         {

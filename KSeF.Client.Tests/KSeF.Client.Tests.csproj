@@ -11,14 +11,27 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="appsettings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.9" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\KSeF.Client.Tests.Utils\KSeF.Client.Tests.Utils.csproj" />
     <ProjectReference Include="..\KSeF.Client\KSeF.Client.csproj" />
   </ItemGroup>
 
@@ -27,11 +40,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="invoices\faktura-online.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="Templates\invoice-template-fa-2.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="invoices\faktura-template.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="Templates\invoice-template-fa-3.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

@@ -1,26 +1,29 @@
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Core.Models.Invoices;
+using KSeF.Client.Core.Models.Peppol;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.EUEntityRepresentative;
 using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using KSeF.Client.Core.Models.Permissions.Person;
-using KSeF.Client.Core.Models.Permissions.ProxyEntity;
+using KSeF.Client.Core.Models.Permissions.AuthorizationEntity;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Models.Sessions.ActiveSessions;
 using KSeF.Client.Core.Models.Sessions.BatchSession;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
-using KSeFClient.Core.Interfaces;
-using KSeFClient.Core.Models;
+using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Models;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
+using KSeFClient.Core.Models;
+using KSeFClient.Core.Models.Sessions;
 
 
 
-namespace KSeFClient.Http;
+namespace KSeF.Client.Http;
 
 public partial class KSeFClient : IKSeFClient
 {
@@ -50,8 +53,8 @@ public partial class KSeFClient : IKSeFClient
                                                                             accessToken,
                                                                             RestClient.DefaultContentType,
                                                                             cancellationToken,
-                                                                           !string.IsNullOrEmpty(continuationToken) ?
-                                                                             new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken)} }
+                                                                         !string.IsNullOrEmpty(continuationToken) ?
+                                                                          new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken) } }
                                                                               : null).ConfigureAwait(false);
 
     }
@@ -69,12 +72,12 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task RevokeSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task RevokeSessionAsync(string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, accessToken);
+        ValidateParams(sessionReferenceNumber, accessToken);
 
         await restClient.SendAsync(HttpMethod.Delete,
-                                   $"/api/v2/auth/sessions/{Uri.EscapeDataString(referenceNumber)}",
+                                   $"/api/v2/auth/sessions/{Uri.EscapeDataString(sessionReferenceNumber)}",
                                    accessToken,
                                    RestClient.DefaultContentType,
                                    cancellationToken).ConfigureAwait(false);
@@ -120,11 +123,11 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<AuthStatus> GetAuthStatusAsync(string referenceNumber, string authenticationToken, CancellationToken cancellationToken = default)
+    public async Task<AuthStatus> GetAuthStatusAsync(string authOperationReferenceNumber, string authenticationToken, CancellationToken cancellationToken = default)
     {
         ValidateParams(authenticationToken);
         return await restClient.SendAsync<AuthStatus, string>(HttpMethod.Get,
-                                                                   $"/api/v2/auth/{Uri.EscapeDataString(referenceNumber)}",
+                                                                   $"/api/v2/auth/{Uri.EscapeDataString(authOperationReferenceNumber)}",
                                                                    default,
                                                                    authenticationToken,
                                                                    RestClient.DefaultContentType,
@@ -158,19 +161,7 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task RevokeAccessTokenAsync(string accessToken, CancellationToken cancellationToken = default)
-    {
-        ValidateParams(accessToken);
-
-        await restClient.SendAsync(HttpMethod.Delete,
-                                   $"/api/v2/auth/token",
-                                   accessToken,
-                                   RestClient.DefaultContentType,
-                                   cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc />
-    public async Task<ICollection<PemCertificateInfo>> GetPublicCertificates(CancellationToken cancellationToken)
+    public async Task<ICollection<PemCertificateInfo>> GetPublicCertificatesAsync(CancellationToken cancellationToken)
     {
         return await restClient.SendAsync<ICollection<PemCertificateInfo>, string>(HttpMethod.Get,
                                                                       "/api/v2/security/public-key-certificates",
@@ -194,13 +185,13 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<SendInvoiceResponse> SendOnlineSessionInvoiceAsync(SendInvoiceRequest requestPayload, string referenceNumber, string accessToken, CancellationToken cancellationToken)
+    public async Task<SendInvoiceResponse> SendOnlineSessionInvoiceAsync(SendInvoiceRequest requestPayload, string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        ValidateParams(referenceNumber);
+        ValidateParams(sessionReferenceNumber);
         ValidatePayload(requestPayload, accessToken);
 
         return await restClient.SendAsync<SendInvoiceResponse, SendInvoiceRequest>(HttpMethod.Post,
-                                                                                    $"/api/v2/sessions/online/{Uri.EscapeDataString(referenceNumber)}/invoices",
+                                                                                    $"/api/v2/sessions/online/{Uri.EscapeDataString(sessionReferenceNumber)}/invoices",
                                                                                     requestPayload,
                                                                                     accessToken,
                                                                                     RestClient.DefaultContentType,
@@ -208,11 +199,11 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task CloseOnlineSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken)
+    public async Task CloseOnlineSessionAsync(string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        ValidateParams(referenceNumber, accessToken);
+        ValidateParams(sessionReferenceNumber, accessToken);
         await restClient.SendAsync(HttpMethod.Post,
-                                   $"/api/v2/sessions/online/{referenceNumber}/close",
+                                   $"/api/v2/sessions/online/{sessionReferenceNumber}/close",
                                    accessToken,
                                    RestClient.DefaultContentType,
                                    cancellationToken);
@@ -227,12 +218,12 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task CloseBatchSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken)
+    public async Task CloseBatchSessionAsync(string batchSessionReferenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        ValidateParams(referenceNumber, accessToken);
+        ValidateParams(batchSessionReferenceNumber, accessToken);
 
         await restClient.SendAsync<object>(HttpMethod.Post,
-                                           $"/api/v2/sessions/batch/{Uri.EscapeDataString(referenceNumber)}/close",
+                                           $"/api/v2/sessions/batch/{Uri.EscapeDataString(batchSessionReferenceNumber)}/close",
                                            default, accessToken, RestClient.DefaultContentType, cancellationToken).ConfigureAwait(false);
     }
     /// <inheritdoc />
@@ -300,12 +291,12 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<SessionStatusResponse> GetSessionStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<SessionStatusResponse> GetSessionStatusAsync(string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, accessToken);
+        ValidateParams(sessionReferenceNumber, accessToken);
 
         return await restClient.SendAsync<SessionStatusResponse, object>(HttpMethod.Get,
-                                                                              $"/api/v2/sessions/{Uri.EscapeDataString(referenceNumber)}",
+                                                                              $"/api/v2/sessions/{Uri.EscapeDataString(sessionReferenceNumber)}",
                                                                               default,
                                                                               accessToken,
                                                                               RestClient.DefaultContentType,
@@ -313,14 +304,14 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<SessionInvoicesResponse> GetSessionInvoicesAsync(string referenceNumber, string accessToken, int? pageSize = null, string continuationToken = null, CancellationToken cancellationToken = default)
+    public async Task<SessionInvoicesResponse> GetSessionInvoicesAsync(string sessionReferenceNumber, string accessToken, int? pageSize = null, string continuationToken = null, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, accessToken);
+        ValidateParams(sessionReferenceNumber, accessToken);
 
         var urlBuilder = new StringBuilder();
 
         urlBuilder.Append("/api/v2/sessions/");
-        urlBuilder.Append(Uri.EscapeDataString(referenceNumber));
+        urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/invoices");
 
         if (pageSize.HasValue)
@@ -343,13 +334,13 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<SessionInvoice> GetSessionInvoiceAsync(string referenceNumber, string invoiceReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<SessionInvoice> GetSessionInvoiceAsync(string sessionReferenceNumber, string invoiceReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, invoiceReferenceNumber, accessToken);
+        ValidateParams(sessionReferenceNumber, invoiceReferenceNumber, accessToken);
 
         var urlBuilder = new StringBuilder();
         urlBuilder.Append("/api/v2/sessions/");
-        urlBuilder.Append(Uri.EscapeDataString(referenceNumber));
+        urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/invoices/");
         urlBuilder.Append(Uri.EscapeDataString(invoiceReferenceNumber));
 
@@ -359,14 +350,14 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<SessionFailedInvoicesResponse> GetSessionFailedInvoicesAsync(string referenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default)
+    public async Task<SessionFailedInvoicesResponse> GetSessionFailedInvoicesAsync(string sessionReferenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, accessToken);
+        ValidateParams(sessionReferenceNumber, accessToken);
 
         var urlBuilder = new StringBuilder();
 
         urlBuilder.Append("/api/v2/sessions/");
-        urlBuilder.Append(Uri.EscapeDataString(referenceNumber));
+        urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/invoices/failed");
 
         if (pageSize.HasValue)
@@ -389,14 +380,14 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<string> GetSessionInvoiceUpoByKsefNumberAsync(string referenceNumber, string ksefNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<string> GetSessionInvoiceUpoByKsefNumberAsync(string sessionReferenceNumber, string ksefNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, ksefNumber, accessToken);
+        ValidateParams(sessionReferenceNumber, ksefNumber, accessToken);
 
         var urlBuilder = new StringBuilder();
 
         urlBuilder.Append("/api/v2/sessions/");
-        urlBuilder.Append(Uri.EscapeDataString(referenceNumber));
+        urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/invoices/ksef/");
         urlBuilder.Append(Uri.EscapeDataString(ksefNumber));
         urlBuilder.Append("/upo");
@@ -408,14 +399,14 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<string> GetSessionInvoiceUpoByReferenceNumberAsync(string referenceNumber, string invoiceReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<string> GetSessionInvoiceUpoByReferenceNumberAsync(string sessionReferenceNumber, string invoiceReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, invoiceReferenceNumber, accessToken);
+        ValidateParams(sessionReferenceNumber, invoiceReferenceNumber, accessToken);
 
         var urlBuilder = new StringBuilder();
 
         urlBuilder.Append("/api/v2/sessions/");
-        urlBuilder.Append(Uri.EscapeDataString(referenceNumber));
+        urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/invoices/");
         urlBuilder.Append(Uri.EscapeDataString(invoiceReferenceNumber));
         urlBuilder.Append("/upo");
@@ -426,13 +417,13 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<string> GetSessionUpoAsync(string referenceNumber, string upoReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<string> GetSessionUpoAsync(string sessionReferenceNumber, string upoReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(accessToken, referenceNumber, upoReferenceNumber);
+        ValidateParams(accessToken, sessionReferenceNumber, upoReferenceNumber);
 
         var urlBuilder = new StringBuilder();
         urlBuilder.Append("/api/v2/sessions/");
-        urlBuilder.Append(Uri.EscapeDataString(referenceNumber));
+        urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/upo/");
         urlBuilder.Append(Uri.EscapeDataString(upoReferenceNumber));
 
@@ -456,7 +447,7 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceMetadataQueryRequest requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default)
+    public async Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceQueryFilters requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default)
     {
         ValidatePayload(requestPayload, accessToken);
 
@@ -464,7 +455,7 @@ public partial class KSeFClient : IKSeFClient
 
         Pagination(pageOffset, pageSize, urlBuilder);
 
-        return await restClient.SendAsync<PagedInvoiceResponse, InvoiceMetadataQueryRequest>(HttpMethod.Post,
+        return await restClient.SendAsync<PagedInvoiceResponse, InvoiceQueryFilters>(HttpMethod.Post,
                                                                     urlBuilder.ToString(),
                                                                     requestPayload,
                                                                     accessToken,
@@ -474,46 +465,14 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<OperationStatusResponse> AsyncQueryInvoicesAsync(AsyncQueryInvoiceRequest requestPayload, string accessToken, CancellationToken cancellationToken = default)
-    {
-        ValidatePayload(requestPayload, accessToken);
-
-        return await restClient.SendAsync<OperationStatusResponse, InvoiceMetadataQueryRequest>(HttpMethod.Post,
-                                                                    "/api/v2/invoices/async-query",
-                                                                    requestPayload,
-                                                                    accessToken,
-                                                                    RestClient.DefaultContentType,
-                                                                    cancellationToken)
-                                                                    .ConfigureAwait(false);
-    }
-
-    /// <inheritdoc />
-    public async Task<AsyncQueryInvoiceStatusResponse> GetAsyncQueryInvoicesStatusAsync(string operationReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<PermissionsOperationStatusResponse> OperationsStatusAsync(string operationReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
         ValidateParams(operationReferenceNumber, accessToken);
 
         var urlBuilder = new StringBuilder();
-        urlBuilder.Append("/api/v2/invoices/async-query/");
-        urlBuilder.Append(Uri.EscapeDataString(operationReferenceNumber));
-
-        return await restClient.SendAsync<AsyncQueryInvoiceStatusResponse, object>(HttpMethod.Get,
-                                                                    urlBuilder.ToString(),
-                                                                    default,
-                                                                    accessToken,
-                                                                    RestClient.DefaultContentType,
-                                                                    cancellationToken)
-                                                                    .ConfigureAwait(false);
-    }
-
-    /// <inheritdoc />
-    public async Task<PermissionsOperationStatusResponse> OperationsStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default)
-    {
-        ValidateParams(referenceNumber, accessToken);
-
-        var urlBuilder = new StringBuilder();
 
         urlBuilder.Append("/api/v2/permissions/operations/");
-        urlBuilder.Append(Uri.EscapeDataString(referenceNumber));
+        urlBuilder.Append(Uri.EscapeDataString(operationReferenceNumber));
 
         return await restClient.SendAsync<PermissionsOperationStatusResponse, string>(HttpMethod.Get,
                                                                                       urlBuilder.ToString(),
@@ -547,6 +506,41 @@ public partial class KSeFClient : IKSeFClient
                                                              cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public async Task<OperationResponse> GetAttachmentPermissionStatusAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        ValidateParams(accessToken);
+        return await restClient.SendAsync<OperationResponse, string>(HttpMethod.Delete,
+                                                             "/api/v2/permissions/attachments/status",
+                                                             default,
+                                                             accessToken,
+                                                             RestClient.DefaultContentType,
+                                                             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<PagedPermissionsResponse<PersonalPermission>> SearchGrantedPersonalPermissionsAsync(
+        PersonalPermissionsQueryRequest requestPayload,
+              string accessToken,
+              int? pageOffset = null,
+              int? pageSize = null,
+              CancellationToken cancellationToken = default)
+    {
+        ValidatePayload(requestPayload, accessToken);
+
+        var urlBuilder = new StringBuilder("/api/v2/permissions/query/personal/grants");
+
+        Pagination(pageOffset, pageSize, urlBuilder);
+
+        return await restClient.SendAsync<PagedPermissionsResponse<PersonalPermission>, PersonalPermissionsQueryRequest>(
+            HttpMethod.Post,
+            urlBuilder.ToString(),
+            requestPayload,
+            accessToken,
+            RestClient.DefaultContentType,
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
     /// <inheritdoc />
     public async Task<PagedPermissionsResponse<PersonPermission>> SearchGrantedPersonPermissionsAsync(
               PersonPermissionsQueryRequest requestPayload,
@@ -718,11 +712,29 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<OperationResponse> GrantsPermissionProxyEntityAsync(GrantPermissionsProxyEntityRequest requestPayload, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<OperationResponse> GrantsPermissionAuthorizationAsync(
+     GrantPermissionsAuthorizationRequest requestPayload,
+     string accessToken,
+     CancellationToken cancellationToken = default)
     {
         ValidatePayload(requestPayload, accessToken);
 
-        return await restClient.SendAsync<OperationResponse, GrantPermissionsProxyEntityRequest>(HttpMethod.Post,
+        return await restClient.SendAsync<OperationResponse, GrantPermissionsAuthorizationRequest>(
+                                    HttpMethod.Post,
+                                    "/api/v2/permissions/authorizations/grants",
+                                    requestPayload,
+                                    accessToken,
+                                    RestClient.DefaultContentType,
+                                    cancellationToken)
+                               .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<OperationResponse> GrantsAuthorizationPermissionAsync(GrantAuthorizationPermissionsRequest requestPayload, string accessToken, CancellationToken cancellationToken = default)
+    {
+        ValidatePayload(requestPayload, accessToken);
+
+        return await restClient.SendAsync<OperationResponse, GrantAuthorizationPermissionsRequest>(HttpMethod.Post,
                                  "/api/v2/permissions/authorizations/grants",
                                  requestPayload,
                                  accessToken,
@@ -818,12 +830,12 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<CertificateEnrollmentStatusResponse> GetCertificateEnrollmentStatusAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<CertificateEnrollmentStatusResponse> GetCertificateEnrollmentStatusAsync(string enrollmentReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(accessToken, referenceNumber);
+        ValidateParams(accessToken, enrollmentReferenceNumber);
 
         return await restClient.SendAsync<CertificateEnrollmentStatusResponse, string>(HttpMethod.Get,
-                                                                                       $"/api/v2/certificates/enrollments/{Uri.EscapeDataString(referenceNumber)}",
+                                                                                       $"/api/v2/certificates/enrollments/{Uri.EscapeDataString(enrollmentReferenceNumber)}",
                                                                                        default, accessToken,
                                                                                        RestClient.DefaultContentType,
                                                                                        cancellationToken).ConfigureAwait(false);
@@ -893,40 +905,65 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<QueryKsefTokensResponse> QueryKsefTokensAsync(string accessToken, ICollection<AuthenticationKsefTokenStatus> statuses = null, string continuationToken = null, int? pageSize = null, CancellationToken cancellationToken = default)
+    public async Task<QueryKsefTokensResponse> QueryKsefTokensAsync(
+    string accessToken,
+    ICollection<AuthenticationKsefTokenStatus> statuses = null,
+    string authorIdentifier = null,
+    KSeF.Client.Core.Models.Token.ContextIdentifierType? authorIdentifierType = null,
+    string description = null,
+    string continuationToken = null,
+    int? pageSize = 10,
+    CancellationToken cancellationToken = default)
     {
         var urlBuilder = new StringBuilder("/api/v2/tokens?");
+
         if (statuses != null && statuses.Any())
         {
-            urlBuilder.Append("statuses=");
-            urlBuilder.Append(string.Join(",", statuses.Select(s => s.ToString())));
-            urlBuilder.Append("&");
+            foreach (var s in statuses)
+            {
+                urlBuilder.Append($"status={Uri.EscapeDataString(s.ToString())}&");
+            }
         }
 
-        if (pageSize.HasValue)
+        if (!string.IsNullOrWhiteSpace(authorIdentifier))
         {
-            urlBuilder.Append($"pageSize={pageSize.Value}&");
+            urlBuilder.Append($"authorIdentifier={Uri.EscapeDataString(authorIdentifier)}&");
         }
-        return await restClient.SendAsync<QueryKsefTokensResponse, string>(HttpMethod.Get,
-                                                                           urlBuilder.ToString().TrimEnd('&'),
-                                                                           default,
-                                                                           accessToken,
-                                                                           RestClient.DefaultContentType,
-                                                                           cancellationToken,
-                                                                          !string.IsNullOrWhiteSpace(continuationToken) ?
-                                                                          new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken) } }
-                                                                          : null)
-                                                                           .ConfigureAwait(false);
-    }
+
+        if (authorIdentifierType.HasValue)
+        {
+            urlBuilder.Append($"authorIdentifierType={authorIdentifierType.Value}&");
+        }
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            urlBuilder.Append($"description={Uri.EscapeDataString(description)}&");
+        }
+
+        Pagination(null, pageSize, urlBuilder);
+        
+        return await restClient.SendAsync<QueryKsefTokensResponse, string>(
+            HttpMethod.Get,
+            urlBuilder.ToString().TrimEnd('&'),
+            default,
+            accessToken,
+            RestClient.DefaultContentType,
+            cancellationToken,
+            !string.IsNullOrWhiteSpace(continuationToken)
+                            ? new Dictionary<string, string> { { "x-continuation-token", Regex.Unescape(continuationToken) } }
+                            : null
+                    ).ConfigureAwait(false);
+        }
+
 
 
     /// <inheritdoc />
-    public async Task<AuthenticationKsefToken> GetKsefTokenAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<AuthenticationKsefToken> GetKsefTokenAsync(string tokenRefrenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, accessToken);
+        ValidateParams(tokenRefrenceNumber, accessToken);
 
         return await restClient.SendAsync<AuthenticationKsefToken, string>(HttpMethod.Get,
-                                                                            $"/api/v2/tokens/{Uri.EscapeDataString(referenceNumber)}",
+                                                                            $"/api/v2/tokens/{Uri.EscapeDataString(tokenRefrenceNumber)}",
                                                                             default,
                                                                             accessToken,
                                                                             RestClient.DefaultContentType,
@@ -934,14 +971,41 @@ public partial class KSeFClient : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task RevokeKsefTokenAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken = default)
+    public async Task RevokeKsefTokenAsync(string tokenReferenceNumber, string accessToken, CancellationToken cancellationToken = default)
     {
-        ValidateParams(referenceNumber, accessToken);
+        ValidateParams(tokenReferenceNumber, accessToken);
         await restClient.SendAsync(HttpMethod.Delete,
-                                   $"/api/v2/tokens/{Uri.EscapeDataString(referenceNumber)}",
+                                   $"/api/v2/tokens/{Uri.EscapeDataString(tokenReferenceNumber)}",
                                    accessToken,
                                    RestClient.DefaultContentType,
                                    cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+       public async Task<QueryPeppolProvidersResponse> QueryPeppolProvidersAsync(
+        string accessToken,
+        int? pageOffset = null,
+        int? pageSize = null,
+        CancellationToken cancellationToken = default)
+    {
+        var urlBuilder = new StringBuilder("/api/v2/peppol/query?");
+
+        if (pageOffset.HasValue)
+            urlBuilder.Append($"pageOffset={pageOffset.Value}&");
+
+        if (pageSize.HasValue)
+            urlBuilder.Append($"pageSize={pageSize.Value}&");
+
+        var url = urlBuilder.ToString().TrimEnd('&').TrimEnd('?');
+
+        return await restClient.SendAsync<QueryPeppolProvidersResponse, string>(
+            HttpMethod.Get,
+            url,
+            default,
+            accessToken,
+            RestClient.DefaultContentType,
+            cancellationToken
+        ).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -971,6 +1035,46 @@ public partial class KSeFClient : IKSeFClient
             cancellationToken
         ).ConfigureAwait(false);
     }
+
+    /// <inheritdoc />
+    public async Task<ExportInvoicesResponse> ExportInvoicesAsync(
+    InvoiceExportRequest requestPayload,
+    string accessToken,
+    CancellationToken cancellationToken = default)
+    {
+        ValidatePayload(requestPayload, accessToken);
+
+        var urlBuilder = new StringBuilder("/api/v2/invoices/exports");
+
+        return await restClient.SendAsync<ExportInvoicesResponse, InvoiceExportRequest>(
+            HttpMethod.Post,
+            urlBuilder.ToString(),
+            requestPayload,
+            accessToken,
+            RestClient.DefaultContentType,
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+    /// <inheritdoc />
+    public async Task<InvoiceExportStatusResponse> GetInvoiceExportStatusAsync(
+    string operationReferenceNumber,
+    string accessToken,
+    CancellationToken cancellationToken = default)
+    {
+        ValidateParams(operationReferenceNumber, accessToken);
+
+        var url = $"/api/v2/invoices/exports/{Uri.EscapeDataString(operationReferenceNumber)}";
+
+        return await restClient.SendAsync<InvoiceExportStatusResponse, object>(
+            HttpMethod.Get,
+            url,
+            default,
+            accessToken,
+            RestClient.DefaultContentType,
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
 
     private static async Task SendPartsInternalAsync<TInfo>(
         ICollection<PackagePartSignatureInitResponseType> parts,

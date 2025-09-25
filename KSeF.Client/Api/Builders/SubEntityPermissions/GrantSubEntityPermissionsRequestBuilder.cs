@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Permissions.SubUnit;
+using KSeF.Client.Core.Models.Permissions.SubUnit;
 
 namespace KSeF.Client.Api.Builders.SubUnitPermissions;
 
@@ -56,9 +56,9 @@ public static class GrantSubUnitPermissionsRequestBuilder
         public GrantPermissionsSubUnitRequest Build()
         {
             if (_subject is null)
-                throw new InvalidOperationException("WithSubject(...) must be called first.");
+                throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
             if (_context is null)
-                throw new InvalidOperationException("WithContext(...) must be called after subject.");
+                throw new InvalidOperationException("Metoda WithContext(...) musi zostać wywołana po ustawieniu podmiotu.");
 
             return new GrantPermissionsSubUnitRequest
             {

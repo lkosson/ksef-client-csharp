@@ -1,4 +1,4 @@
-﻿
+
 namespace KSeF.Client.Core.Models.Permissions.Entity;
 
 public class GrantPermissionsEntityRequest
@@ -39,5 +39,6 @@ public partial class SubjectIdentifier
 
 public enum SubjectIdentifierType
 {
-    Nip
+    Nip,
+    PeppolId
 }

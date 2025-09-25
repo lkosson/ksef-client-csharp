@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Permissions.Entity;
+using KSeF.Client.Core.Models.Permissions.Entity;
 
 namespace KSeF.Client.Api.Builders.EntityPermissions;
 

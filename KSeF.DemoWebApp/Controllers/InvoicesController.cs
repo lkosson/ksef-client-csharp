@@ -1,5 +1,5 @@
-﻿using KSeF.Client.Core.Models.Invoices;
-using KSeFClient;
+using KSeF.Client.Core.Models.Invoices;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApplication.Controllers;
@@ -28,7 +28,7 @@ public class InvoicesController : ControllerBase
     /// </summary>
     [HttpPost("query")]
     public async Task<ActionResult<PagedInvoiceResponse>> QueryInvoicesAsync(
-        [FromBody] InvoiceMetadataQueryRequest body,
+        [FromBody] InvoiceQueryFilters body,
         [FromQuery] string accessToken,
         [FromQuery] int? pageOffset,
         [FromQuery] int? pageSize,
@@ -41,23 +41,53 @@ public class InvoicesController : ControllerBase
     /// Rozpoczęcie asynchronicznego wyszukiwania faktur.
     /// </summary>
     [HttpPost("query-async")]
-    public async Task<ActionResult<OperationStatusResponse>> AsyncQueryInvoicesAsync(
-        [FromBody] AsyncQueryInvoiceRequest body,
+    public async Task<ActionResult<ExportInvoicesResponse>> AsyncQueryInvoicesAsync(
+        [FromBody] InvoiceExportRequest body,
         [FromQuery] string accessToken,
         CancellationToken cancellationToken)
     {
-        return await ksefClient.AsyncQueryInvoicesAsync(body, accessToken, cancellationToken);
+        return await ksefClient.ExportInvoicesAsync(body, accessToken, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Pobranie statusu zapytania asynchronicznego.
     /// </summary>
     [HttpGet("query-async/status")]
-    public async Task<ActionResult<AsyncQueryInvoiceStatusResponse>> GetAsyncQueryInvoicesStatusAsync(
+    public async Task<ActionResult<InvoiceExportStatusResponse>> GetAsyncQueryInvoicesStatusAsync(
         [FromQuery] string operationReferenceNumber,
         [FromQuery] string accessToken,
         CancellationToken cancellationToken)
     {
-        return await ksefClient.GetAsyncQueryInvoicesStatusAsync(operationReferenceNumber, accessToken, cancellationToken);
+        return await ksefClient.GetInvoiceExportStatusAsync(operationReferenceNumber, accessToken, cancellationToken);
+    }
+
+    /// <summary>
+    /// Eksport faktur zgodnie z podanymi filtrami.
+    /// </summary>
+    [HttpPost("exports")]
+    [ProducesResponseType(typeof(ExportInvoicesResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ExportInvoicesResponse>> ExportInvoices(
+        [FromBody] InvoiceExportRequest request,
+        [FromHeader(Name = "Authorization")] string accessToken,
+        [FromQuery] int? pageOffset,
+        [FromQuery] int? pageSize,
+        CancellationToken cancellationToken)
+    {
+        var result = await ksefClient.ExportInvoicesAsync(request, accessToken, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Pobiera status operacji eksportu faktur.
+    /// </summary>
+    [HttpGet("exports/{operationReferenceNumber}")]
+    [ProducesResponseType(typeof(InvoiceExportStatusResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<InvoiceExportStatusResponse>> GetInvoiceExportStatus(
+        string operationReferenceNumber,
+        [FromHeader(Name = "Authorization")] string accessToken,
+        CancellationToken cancellationToken)
+    {
+        var result = await ksefClient.GetInvoiceExportStatusAsync(operationReferenceNumber, accessToken, cancellationToken);
+        return Ok(result);
     }
 }

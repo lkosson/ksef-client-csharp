@@ -1,7 +1,6 @@
-﻿using System;
 using KSeF.Client.Core.Models.Certificates;
 
-namespace KSeFClient.Api.Builders.Certificates;
+namespace KSeF.Client.Api.Builders.Certificates;
 
 public interface ISendCertificateEnrollmentRequestBuilder
 {

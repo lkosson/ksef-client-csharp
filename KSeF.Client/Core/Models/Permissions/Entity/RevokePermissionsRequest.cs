@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Permissions.Entity;
+namespace KSeF.Client.Core.Models.Permissions.Entity;
 
 public class RevokePermissionsRequest
 {

@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.QRCode
+namespace KSeF.Client.Core.Models.QRCode
 {
     public class QrCodeResult
     {

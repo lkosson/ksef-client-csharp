@@ -1,5 +1,5 @@
-﻿using KSeF.Client.Core.Interfaces;
-using KSeFClient;
+using KSeF.Client.Core.Interfaces;
+using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Models.Sessions;
 using System.IO.Compression;
@@ -29,7 +29,7 @@ public class BatchSessionController : ControllerBase
     [HttpPost("open-session")]
     public async Task<ActionResult> OpenBatchSessionAsync(string accessToken, CancellationToken cancellationToken)
     {
-        string invoicePath = "faktura-template.xml";
+        string invoicePath = "faktura-template-fa(3).xml";
         
         var invoices = new List<string>();
         if (!Directory.Exists(InvoicesDirectory))
@@ -51,19 +51,18 @@ public class BatchSessionController : ControllerBase
 
         // 2. Stwórz ZIP w pamięci
         byte[] zipBytes;
-        using (var zipStream = new MemoryStream())
+        using var zipStream = new MemoryStream();
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true);
+        
+        foreach (var file in files)
         {
-            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
-            {
-                foreach (var file in files)
-                {
-                    var entry = archive.CreateEntry(file.FileName, CompressionLevel.Optimal);
-                    using var entryStream = entry.Open();
-                    entryStream.Write(file.Content, 0, file.Content.Length);
-                }
-            }
-            zipBytes = zipStream.ToArray();
+            var entry = archive.CreateEntry(file.FileName, CompressionLevel.Optimal);
+            using var entryStream = entry.Open();
+            entryStream.Write(file.Content);
         }
+        
+        archive.Dispose();
+        zipBytes = zipStream.ToArray();
 
         // 3. Pobierz metadane ZIP-a (przed szyfrowaniem)
         var zipMetadata = cryptographyService.GetMetaData(zipBytes);
@@ -121,9 +120,9 @@ public class BatchSessionController : ControllerBase
     }
 
     [HttpPost("close-session")]
-    public async Task<ActionResult> CloseBatchSessionAsync(string referenceNumber, string accessToken, CancellationToken cancellationToken)
+    public async Task<ActionResult> CloseBatchSessionAsync(string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        await ksefClient.CloseBatchSessionAsync(referenceNumber, accessToken, cancellationToken);
+        await ksefClient.CloseBatchSessionAsync(sessionReferenceNumber, accessToken, cancellationToken);
         return Ok();
     }
   

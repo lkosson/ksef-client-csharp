@@ -1,11 +1,10 @@
-﻿using KSeF.Client.Http;
-using KSeFClient.Core.Exceptions;
-using KSeFClient.Core.Interfaces;
+using KSeF.Client.Core.Exceptions;
+using KSeF.Client.Core.Interfaces;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace KSeFClient.Http;
+namespace KSeF.Client.Http;
 
 /// <summary>
 /// A generic REST client that supports GET, POST, and DELETE requests with optional authorization,
@@ -35,11 +34,11 @@ public class RestClient : IRestClient
         CancellationToken cancellationToken = default,
         Dictionary<string, string> additionalHeaders = default)
     {
-        var request = new HttpRequestMessage(method, url);
+
+        using var request = new HttpRequestMessage(method, url);
 
         if (requestBody != null && method != HttpMethod.Get)
         {
-            
             var requestContent = contentType == DefaultContentType
                 ? JsonUtil.Serialize(requestBody)
                 : requestBody.ToString();
@@ -60,44 +59,65 @@ public class RestClient : IRestClient
             }
         }
 
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        Stream content = response.Content != null
-            ? await response.Content.ReadAsStreamAsync(cancellationToken)
+        var ct = cancellationToken;
+
+        using var response = await httpClient
+            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
+            .ConfigureAwait(false);
+
+        string responseText = response.Content != null
+            ? await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
             : null;
 
-        if (!response.IsSuccessStatusCode)
-        {
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                throw new KsefApiException("Not found", response.StatusCode);
-            }
-            try
-            {
-                var error = await JsonUtil.DeserializeAsync<ApiErrorResponse>(content);
-                if (error?.Exception?.ExceptionDetailList != null)
-                {
-                    var errorMessages = error.Exception.ExceptionDetailList.Select(detail =>
-                        $"{detail.ExceptionCode}: {detail.ExceptionDescription} - {string.Join("; ", detail.Details ?? new List<string>())}");
-                    var fullMessage = string.Join(" | ", errorMessages);
-                    throw new KsefApiException(fullMessage, response.StatusCode, error.Exception.ServiceCode);
-                }
+        HandleInvalidStatusCode(response, responseText);
 
-                throw new KsefApiException($"HTTP {(int)response.StatusCode}: {response.ReasonPhrase}", response.StatusCode);
-            }
-            catch (JsonException)
-            {
-                throw new KsefApiException($"HTTP {(int)response.StatusCode}: {response.ReasonPhrase}", response.StatusCode);
-            }
-        }
-
-        if (content == null || content.Length == 0)
+        if (string.IsNullOrEmpty(responseText))
             return default;
 
-        var responseString = await response.Content.ReadAsStringAsync();
         if (typeof(TResponse) == typeof(string))
-            return (TResponse)(object)responseString;
+            return (TResponse)(object)responseText;
 
-        return await JsonUtil.DeserializeAsync<TResponse>(content);
+        return JsonUtil.Deserialize<TResponse>(responseText);
+    }
+
+    private static void HandleInvalidStatusCode(HttpResponseMessage response, string responseText)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            throw new KsefApiException("Not found", response.StatusCode);
+        }
+
+        try
+        {
+            if (string.IsNullOrEmpty(responseText))
+            {
+                throw new KsefApiException($"HTTP {(int)response.StatusCode}: {response.ReasonPhrase}", response.StatusCode);
+            }
+
+            var error = JsonUtil.Deserialize<ApiErrorResponse>(responseText);
+            string fullMessage = string.Empty;
+
+            if (error?.Exception?.ExceptionDetailList?.Any() == true)
+            {
+                var errorMessages = error
+                    .Exception
+                    .ExceptionDetailList
+                    .Select(detail =>
+                        $"{detail.ExceptionCode}: {detail.ExceptionDescription} - {string.Join("; ", detail.Details ?? new List<string>())}");
+                fullMessage = string.Join(" | ", errorMessages);
+            }
+
+            throw new KsefApiException(fullMessage, response.StatusCode, error.Exception.ServiceCode, error);
+        }
+        catch (JsonException e)
+        {
+            throw new KsefApiException($"HTTP {(int)response.StatusCode}: {response.ReasonPhrase}, AdditionalInfo: {e.Message}", response.StatusCode);
+        }
     }
 
     /// <summary>
@@ -111,7 +131,8 @@ public class RestClient : IRestClient
         string contentType = DefaultContentType,
         CancellationToken cancellationToken = default)
     {
-        await SendAsync<object, TRequest>(method, url, requestBody, bearerToken, contentType, cancellationToken);
+        await SendAsync<object, TRequest>(method, url, requestBody, bearerToken, contentType, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -124,6 +145,7 @@ public class RestClient : IRestClient
         string contentType = DefaultContentType,
         CancellationToken cancellationToken = default)
     {
-        await SendAsync<object>(method, url, null, bearerToken, contentType, cancellationToken);
+        await SendAsync<object>(method, url, null, bearerToken, contentType, cancellationToken)
+            .ConfigureAwait(false);
     }
 }

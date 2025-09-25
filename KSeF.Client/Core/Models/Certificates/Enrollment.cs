@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Certificates;
+namespace KSeF.Client.Core.Models.Certificates;
 
 public class Enrollment
 {

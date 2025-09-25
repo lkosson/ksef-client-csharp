@@ -1,6 +1,7 @@
-﻿using KSeF.Client.Core.Models.Certificates;
+using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Core.Models.Sessions;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 namespace KSeF.Client.Core.Interfaces;
 
@@ -34,11 +35,19 @@ public interface ICryptographyService
     /// <returns>Zaszyfrowany plik w formie stream.</returns>
     void EncryptStreamWithAES256(Stream input, Stream output, byte[] key, byte[] iv);
     /// <summary>
-    /// Generuje żądanie podpisania certyfikatu (CSR) na podstawie przekazanych informacji o certyfikacie.
+    /// Generuje żądanie podpisania certyfikatu (CSR) z użyciem RSA na podstawie przekazanych informacji o certyfikacie.
+    /// </summary>
+    /// <param name="certificateInfo"><see cref="CertificateEnrollmentsInfoResponse"/></param>
+    /// <param name="padding">Padding Pss jeżeli niepodany.</param>
+    /// <returns>Zwraca CSR oraz klucz prywatny, oba zakodowane w Base64 w formacie DER</returns>
+    (string, string) GenerateCsrWithRSA(CertificateEnrollmentsInfoResponse certificateInfo, RSASignaturePadding padding = null);
+
+    /// <summary>
+    /// Generuje żądanie podpisania certyfikatu (CSR) z użyciem krzywej eliptycznej (EC) na podstawie przekazanych informacji o certyfikacie.
     /// </summary>
     /// <param name="certificateInfo"></param>
     /// <returns>Zwraca CSR oraz klucz prywatny, oba zakodowane w Base64</returns>
-    (string, string) GenerateCsr(CertificateEnrollmentsInfoResponse certificateInfo);
+    (string, string) GenerateCsrWithECDSA(CertificateEnrollmentsInfoResponse certificateInfo);
 
     /// <summary>
     /// Zwraca metadane plik: rozmiar i hash SHA256.
@@ -66,5 +75,31 @@ public interface ICryptographyService
     /// </summary>
     /// <param name="content"></param>
     /// <returns></returns>
-    byte[] EncryptWithECDsaUsingPublicKey(byte[] content);
+    byte[] EncryptWithECDSAUsingPublicKey(byte[] content);
+
+    /// <summary>
+    /// Jednorazowe, asynchroniczne wstępne załadowanie certyfikatów i kluczy do pamięci podręcznej.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    Task WarmupAsync(CancellationToken ct = default);
+
+
+    /// <summary>
+    /// Wymusza odświeżenie certyfikatów i kluczy w pamięci podręcznej.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    Task ForceRefreshAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Certyfikat używany do szyfrowania symetrycznego klucza AES.
+    /// </summary>
+    X509Certificate2 SymmetricKeyCertificate { get; }
+
+    /// <summary>
+    /// Certyfikat używany do szyfrowania tokena KSeF.
+    /// </summary>
+    X509Certificate2 KsefTokenCertificate { get; }
+
 }

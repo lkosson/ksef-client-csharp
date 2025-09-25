@@ -1,4 +1,4 @@
-﻿
+
 
 namespace KSeF.Client.Core.Models.Authorization;
 
@@ -31,8 +31,18 @@ public class AuthenticationKsefToken
     /// Data i czas utworzenia tokena.
     /// </summary>
     public DateTimeOffset DateCreated { get; set; }
+    
+    /// <summary>
+    /// Data i czas użycia tokena.
+    /// </summary>
+    public DateTimeOffset? LastUseDate { get; set; }
     /// <summary>
     /// Status tokena.
     /// </summary>
     public AuthenticationKsefTokenStatus Status { get; set; }
+    /// <summary>
+    /// Opis statusu tokena.
+    /// </summary>
+    public List<string> StatusDetails { get; set; } = new();
 }
+

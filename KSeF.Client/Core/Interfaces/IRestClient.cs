@@ -1,4 +1,4 @@
-﻿namespace KSeFClient.Core.Interfaces;
+namespace KSeF.Client.Core.Interfaces;
 
 public interface IRestClient
 {

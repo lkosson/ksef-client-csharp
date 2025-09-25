@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Core.Models.Permissions.Person;
+using KSeF.Client.Core.Models.Permissions.Person;
 using StandardPermissionType = KSeF.Client.Core.Models.Permissions.Person.StandardPermissionType;
 
 namespace KSeF.Client.Api.Builders.PersonPermissions;
@@ -26,7 +26,7 @@ public static class GrantPersonPermissionsRequestBuilder
     {
         GrantPermissionsPersonRequest Build();
     }
-    
+
 
     private sealed class GrantPermissionsRequestBuilderImpl :
         ISubjectStep,
@@ -51,7 +51,7 @@ public static class GrantPersonPermissionsRequestBuilder
         public IDescriptionStep WithPermissions(params StandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
-                throw new ArgumentException("At least one permission.", nameof(permissions));
+                throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));
 
             _permissions = permissions;
             return this;
@@ -66,11 +66,11 @@ public static class GrantPersonPermissionsRequestBuilder
         public GrantPermissionsPersonRequest Build()
         {
             if (_subject is null)
-                throw new InvalidOperationException("WithSubject(...) must be called first.");
+                throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
             if (_permissions is null)
-                throw new InvalidOperationException("WithPermissions(...) must be called after subject.");
+                throw new InvalidOperationException("Metoda WithPermissions(...) musi zostać wywołana po ustawieniu podmiotu.");
             if (_description is null)
-                throw new InvalidOperationException("WithDescription(...) must be called after permissions.");
+                throw new InvalidOperationException("Metoda WithDescription(...) musi zostać wywołana po ustawieniu uprawnień.");
 
             return new GrantPermissionsPersonRequest
             {

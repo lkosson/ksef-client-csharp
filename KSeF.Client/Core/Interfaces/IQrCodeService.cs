@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Api.Services
+namespace KSeF.Client.Api.Services
 {
     public interface IQrCodeService
     {

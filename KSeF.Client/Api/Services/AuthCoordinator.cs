@@ -1,20 +1,13 @@
-﻿using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.Authorization;
-using KSeFClient.Api.Builders.Auth;
-using KSeFClient.Core.Interfaces;
-using KSeFClient.Core.Models;
+using KSeF.Client.Api.Builders.Auth;
 using System.Text;
+using KSeFClient.Core.Models;
+using KSeF.Client.Core.Models;
 
-namespace KSeFClient.Api.Services;
+namespace KSeF.Client.Api.Services;
 
-/// <summary>
-/// Orkiestruje pełny, jednolity proces uwierzytelniania:
-/// 1) Challenge
-/// 2) Budowa i serializacja XML
-/// 3) Podpisanie XAdES-BES
-/// 4) Wysłanie podpisanego XML
-/// 5) Polling po token
-/// </summary>
+/// <inheritdoc />
 public class AuthCoordinator : IAuthCoordinator
 {
     private readonly IKSeFClient _ksefClient;
@@ -25,67 +18,64 @@ public class AuthCoordinator : IAuthCoordinator
     {
         _ksefClient = ksefClient;
     }
-    /// <summary>
-    /// Wykonuje cały flow z KSeF tokenem i zwraca finalny JWT accessToken.
-    /// </summary>
+
+    /// <inheritdoc />
     public async Task<AuthOperationStatusResponse> AuthKsefTokenAsync(
         ContextIdentifierType contextIdentifierType,
         string contextIdentifierValue,
         string tokenKsef,
         ICryptographyService cryptographyService,
         EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.ECDsa,
-        IpAddressPolicy ipAddressPolicy = default,
+        AuthorizationPolicy ipAddressPolicy = default,
         CancellationToken cancellationToken = default)
     {
         // 1) Pobranie challenge i timestamp
-
-
-        var challengeResponse = await _ksefClient
+        AuthChallengeResponse challengeResponse = await _ksefClient
             .GetAuthChallengeAsync(cancellationToken);
 
-        var challenge = challengeResponse.Challenge;
-        var timestamp = challengeResponse.Timestamp;
+        string challenge = challengeResponse.Challenge;
+        DateTimeOffset timestamp = challengeResponse.Timestamp;
 
-        var timestampMs = challengeResponse.Timestamp.ToUnixTimeMilliseconds();
+        long timestampMs = challengeResponse.Timestamp.ToUnixTimeMilliseconds();
 
         // 2) Tworzenie ciągu token|timestamp
-        var tokenWithTimestamp = $"{tokenKsef}|{timestampMs}";
-        var tokenBytes = Encoding.UTF8.GetBytes(tokenWithTimestamp);
+        string tokenWithTimestamp = $"{tokenKsef}|{timestampMs}";
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(tokenWithTimestamp);
 
         // 3) Szyfrowanie RSA-OAEP SHA-256
-        byte[] encryptedBytes = encryptionMethod switch
+        byte[] tokenEncryptedBytes = encryptionMethod switch
         {
             EncryptionMethodEnum.Rsa => cryptographyService.EncryptKsefTokenWithRSAUsingPublicKey(tokenBytes),
-            EncryptionMethodEnum.ECDsa => cryptographyService.EncryptWithECDsaUsingPublicKey(tokenBytes),
+            EncryptionMethodEnum.ECDsa => cryptographyService.EncryptWithECDSAUsingPublicKey(tokenBytes),
             _ => throw new ArgumentOutOfRangeException(nameof(encryptionMethod))
         };
 
-        var encryptedToken = Convert.ToBase64String(encryptedBytes);
+        string encryptedToken = Convert.ToBase64String(tokenEncryptedBytes);
 
-        // 4) Budowa requesta
-        var builder = AuthKsefTokenRequestBuilder
+        // 4) Budowa żądania
+        IAuthKsefTokenRequestBuilderWithEncryptedToken requestBuilder = AuthKsefTokenRequestBuilder
             .Create()
             .WithChallenge(challenge)
             .WithContext(contextIdentifierType, contextIdentifierValue)
             .WithEncryptedToken(encryptedToken);
 
         if (ipAddressPolicy != null)
-            builder = builder.WithIpAddressPolicy(ipAddressPolicy);
+            requestBuilder = requestBuilder.WithAuthorizationPolicy(ipAddressPolicy);
 
-        var authKsefTokenRequest = builder.Build();
+        AuthKsefTokenRequest authKsefTokenRequest = requestBuilder.Build();
 
         // 5) Wysłanie do KSeF
-        var submissionRef = await _ksefClient
+        SignatureResponse submissionResponse = await _ksefClient
             .SubmitKsefTokenAuthRequestAsync(authKsefTokenRequest, cancellationToken);
 
-        // 6) Polling po dostęp do tokena
+        // 6) Odpytanie o gotowość tokenu
         AuthStatus authStatus;
-        var startTime = DateTime.UtcNow;
-        var timeout = TimeSpan.FromMinutes(2);
+        DateTime startTime = DateTime.UtcNow;
+        TimeSpan timeout = TimeSpan.FromMinutes(2);
 
         do
         {
-            authStatus = await _ksefClient.GetAuthStatusAsync(submissionRef.ReferenceNumber, submissionRef.AuthenticationToken.Token, cancellationToken);
+            authStatus = await _ksefClient.GetAuthStatusAsync(submissionResponse.ReferenceNumber, submissionResponse.AuthenticationToken.Token, cancellationToken);
 
             Console.WriteLine(
                 $"Polling: StatusCode={authStatus.Status.Code}, " +
@@ -114,33 +104,31 @@ public class AuthCoordinator : IAuthCoordinator
             var exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description={authStatus.Status.Description}, Details={string.Join(", ", (authStatus.Status.Details ?? new List<string>()))}'";
             throw new Exception("Timeout Uwierzytelniania: Brak tokena po 2 minutach." + exMsg);
         }
-        var accessTokenResponse = await _ksefClient.GetAccessTokenAsync(submissionRef.AuthenticationToken.Token, cancellationToken);
+        var accessTokenResponse = await _ksefClient.GetAccessTokenAsync(submissionResponse.AuthenticationToken.Token, cancellationToken);
 
         // 7) Zwróć token            
         return accessTokenResponse;
     }
 
 
-    /// <summary>
-    /// Wykonuje cały flow i zwraca finalny JWT accessToken.
-    /// </summary>
+    /// <inheritdoc />
     public async Task<AuthOperationStatusResponse> AuthAsync(
         ContextIdentifierType contextIdentifierType,
         string contextIdentifierValue,
         SubjectIdentifierTypeEnum identifierType,
         Func<string, Task<string>> xmlSigner,
-        IpAddressPolicy ipAddressPolicy = default,
+        AuthorizationPolicy ipAddressPolicy = default,
         CancellationToken cancellationToken = default,
         bool verifyCertificateChain = false)
     {
         // 1) Challenge
-        var challengeResponse = await _ksefClient
+        AuthChallengeResponse challengeResponse = await _ksefClient
             .GetAuthChallengeAsync(cancellationToken);
 
-        var challenge = challengeResponse.Challenge;
+        string challenge = challengeResponse.Challenge;
 
         // 2) Budowa obiektu AuthKsefTokenRequest
-        var authTokenRequest =
+        IAuthTokenRequestBuilderReady authTokenRequest =
             AuthTokenRequestBuilder
             .Create()
             .WithChallenge(challenge)
@@ -150,25 +138,25 @@ public class AuthCoordinator : IAuthCoordinator
         if (ipAddressPolicy != null)
         {
             authTokenRequest = authTokenRequest
-            .WithIpAddressPolicy(ipAddressPolicy);      // optional                
+            .WithAuthorizationPolicy(ipAddressPolicy);               
         }
 
         AuthTokenRequest authorizeRequest = authTokenRequest.Build();
 
         // 3) Serializacja do XML
-        var unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authorizeRequest);
+        string unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authorizeRequest);
 
         // 4) wywołanie mechanizmu podpisującego XML
-        var signedXml = await xmlSigner.Invoke(unsignedXml);
+        string signedXml = await xmlSigner.Invoke(unsignedXml);
 
         // 5)// Przesłanie podpisanego XML do systemu KSeF
-        var authSubmission = await _ksefClient
+        SignatureResponse authSubmission = await _ksefClient
             .SubmitXadesAuthRequestAsync(signedXml, false, cancellationToken);
 
-        // 6) Pollowanie aż status.code == 0
+        // 6) Odpytanie o gotowość tokenu
         AuthStatus authStatus;
-        var startTime = DateTime.UtcNow;
-        var timeout = TimeSpan.FromMinutes(2);
+        DateTime startTime = DateTime.UtcNow;
+        TimeSpan timeout = TimeSpan.FromMinutes(2);
 
         do
         {
@@ -199,11 +187,8 @@ public class AuthCoordinator : IAuthCoordinator
         return accessTokenResponse;
     }
 
-    // (Implementacje Refresh i Revoke wedle IAuthService)
+    /// <inheritdoc />
     public Task<TokenInfo> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
         => _ksefClient.RefreshAccessTokenAsync(refreshToken, cancellationToken)
                          .ContinueWith(t => t.Result.AccessToken, cancellationToken);
-    public Task RevokeTokenAsync(string accessToken, CancellationToken cancellationToken = default)
-        => _ksefClient.RevokeAccessTokenAsync(accessToken, cancellationToken);
-
 }

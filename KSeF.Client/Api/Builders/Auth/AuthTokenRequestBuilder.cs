@@ -1,8 +1,8 @@
-﻿using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models.Authorization;
 using AuthTokenRequest = KSeF.Client.Core.Models.Authorization.AuthTokenRequest;
 
 
-namespace KSeFClient.Api.Builders.Auth;
+namespace KSeF.Client.Api.Builders.Auth;
 
 public static class AuthTokenRequestBuilder
 {
@@ -27,7 +27,7 @@ public interface IAuthTokenRequestBuilderWithContext
 
 public interface IAuthTokenRequestBuilderReady
 {
-    IAuthTokenRequestBuilderReady WithIpAddressPolicy(IpAddressPolicy ipPolicy);
+    IAuthTokenRequestBuilderReady WithAuthorizationPolicy(AuthorizationPolicy authorizationPolicy);
     AuthTokenRequest Build();
 }
 
@@ -39,7 +39,7 @@ internal sealed class AuthTokenRequestBuilderImpl :
 {
     private string _challenge;
     private AuthContextIdentifier  _context;
-    private IpAddressPolicy _ipPolicy;
+    private AuthorizationPolicy _authorizationPolicy;
     private SubjectIdentifierTypeEnum _authIdentifierType;
 
     private AuthTokenRequestBuilderImpl() { }
@@ -68,9 +68,10 @@ internal sealed class AuthTokenRequestBuilderImpl :
         return this;
     }
 
-    public IAuthTokenRequestBuilderReady WithIpAddressPolicy(IpAddressPolicy ipPolicy)
+    public IAuthTokenRequestBuilderReady WithAuthorizationPolicy(AuthorizationPolicy authorizationPolicy)
     {
-        _ipPolicy = ipPolicy ?? throw new ArgumentNullException(nameof(ipPolicy));
+        if (authorizationPolicy is null) return this;
+        _authorizationPolicy = authorizationPolicy ?? throw new ArgumentNullException(nameof(authorizationPolicy));
         return this;
     }
 
@@ -86,7 +87,7 @@ internal sealed class AuthTokenRequestBuilderImpl :
             Challenge = _challenge,
             ContextIdentifier = _context,
             SubjectIdentifierType = _authIdentifierType,
-            IpAddressPolicy = _ipPolicy,
+            AuthorizationPolicy = _authorizationPolicy,
         };
     }
 

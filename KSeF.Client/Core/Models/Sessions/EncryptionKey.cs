@@ -1,4 +1,4 @@
-﻿namespace KSeF.Client.Core.Models.Sessions;
+namespace KSeF.Client.Core.Models.Sessions;
 
 public class EncryptionKey
 {
