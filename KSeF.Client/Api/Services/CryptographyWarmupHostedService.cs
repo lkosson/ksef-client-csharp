@@ -1,3 +1,4 @@
+#if !LW
 using KSeF.Client.Core.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,3 +28,4 @@ public sealed class CryptographyWarmupHostedService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
+#endif

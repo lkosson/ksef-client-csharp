@@ -2,7 +2,9 @@ using System.Net.Http.Headers;
 using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Http;
+#if !LW
 using Microsoft.AspNetCore.Builder;
+#endif
 using Microsoft.Extensions.DependencyInjection;
 namespace KSeF.Client.DI;
 
@@ -48,7 +50,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IKSeFClient, Http.KSeFClient>();
         services.AddScoped<IAuthCoordinator, AuthCoordinator>();
+#if !LW
         services.AddHostedService<CryptographyWarmupHostedService>();
+#endif
         services.AddSingleton<ICryptographyService, CryptographyService>(sp =>
         {
 
@@ -65,17 +69,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQrCodeService, QrCodeService>();
         services.AddScoped<IVerificationLinkService, VerificationLinkService>();
 
+#if !LW
         services.AddLocalization(options =>
         {
             options.ResourcesPath = "Resources";
         });
-        services.Configure<RequestLocalizationOptions>(opts =>
+		services.Configure<RequestLocalizationOptions>(opts =>
         {
             opts.SetDefaultCulture("pl-PL")
                 .AddSupportedCultures("pl-PL", "en-US")
                 .AddSupportedUICultures("pl-PL", "en-US");
         });
-
-        return services;
+#endif
+		return services;
     }
 }
