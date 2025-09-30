@@ -66,7 +66,9 @@ public static class ServiceCollectionExtensions
         
         
         services.AddScoped<ISignatureService, SignatureService>();
+#if QR
         services.AddScoped<IQrCodeService, QrCodeService>();
+#endif
         services.AddScoped<IVerificationLinkService, VerificationLinkService>();
 
 #if !LW

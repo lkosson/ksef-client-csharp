@@ -1,12 +1,15 @@
+#if QR
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Graphics.Skia;
 using QRCoder;
 using SkiaSharp;
+#endif
 
 namespace KSeF.Client.Api.Services;
 
 public class QrCodeService : IQrCodeService
 {
+#if QR
     public byte[] GenerateQrCode(string payloadUrl, int pixelsPerModule = 20, int qrCodeSize = 300)
     {
         using var gen = new QRCodeGenerator();
@@ -96,4 +99,8 @@ public class QrCodeService : IQrCodeService
         using var pngData = snap2.Encode(SKEncodedImageFormat.Png, 100);
         return pngData.ToArray();
     }
+#else
+#endif
+	public byte[] AddLabelToQrCode(byte[] qrCodePng, string label, int fontSizePx = 14) => throw new NotImplementedException();
+	public byte[] GenerateQrCode(string payloadUrl, int pixelsPerModule = 20, int qrCodeResolutionInPx = 300) => throw new NotImplementedException();
 }
