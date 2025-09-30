@@ -6,6 +6,7 @@
 		<IsPackable>true</IsPackable>
 		<PackageId>KSeF2.0</PackageId>
 		<PackageVersion>1.0.0</PackageVersion>
+		<DefineConstants>LW</DefineConstants>
 
 		<!-- Native AOT publish settings -->
 		<PublishAot>true</PublishAot>
@@ -23,11 +24,13 @@
 	</PropertyGroup>
 
 	<!-- Dependencies -->
-	<ItemGroup>		
+	<ItemGroup Condition="!$(DefineConstants.Contains(LW))">
 		<PackageReference Include="Microsoft.AspNetCore.Localization" Version="2.3.0" />		
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.7" />		
 		<PackageReference Include="Microsoft.Extensions.Localization" Version="9.0.7" />		
 		<PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="9.0.7" />		
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />		
 		<PackageReference Include="System.Text.Json" Version="9.0.7" />		
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />		
