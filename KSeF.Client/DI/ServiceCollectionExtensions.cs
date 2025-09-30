@@ -65,7 +65,9 @@ public static class ServiceCollectionExtensions
 #endif
 
         services.AddScoped<ISignatureService, SignatureService>();
+#if QR
         services.AddScoped<IQrCodeService, QrCodeService>();
+#endif
         services.AddSingleton<IPersonTokenService, PersonTokenService>();
         services.AddScoped<IVerificationLinkService, VerificationLinkService>();
 
