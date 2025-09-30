@@ -26,9 +26,13 @@
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />		
 		<PackageReference Include="System.Text.Json" Version="9.0.7" />		
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />		
+	</ItemGroup>
+	<ItemGroup Condition="$(DefineConstants.Contains(QR))">
 		<PackageReference Include="QRCoder" Version="1.6.0" />
 		<PackageReference Include="Microsoft.Maui.Graphics" Version="9.0.90" />
 		<PackageReference Include="Microsoft.Maui.Graphics.Skia" Version="9.0.90" />
+	</ItemGroup>
+	<ItemGroup>
 		<!-- Core dependencies -->
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
