@@ -1,8 +1,8 @@
-using KSeF.Client.Core.Interfaces;
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Api.Builders.Certificates;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 
 namespace WebApplication.Controllers;
 
@@ -31,11 +31,17 @@ public class CertificateController : ControllerBase
     }
 
     [HttpPost("send-enrollment")]
-    public async Task<ActionResult<CertificateEnrollmentResponse>> SendEnrollmentAsync([FromBody] CertificateEnrollmentsInfoResponse requestPayload, [FromServices] ICryptographyService cryptographyService, string accessToken, CancellationToken cancellationToken)
+    public async Task<ActionResult<CertificateEnrollmentResponse>> SendEnrollmentAsync(
+        [FromBody] CertificateEnrollmentsInfoResponse requestPayload,
+        [FromQuery] string accessToken,
+        [FromServices] ICryptographyService cryptographyService,
+        [FromQuery] CertificateType certificateType = CertificateType.Authentication,
+        CancellationToken cancellationToken = default)
     {
-        (var csrBase64encoded, var privateKeyBase64Encoded) = cryptographyService.GenerateCsrWithRSA(requestPayload);
+        (var csrBase64encoded, var privateKeyBase64Encoded) = cryptographyService.GenerateCsrWithRsa(requestPayload);
         var enrollmentRequest = SendCertificateEnrollmentRequestBuilder.Create()
             .WithCertificateName("Testowy certyfikat")
+            .WithCertificateType(certificateType)
             .WithCsr(csrBase64encoded)
             .WithValidFrom(DateTimeOffset.UtcNow.AddDays(1)) // Certyfikat będzie ważny od jutra
             .Build();

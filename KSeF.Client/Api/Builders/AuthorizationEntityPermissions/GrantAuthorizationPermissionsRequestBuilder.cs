@@ -1,5 +1,5 @@
-using KSeF.Client.Core.Models.Permissions.AuthorizationEntity;
-using StandardPermissionType = KSeF.Client.Core.Models.Permissions.AuthorizationEntity.StandardPermissionType;
+using KSeF.Client.Core.Models.Permissions.Authorizations;
+using AuthorizationPermissionType = KSeF.Client.Core.Models.Permissions.Authorizations.AuthorizationPermissionType;
 
 namespace KSeF.Client.Api.Builders.AuthorizationPermissions;
 
@@ -14,7 +14,7 @@ public static class GrantAuthorizationPermissionsRequestBuilder
 
     public interface IPermissionsStep
     {
-        IOptionalStep WithPermission(StandardPermissionType permission);
+        IOptionalStep WithPermission(AuthorizationPermissionType permission);
     }
 
     public interface IOptionalStep
@@ -29,7 +29,7 @@ public static class GrantAuthorizationPermissionsRequestBuilder
         IOptionalStep
     {
         private SubjectIdentifier _subject;
-        private StandardPermissionType _permission;
+        private AuthorizationPermissionType _permission;
         private string _description;
 
         private GrantPermissionsRequestBuilderImpl() { }
@@ -42,7 +42,7 @@ public static class GrantAuthorizationPermissionsRequestBuilder
             return this;
         }
 
-        public IOptionalStep WithPermission(StandardPermissionType permission)
+        public IOptionalStep WithPermission(AuthorizationPermissionType permission)
         {
 
             _permission = permission;

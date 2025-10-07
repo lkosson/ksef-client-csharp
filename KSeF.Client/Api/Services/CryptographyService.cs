@@ -1,10 +1,9 @@
-using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Core.Models.Sessions;
 using System.Formats.Asn1;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-
 
 namespace KSeF.Client.Api.Services;
 
@@ -14,13 +13,13 @@ public class CryptographyService : ICryptographyService
     // JEDYNA zewnętrzna zależność: delegat do pobrania listy certów
     private readonly Func<CancellationToken, Task<ICollection<PemCertificateInfo>>> _fetcher;
 
-    // Polityka odświeżania (to NIE jest TTL z configu)
     private readonly TimeSpan _staleGrace = TimeSpan.FromHours(6);  // przy chwilowej awarii
 
     // Cache
-    private CertificateMaterials? _materials; // ustawiany atomowo
+    private CertificateMaterials _materials;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private Timer? _refreshTimer;
+    private Timer _refreshTimer;
+    private bool isInitialized;
 
     public CryptographyService(
         Func<CancellationToken, Task<ICollection<PemCertificateInfo>>> fetcher)
@@ -37,23 +36,16 @@ public class CryptographyService : ICryptographyService
     public string SymmetricKeyEncryptionPem => ToPem(SymmetricKeyCertificate);
     public string KsefTokenPem => ToPem(KsefTokenCertificate);
 
-    public async Task WarmupAsync(CancellationToken ct = default)
+    public async Task WarmupAsync(CancellationToken cancellationToken = default)
     {
-        await RefreshAsync(ct); // pobierz po raz pierwszy
+        await RefreshAsync(cancellationToken); // pobierz po raz pierwszy
         ScheduleNextRefresh();  // ustaw timer
     }
 
-    public async Task ForceRefreshAsync(CancellationToken ct = default)
+    public async Task ForceRefreshAsync(CancellationToken cancellationTokem = default)
     {
-        await RefreshAsync(ct);
+        await RefreshAsync(cancellationTokem);
         ScheduleNextRefresh();
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        _refreshTimer?.Dispose();
-        _gate.Dispose();
-        return ValueTask.CompletedTask;
     }
     
     /// <inheritdoc />
@@ -91,8 +83,8 @@ public class CryptographyService : ICryptographyService
         ICryptoTransform encryptor = aes.CreateEncryptor();
 
         using Stream input = BinaryData.FromBytes(content).ToStream();
-        using MemoryStream output = new ();
-        using CryptoStream cryptoWriter = new (output, encryptor, CryptoStreamMode.Write);
+        using MemoryStream output = new();
+        using CryptoStream cryptoWriter = new(output, encryptor, CryptoStreamMode.Write);
         input.CopyTo(cryptoWriter);
         cryptoWriter.FlushFinalBlock();
 
@@ -111,14 +103,33 @@ public class CryptographyService : ICryptographyService
         aes.IV = iv;
 
         using ICryptoTransform encryptor = aes.CreateEncryptor();
-        using CryptoStream cryptoStream = new (output, encryptor, CryptoStreamMode.Write, leaveOpen: true);
+        using CryptoStream cryptoStream = new(output, encryptor, CryptoStreamMode.Write, leaveOpen: true);
         input.CopyTo(cryptoStream);
         cryptoStream.FlushFinalBlock();
         output.Position = 0;
     }
 
     /// <inheritdoc />
-    public (string, string) GenerateCsrWithRSA(CertificateEnrollmentsInfoResponse certificateInfo, RSASignaturePadding padding = null)
+    public async Task EncryptStreamWithAES256Async(Stream input, Stream output, byte[] key, byte[] iv, CancellationToken ct = default)
+    {
+        using Aes aes = Aes.Create();
+        aes.KeySize = 256;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+        aes.BlockSize = 16 * 8;
+        aes.Key = key;
+        aes.IV = iv;
+
+        using ICryptoTransform encryptor = aes.CreateEncryptor();
+        using CryptoStream cryptoStream = new(output, encryptor, CryptoStreamMode.Write, leaveOpen: true);
+        await input.CopyToAsync(cryptoStream, 81920, ct).ConfigureAwait(false);
+        await cryptoStream.FlushFinalBlockAsync(ct).ConfigureAwait(false);
+        if (output.CanSeek)
+            output.Position = 0;
+    }
+
+    /// <inheritdoc />
+    public (string, string) GenerateCsrWithRsa(CertificateEnrollmentsInfoResponse certificateInfo, RSASignaturePadding padding = null)
     {
         if(padding == null)
             padding = RSASignaturePadding.Pss;
@@ -134,7 +145,6 @@ public class CryptographyService : ICryptographyService
         return (Convert.ToBase64String(csrDer), Convert.ToBase64String(privateKey));
     }
 
-
     /// <inheritdoc />
     public FileMetadata GetMetaData(byte[] file)
     {
@@ -146,6 +156,50 @@ public class CryptographyService : ICryptographyService
         }
 
         int fileSize = file.Length;
+
+        return new FileMetadata
+        {
+            FileSize = fileSize,
+            HashSHA = base64Hash
+        };
+    }
+
+    /// <inheritdoc />
+    public FileMetadata GetMetaData(Stream fileStream)
+    {
+        ArgumentNullException.ThrowIfNull(fileStream);
+
+        long originalPosition = 0;
+        bool restorePosition = false;
+        long fileSize;
+
+        if (fileStream.CanSeek)
+        {
+            originalPosition = fileStream.Position;
+            fileStream.Position = 0;
+            restorePosition = true;
+            fileSize = fileStream.Length;
+        }
+        else
+        {
+            fileSize = 0; 
+        }
+
+        using var sha256 = SHA256.Create();
+        var buffer = new byte[81920];
+        int read;
+        while ((read = fileStream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            sha256.TransformBlock(buffer, 0, read, null, 0);
+            if (!fileStream.CanSeek)
+                fileSize += read;
+        }
+        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+
+        string base64Hash = Convert.ToBase64String(sha256.Hash!);
+
+        if (restorePosition)
+            fileStream.Position = originalPosition;
 
         return new FileMetadata
         {
@@ -182,7 +236,7 @@ public class CryptographyService : ICryptographyService
         using ECDiffieHellman ecdhEphemeral = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
         var sharedSecret = ecdhEphemeral.DeriveKeyMaterial(ecdhReceiver.PublicKey);
 
-        using AesGcm aes = new (sharedSecret, AesGcm.TagByteSizes.MaxSize);
+        using AesGcm aes = new(sharedSecret, AesGcm.TagByteSizes.MaxSize);
         byte[] nonce = new byte[AesGcm.NonceByteSizes.MaxSize];
         RandomNumberGenerator.Fill(nonce);
         byte[] cipherText = new byte[content.Length];
@@ -264,12 +318,14 @@ public class CryptographyService : ICryptographyService
     Convert.ToBase64String(certificate.Export(X509ContentType.Cert), Base64FormattingOptions.InsertLineBreaks) +
     "\n-----END CERTIFICATE-----";
 
-    private async Task RefreshAsync(CancellationToken ct)
+    private async Task RefreshAsync(CancellationToken cancellationToken)
     {
-        await _gate.WaitAsync(ct);
+        if (isInitialized) return;
+        await _gate.WaitAsync(cancellationToken);
         try
         {
-            var list = await _fetcher(ct);
+            if (isInitialized) return;
+            var list = await _fetcher(cancellationToken);
             var m = BuildMaterials(list);
 
             // atomowa podmiana referencji wystarcza (właściwości tylko czytają)
@@ -344,9 +400,9 @@ public class CryptographyService : ICryptographyService
     private static InvalidOperationException NotReady() =>
         new("Materiały kryptograficzne nie są jeszcze zainicjalizowane. " +
             "Wywołaj WarmupAsync() na starcie aplikacji lub ForceRefreshAsync().");
-    
+
     /// <inheritdoc />
-    public (string, string) GenerateCsrWithECDSA(CertificateEnrollmentsInfoResponse certificateInfo)
+    public (string, string) GenerateCsrWithEcdsa(CertificateEnrollmentsInfoResponse certificateInfo)
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var privateKey = ecdsa.ExportECPrivateKey();
@@ -385,7 +441,7 @@ public class CryptographyService : ICryptographyService
             AddRdn("2.5.4.97", certificateInfo.OrganizationIdentifier, UniversalTagNumber.UTF8String);
             AddRdn("2.5.4.6", certificateInfo.CountryName, UniversalTagNumber.PrintableString);
             AddRdn("2.5.4.5", certificateInfo.SerialNumber, UniversalTagNumber.PrintableString);
-            AddRdn("2.5.4.45", certificateInfo.UniqueIdentifier, UniversalTagNumber.UTF8String);   
+            AddRdn("2.5.4.45", certificateInfo.UniqueIdentifier, UniversalTagNumber.UTF8String);
         }
 
         return new X500DistinguishedName(asnWriter.Encode());

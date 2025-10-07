@@ -1,10 +1,10 @@
-using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Models.Sessions.BatchSession;
 using System.IO.Compression;
 using System.Text;
-using KSeFClient.Core.Models.Sessions;
 
 namespace KSeF.Client.Tests.Utils;
 
@@ -101,16 +101,16 @@ public static class BatchUtils
     {
         using var zipStream = new MemoryStream();
         using var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true);
-        
+
         foreach (var (fileName, content) in files)
         {
             var entry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
             using var entryStream = entry.Open();
             entryStream.Write(content);
         }
-        
+
         archive.Dispose();
-        
+
         var zipBytes = zipStream.ToArray();
         var meta = crypto.GetMetaData(zipBytes);
 
@@ -241,20 +241,26 @@ public static class BatchUtils
         int sleepTime = DefaultSleepTimeMs,
         int maxAttempts = DefaultMaxAttempts)
     {
-        SessionStatusResponse sessionStatus = null!;
-        for (int i = 0; i < maxAttempts; i++)
+        SessionStatusResponse? last = null;
+
+        try
         {
-            sessionStatus = await client.GetSessionStatusAsync(sessionRef, accessToken);
-
-            if (sessionStatus.Status.Code != 150) // W trakcie przetwrzania
-            {
-                return sessionStatus;
-            }
-
-            await Task.Delay(sleepTime);
+            return await AsyncPollingUtils.PollAsync(
+                action: async () =>
+                {
+                    last = await client.GetSessionStatusAsync(sessionRef, accessToken);
+                    return last;
+                },
+                condition: s => s.Status.Code != 150, // 150 = w trakcie przetwarzania
+                delay: TimeSpan.FromMilliseconds(sleepTime),
+                maxAttempts: maxAttempts
+            );
         }
-
-        return sessionStatus;
+        catch (TimeoutException)
+        {
+            // Zachowujemy poprzednie zachowanie: zwróć ostatni znany status po przekroczeniu limitu prób
+            return last!;
+        }
     }
 
     /// <summary>

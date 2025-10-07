@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Xml;
-using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces.Services;
 
 namespace KSeF.Client.Api.Services;
 
@@ -12,25 +12,47 @@ public class SignatureService : ISignatureService
 {
     private static readonly string _xadesNsUrl = "http://uri.etsi.org/01903/v1.3.2#";
     private static readonly string _signedPropertiesType = "http://uri.etsi.org/01903#SignedProperties";
-    
+
     /// <inheritdoc />
-    public Task<string> SignAsync(string xml, X509Certificate2 certificate)
+    /// <summary>
+    /// Podpisuje dokument XML przekazany jako ciąg znaków
+    /// </summary>
+    public string Sign(string xml, X509Certificate2 certificate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(xml);
         ArgumentNullException.ThrowIfNull(certificate);
 
-        if (!certificate.HasPrivateKey)
-            throw new InvalidOperationException();
-
         var xmlDocument = new XmlDocument() { PreserveWhitespace = true };
         xmlDocument.LoadXml(xml);
+
+        Sign(xmlDocument, certificate);
+
+        return xmlDocument.OuterXml;
+    }
+
+    /// <summary>
+    /// Podpisuje dokument XML i zwraca podpisany dokument
+    /// </summary>
+    public XmlDocument Sign(XmlDocument xmlDocument, X509Certificate2 certificate)
+    {
+        ArgumentNullException.ThrowIfNull(xmlDocument);
+        ArgumentNullException.ThrowIfNull(certificate);
+
+        if (xmlDocument.DocumentElement == null)
+            throw new ArgumentException("Dokument XML nie ma elementu głównego", nameof(xmlDocument));
+
+        if (!certificate.HasPrivateKey)
+            throw new InvalidOperationException("Certyfikat nie zawiera klucza prywatnego");
+
+        var privateKey = certificate.GetRSAPrivateKey()
+            ?? throw new InvalidOperationException("Nie można wyodrębnić klucza prywatnego RSA");
 
         var signatureId = "Signature";
         var signedPropertiesId = "SignedProperties";
 
         var signedXml = new SignedXmlFixed(xmlDocument)
         {
-            SigningKey = certificate.GetRSAPrivateKey(),
+            SigningKey = privateKey,
             Signature = { Id = signatureId }
         };
 
@@ -48,8 +70,9 @@ public class SignatureService : ISignatureService
         signedXml.ComputeSignature();
         var xmlSignature = signedXml.GetXml();
 
-        xmlDocument.DocumentElement!.AppendChild(xmlDocument.ImportNode(xmlSignature, true));
-        return Task.FromResult(xmlDocument.OuterXml);
+        xmlDocument.DocumentElement.AppendChild(xmlDocument.ImportNode(xmlSignature, true));
+
+        return xmlDocument;
     }
 
     private static void AddKeyInfo(SignedXml signedXml, X509Certificate2 certificate)

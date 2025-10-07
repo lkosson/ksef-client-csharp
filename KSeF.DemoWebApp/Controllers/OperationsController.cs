@@ -1,4 +1,4 @@
-using KSeF.Client;
+using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models.Permissions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,8 +19,8 @@ namespace KSeF.DemoWebApp.Controllers
         /// Sprawdzenie statusu zgody na wystawianie faktur z załącznikiem.
         /// </summary>
         [HttpGet("attachments/status")]
-        [ProducesResponseType(typeof(OperationResponse), StatusCodes.Status200OK)]
-        public async Task<ActionResult<OperationResponse>> GetAttachmentPermissionStatus(
+        [ProducesResponseType(typeof(PermissionsAttachmentAllowedResponse), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PermissionsAttachmentAllowedResponse>> GetAttachmentPermissionStatus(
             [FromHeader(Name = "Authorization")] string accessToken,
             CancellationToken cancellationToken)
         {

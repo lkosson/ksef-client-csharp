@@ -1,6 +1,6 @@
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Interfaces.Clients;
 
 namespace WebApplication.Controllers;
 

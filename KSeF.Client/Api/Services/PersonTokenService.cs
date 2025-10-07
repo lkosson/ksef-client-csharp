@@ -1,8 +1,8 @@
 using KSeF.Client.Core.Models.Token;
-using KSeF.Client.Core.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
+using KSeF.Client.Core.Interfaces.Services;
 
 namespace KSeF.Client.Api.Services;
 
@@ -36,8 +36,8 @@ public class PersonTokenService : IPersonTokenService
             ? DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(i))
             : null;
 
-        TokenSubjectDetails? subjectDetails = TryParseJson<TokenSubjectDetails>(Get("sud"));
-        TokenIppPolicy? ipPolicy = TryParseJson<TokenIppPolicy>(Get("ipp"));
+        TokenSubjectDetails subjectDetails = TryParseJson<TokenSubjectDetails>(Get("sud"));
+        TokenIppPolicy ipPolicy = TryParseJson<TokenIppPolicy>(Get("ipp"));
 
         string[] per = ParseJsonStringArray(Get("per"));
         string[] pec = ParseJsonStringArray(Get("pec"));

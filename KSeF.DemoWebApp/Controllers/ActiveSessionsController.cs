@@ -1,6 +1,6 @@
 using KSeF.Client.Core.Models.Sessions.ActiveSessions;
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
+using KSeF.Client.Core.Interfaces.Clients;
 
 namespace WebApplication.Controllers;
 [Route("active-sessions")]

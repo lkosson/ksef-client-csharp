@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.AuthorizationPermissions;
 using KSeF.Client.Core.Models.Permissions;
-using KSeF.Client.Core.Models.Permissions.AuthorizationEntity;
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Models.Permissions.Authorizations;
 
 namespace KSeF.DemoWebApp.Controllers;
 
@@ -16,7 +16,7 @@ public class AuthorizationPermissionsEntityController(IKSeFClient ksefClient) : 
         var request = GrantAuthorizationPermissionsRequestBuilder
             .Create()
             .WithSubject(subjectIdentifier)
-            .WithPermission(StandardPermissionType.TaxRepresentative)
+            .WithPermission(AuthorizationPermissionType.TaxRepresentative)
             .WithDescription("Access for quarterly review")
             .Build();
 

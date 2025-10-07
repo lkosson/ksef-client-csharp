@@ -1,5 +1,6 @@
 using KSeF.Client.Api.Builders.IndirectEntityPermissions;
 using KSeF.Client.Api.Builders.PersonPermissions;
+using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Person;
 
@@ -71,7 +72,7 @@ public static class PermissionsUtils
     public static async Task<OperationResponse> GrantPersonPermissionsAsync(
         IKSeFClient client,
         string accessToken,
-        SubjectIdentifier subject,
+        Core.Models.Permissions.Person.SubjectIdentifier subject,
         StandardPermissionType[] permissions,
         string? description = null)
     {

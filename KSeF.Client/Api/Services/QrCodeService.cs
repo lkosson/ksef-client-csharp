@@ -1,3 +1,4 @@
+using KSeF.Client.Core.Interfaces.Services;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Graphics.Skia;
 using QRCoder;

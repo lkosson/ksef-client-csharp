@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.IndirectEntityPermissions;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.IndirectEntity;
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
+using KSeF.Client.Core.Interfaces.Clients;
 
 namespace KSeF.DemoWebApp.Controllers;
 

@@ -1,9 +1,7 @@
-using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeF.Client.Tests.Utils;
-using KSeFClient.Core.Models.Sessions;
 
 namespace KSeF.Client.Tests.Core.E2E.Invoice;
 
@@ -13,17 +11,22 @@ public class InvoiceE2ETests : TestBase
     private const int PageOffset = 0;
     private const int PageSize = 10;
     private const int DateRangeDays = 30;
-    private readonly string SellerNip = MiscellaneousUtils.GetRandomNip();
-    private readonly string AccessToken;
+    private const int MaxRetries = 60;
+    private const int SuccessStatusCode = 200;
+
+    private readonly string _sellerNip;
+    private readonly string _accessToken;
 
     /// <summary>
     /// Konstruktor testów E2E dla faktur. Ustawia token dostępu na podstawie uwierzytelnienia.
     /// </summary>
     public InvoiceE2ETests()
     {
+        _sellerNip = MiscellaneousUtils.GetRandomNip();
+
         Client.Core.Models.Authorization.AuthOperationStatusResponse authOperationStatusResponse =
-            AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, SellerNip).GetAwaiter().GetResult();
-        AccessToken = authOperationStatusResponse.AccessToken.Token;
+            AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, _sellerNip).GetAwaiter().GetResult();
+        _accessToken = authOperationStatusResponse.AccessToken.Token;
     }
 
     /// <summary>
@@ -47,7 +50,7 @@ public class InvoiceE2ETests : TestBase
         // Act
         PagedInvoiceResponse metadata = await KsefClient.QueryInvoiceMetadataAsync(
             requestPayload: invoiceMetadataQueryRequest,
-            accessToken: AccessToken,
+            accessToken: _accessToken,
             cancellationToken: CancellationToken,
             pageOffset: PageOffset,
             pageSize: PageSize);
@@ -60,106 +63,121 @@ public class InvoiceE2ETests : TestBase
     [InlineData(SystemCodeEnum.FA3, "invoice-template-fa-3.xml")]
     public async Task Invoice_GetInvoiceAsync_ReturnsInvoiceXml(SystemCodeEnum systemCode, string invoiceTemplatePath)
     {
+        // Arrange
         EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
         // 1. Rozpocznij sesję online
-        OpenOnlineSessionResponse openSessionResponse = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient, encryptionData, AccessToken);
+        OpenOnlineSessionResponse openSessionResponse = await OnlineSessionUtils.OpenOnlineSessionAsync(
+            KsefClient,
+            encryptionData,
+            _accessToken,
+            systemCode);
+
+        Assert.NotNull(openSessionResponse?.ReferenceNumber);
 
         // 2. Wyślij fakturę
-        SendInvoiceResponse sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(KsefClient,
+        SendInvoiceResponse sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(
+            KsefClient,
             openSessionResponse.ReferenceNumber,
-            AccessToken,
-            SellerNip,
+            _accessToken,
+            _sellerNip,
             invoiceTemplatePath,
             encryptionData,
             CryptographyService);
 
-        // 3. Sprawdź status faktury
-        SessionStatusResponse sendInvoiceStatus = await OnlineSessionUtils.GetOnlineSessionStatusAsync(KsefClient,
-            openSessionResponse.ReferenceNumber,
-            AccessToken);
-        await Task.Delay(SleepTime);
+        Assert.NotNull(sendInvoiceResponse);
 
-
-        if (sendInvoiceStatus.SuccessfulInvoiceCount > 0)
-        {
-            // 4. Zamknij sesję
-            await OnlineSessionUtils.CloseOnlineSessionAsync(KsefClient,
+        // 3. Czekaj aż sesja przetworzy wszystkie faktury (Successful == Total)
+        SessionStatusResponse sendInvoiceStatus = await AsyncPollingUtils.PollAsync(
+            async () => await OnlineSessionUtils.GetOnlineSessionStatusAsync(
+                KsefClient,
                 openSessionResponse.ReferenceNumber,
-                AccessToken);
-        }
-        await Task.Delay(SleepTime);
+                _accessToken),
+            result => result is not null && result.InvoiceCount == result.SuccessfulInvoiceCount,
+            delay: TimeSpan.FromMilliseconds(SleepTime),
+            maxAttempts: MaxRetries,
+            cancellationToken: CancellationToken);
 
-        // 5. Pobierz metadane faktur wysłanych w trakcie sesji
-        SessionInvoicesResponse invoicesMetadata = await OnlineSessionUtils.GetSessionInvoicesMetadataAsync(KsefClient,
-            openSessionResponse.ReferenceNumber,
-            AccessToken);
-        //await Task.Delay(SleepTime * 10);
+        Assert.NotNull(sendInvoiceStatus);
+        Assert.Equal(sendInvoiceStatus.InvoiceCount, sendInvoiceStatus.SuccessfulInvoiceCount);
+
+        // 4. Zamknij sesję
+        await OnlineSessionUtils.CloseOnlineSessionAsync(KsefClient,
+             openSessionResponse.ReferenceNumber,
+             _accessToken);
+
+        // 5. Czekaj aż metadane sesji będą dostępne i niepuste
+        SessionInvoicesResponse invoicesMetadata = await AsyncPollingUtils.PollAsync(
+            async () => await OnlineSessionUtils.GetSessionInvoicesMetadataAsync(
+                KsefClient,
+                openSessionResponse.ReferenceNumber,
+                _accessToken),
+            result => result is not null && result.Invoices is { Count: > 0 },
+            delay: TimeSpan.FromMilliseconds(SleepTime),
+            maxAttempts: MaxRetries,
+            cancellationToken: CancellationToken);
+
+        Assert.NotNull(invoicesMetadata);
+        Assert.NotEmpty(invoicesMetadata.Invoices);
 
         // 6. Pobierz numer pierwszej faktury z listy metadanych
-        string ksefInvoiceNumber = invoicesMetadata.Invoices.FirstOrDefault()?.KsefNumber;
+        string ksefInvoiceNumber = invoicesMetadata.Invoices.First().KsefNumber;
+        Assert.False(string.IsNullOrWhiteSpace(ksefInvoiceNumber));
 
         // 7. Pobierz fakturę po jej numerze KSeF - dostępne tylko dla wystawcy faktury (sprzedawcy)
-        string invoice = string.Empty;
-        int tryCount = 5;
-        bool isSuccessfullTry = false;
-        do
-        {
-            try
-            {
-                invoice = await KsefClient.GetInvoiceAsync(ksefInvoiceNumber, AccessToken);
-                isSuccessfullTry = true;
-            }
-            catch (Exception)
-            {
-                tryCount--;
-            }
-            await Task.Delay(SleepTime);
-        } while (!isSuccessfullTry && tryCount >0 );
-        Assert.True(!string.IsNullOrEmpty(invoice));
+        string invoice = await AsyncPollingUtils.PollAsync(
+            async () => await KsefClient.GetInvoiceAsync(ksefInvoiceNumber, _accessToken, CancellationToken),
+            result => !string.IsNullOrWhiteSpace(result),
+            delay: TimeSpan.FromMilliseconds(SleepTime),
+            maxAttempts: MaxRetries,
+            cancellationToken: CancellationToken);
 
-        await Task.Delay(SleepTime * 3);
-        // 8. Zaloguj się jako nabywca 
-        string buyerNip = MiscellaneousUtils.GetRandomNip();
-        AuthOperationStatusResponse buyerAuthInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient,
-            SignatureService,
-            buyerNip);
+        Assert.False(string.IsNullOrWhiteSpace(invoice));
 
+        // 8. Przygotuj zapytanie o faktury
         InvoiceQueryFilters query = new InvoiceQueryFilters
         {
             DateRange = new DateRange
             {
                 From = DateTime.Now.AddDays(-1),
                 To = DateTime.Now.AddDays(1),
-                DateType = DateType.Issue
+                DateType = DateType.Invoicing
             },
             SubjectType = SubjectType.Subject1
         };
 
-        // 9. Jako nabywca pobierz metadane faktur
-        PagedInvoiceResponse invoicesMetadataForBuyer = await KsefClient.QueryInvoiceMetadataAsync(query, buyerAuthInfo.AccessToken.Token);
-        Assert.NotNull(invoicesMetadataForBuyer);
+        // 9. Pobierz metadane faktury
+        PagedInvoiceResponse invoicesMetadataForSeller = await KsefClient.QueryInvoiceMetadataAsync(query, _accessToken, cancellationToken: CancellationToken);
+        Assert.NotNull(invoicesMetadataForSeller);
 
+        // 10. Zainicjuj eksport faktur
         InvoiceExportRequest invoiceExportRequest = new InvoiceExportRequest
         {
             Encryption = encryptionData.EncryptionInfo,
             Filters = query
         };
 
-        ExportInvoicesResponse invoicesForBuyerResponse;
-        do
-        {
-            await Task.Delay(SleepTime * 10);
-            invoicesForBuyerResponse = await KsefClient.ExportInvoicesAsync(invoiceExportRequest,
-            buyerAuthInfo.AccessToken.Token);
+        ExportInvoicesResponse invoicesForSellerResponse = await KsefClient.ExportInvoicesAsync(
+            invoiceExportRequest,
+            _accessToken,
+            CancellationToken);
 
-        } while (invoicesForBuyerResponse.Status == null);
-        await Task.Delay(SleepTime * 10);
+        Assert.NotNull(invoicesForSellerResponse?.OperationReferenceNumber);
 
-        InvoiceExportStatusResponse exportStatus = await KsefClient.GetInvoiceExportStatusAsync(invoicesForBuyerResponse.OperationReferenceNumber,
-            buyerAuthInfo.AccessToken.Token);
-        await Task.Delay(SleepTime);
+        // 11. Czekaj na zakończenie eksportu (status 200)
+        InvoiceExportStatusResponse exportStatus = await AsyncPollingUtils.PollAsync(
+            async () => await KsefClient.GetInvoiceExportStatusAsync(
+                invoicesForSellerResponse.OperationReferenceNumber,
+                _accessToken,
+                CancellationToken),
+            result => result?.Status?.Code == SuccessStatusCode,
+            delay: TimeSpan.FromMilliseconds(SleepTime),
+            maxAttempts: MaxRetries,
+            cancellationToken: CancellationToken);
 
         Assert.NotNull(exportStatus);
+        Assert.Equal(SuccessStatusCode, exportStatus.Status.Code);
+        Assert.NotNull(exportStatus.Package);
+        Assert.NotEmpty(exportStatus.Package.Parts);
     }
 }

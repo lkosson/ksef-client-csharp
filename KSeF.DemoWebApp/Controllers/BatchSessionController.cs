@@ -1,9 +1,9 @@
-using KSeF.Client.Core.Interfaces;
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Models.Sessions;
 using System.IO.Compression;
 using KSeF.Client.Core.Models.Sessions.BatchSession;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 
 namespace WebApplication.Controllers;
 

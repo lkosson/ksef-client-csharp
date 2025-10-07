@@ -1,8 +1,9 @@
-using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Api.Builders.Certificates;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 
 namespace KSeF.Client.Tests.Utils;
 
@@ -31,7 +32,7 @@ internal static class CertificateUtils
             .GetCertificateEnrollmentDataAsync(accessToken)
             .ConfigureAwait(false);
 
-            return cryptographyService.GenerateCsrWithRSA(enrollmentData, padding);
+            return cryptographyService.GenerateCsrWithRsa(enrollmentData, padding);
         }
 
     /// <summary>

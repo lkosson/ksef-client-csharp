@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.EUEntityRepresentativePermissions;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.EUEntityRepresentative;
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
+using KSeF.Client.Core.Interfaces.Clients;
 
 namespace KSeF.DemoWebApp.Controllers;
 
@@ -11,7 +11,7 @@ namespace KSeF.DemoWebApp.Controllers;
 public class EUEntityRepresentativePermissionsController(IKSeFClient ksefClient) : ControllerBase
 {
     [HttpPost("grant-eu-entity-representative-permissions")]
-    public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, SubjectIdentifier subjectIdentifier, CancellationToken cancellationToken)
+    public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, Client.Core.Models.Permissions.EUEntityRepresentative.SubjectIdentifier subjectIdentifier, CancellationToken cancellationToken)
     {
         var request = GrantEUEntityRepresentativePermissionsRequestBuilder
             .Create()

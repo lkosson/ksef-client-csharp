@@ -1,6 +1,7 @@
 using KSeF.Client.Api.Builders.Certificates;
 using KSeF.Client.Api.Builders.X509Certificates;
-using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Certificates;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -9,19 +10,27 @@ namespace KSeF.Client.Tests.Utils;
 
 public static class CertificateUtils
 {
-    public static async Task<(string csrBase64Encoded, string privateKeyBase64Encoded)> GenerateCsrAndPrivateKeyAsync(IKSeFClient ksefClient, string accessToken, ICryptographyService cryptographyService)
+    public static async Task<(string csrBase64Encoded, string privateKeyBase64Encoded)> GenerateCsrAndPrivateKeyWithRsaAsync(IKSeFClient ksefClient, string accessToken, ICryptographyService cryptographyService, RSASignaturePadding padding = null)
     {
         var enrollmentData = await ksefClient
             .GetCertificateEnrollmentDataAsync(accessToken);
 
-        return cryptographyService.GenerateCsrWithRSA(enrollmentData);
+        return cryptographyService.GenerateCsrWithRsa(enrollmentData, padding);
     }
 
-    public static async Task<CertificateEnrollmentResponse> SendCertificateEnrollmentAsync(IKSeFClient ksefClient, string accessToken, string csrBase64Encoded)
+    public static async Task<(string csrBase64Encoded, string privateKeyBase64Encoded)> GenerateCsrAndPrivateKeyWithEcdsaAsync(IKSeFClient ksefClient, string accessToken, ICryptographyService cryptographyService)
+    {
+        var enrollmentData = await ksefClient
+            .GetCertificateEnrollmentDataAsync(accessToken);
+
+        return cryptographyService.GenerateCsrWithEcdsa(enrollmentData);
+    }
+
+    public static async Task<CertificateEnrollmentResponse> SendCertificateEnrollmentAsync(IKSeFClient ksefClient, string accessToken, string csrBase64Encoded, CertificateType certificateType = CertificateType.Authentication)
     {
         var request = SendCertificateEnrollmentRequestBuilder.Create()
                    .WithCertificateName("Test Certificate")
-                   .WithCertificateType(CertificateType.Authentication)
+                   .WithCertificateType(certificateType)
                    .WithCsr(csrBase64Encoded)
                    .WithValidFrom(DateTimeOffset.UtcNow)
                    .Build();

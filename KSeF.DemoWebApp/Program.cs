@@ -1,11 +1,13 @@
+﻿using KSeF.Client.Api.Services;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.DI;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 
 builder.Services.AddKSeFClient(options =>
 {
@@ -19,6 +21,23 @@ builder.Services.AddKSeFClient(options =>
                 .GetSection("ApiSettings:customHeaders")
                 .Get<Dictionary<string, string>>()
               ?? new Dictionary<string, string>();
+});
+
+builder.Services.AddCryptographyClient(options =>
+{
+    options.WarmupOnStart = WarmupMode.NonBlocking; // domyślnie umożliwiamy kontynuację startu aplikacji bez względu na status pobierania certyfikatów publicznych KSeF.
+},
+async (serviceProvider, cancellationToken) =>
+{
+    var cryptographyClient = serviceProvider.GetRequiredService<ICryptographyClient>();
+    return await cryptographyClient.GetPublicCertificatesAsync(cancellationToken);
+});
+
+builder.Services.AddHostedService(provider =>
+{
+    var cryptographyService = provider.GetRequiredService<ICryptographyService>();
+    var options = provider.GetRequiredService<IOptions<CryptographyClientOptions>>();
+    return new CryptographyWarmupHostedService(cryptographyService, options);
 });
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);

@@ -1,4 +1,4 @@
-using KSeF.Client;
+using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models.Peppol;
 using Microsoft.AspNetCore.Mvc;
 

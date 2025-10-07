@@ -5,20 +5,17 @@ using KSeF.Client.Tests.Utils;
 
 namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermission;
 
-
 public class PersonPermissionE2ETests : TestBase
 {
-    private const string OperationFailureDescription = "Operacja zakończona niepowodzeniem";
-    private const string PermissionRevokeFailureDetail = "Permission cannot be revoked.";
-    private const int OperationFailureStatusCode = 400;
     private const string PermissionDescription = "E2E test grant";
+    private const int OperationSuccessfulStatusCode = 200;
 
-    // Zamiast fixture: prywatne readonly pola
     private string accessToken = string.Empty;
-    private SubjectIdentifier Person { get; } = new();
+    private KSeF.Client.Core.Models.Permissions.Person.SubjectIdentifier Person { get; } = new();
 
     public PersonPermissionE2ETests()
     {
+        // Arrange: uwierzytelnienie i przygotowanie danych testowych
         Client.Core.Models.Authorization.AuthOperationStatusResponse auth = AuthenticationUtils
             .AuthenticateAsync(KsefClient, SignatureService)
             .GetAwaiter().GetResult();
@@ -40,72 +37,99 @@ public class PersonPermissionE2ETests : TestBase
     [Fact]
     public async Task PersonPermissions_FullFlow_GrantSearchRevokeSearch()
     {
-        // 1) Nadaj uprawnienia dla osoby
-        OperationResponse grantResponse =
-            await GrantPersonPermissionsAsync(Person, PermissionDescription, accessToken);
+        // Arrange: dane wejściowe i oczekiwane typy uprawnień
+        string description = PermissionDescription;
 
+        // Act: nadaj uprawnienia dla osoby
+        OperationResponse grantResponse =
+            await GrantPersonPermissionsAsync(Person, description, accessToken);
+
+        // Assert: weryfikacja poprawności odpowiedzi operacji nadania
         Assert.NotNull(grantResponse);
         Assert.False(string.IsNullOrEmpty(grantResponse.OperationReferenceNumber));
 
-        await Task.Delay(SleepTime);
-
-        // 2) Wyszukaj nadane uprawnienia — powinny być widoczne
+        // Act: odpytywanie do momentu, aż nadane uprawnienia będą widoczne (obie pule: Read i Write)
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterGrant =
-            await SearchGrantedPersonPermissionsAsync(accessToken);
+            await AsyncPollingUtils.PollAsync(
+                async () => await SearchGrantedPersonPermissionsAsync(accessToken),
+                result =>
+                {
+                    if (result is null || result.Permissions is null) return false;
 
+                    List<KSeF.Client.Core.Models.Permissions.PersonPermission> byDescription =
+                        result.Permissions.Where(p => p.Description == description).ToList();
+
+                    bool hasRead = byDescription.Any(x => Enum.Parse<StandardPermissionType>(x.PermissionScope) == StandardPermissionType.InvoiceRead);
+                    bool hasWrite = byDescription.Any(x => Enum.Parse<StandardPermissionType>(x.PermissionScope) == StandardPermissionType.InvoiceWrite);
+
+                    return byDescription.Count > 0 && hasRead && hasWrite;
+                },
+                delay: TimeSpan.FromMilliseconds(SleepTime),
+                maxAttempts: 60,
+                cancellationToken: CancellationToken);
+
+        // Assert: upewnij się, że uprawnienia są widoczne i zawierają oczekiwane zakresy
         Assert.NotNull(searchAfterGrant);
         Assert.NotEmpty(searchAfterGrant.Permissions);
 
-        // Zawężenie do uprawnień nadanych w tym teście po opisie
         List<KSeF.Client.Core.Models.Permissions.PersonPermission> grantedNow =
             searchAfterGrant.Permissions
-                .Where(p => p.Description == PermissionDescription)
+                .Where(p => p.Description == description)
                 .ToList();
 
         Assert.NotEmpty(grantedNow);
         Assert.Contains(grantedNow, x => Enum.Parse<StandardPermissionType>(x.PermissionScope) == StandardPermissionType.InvoiceRead);
         Assert.Contains(grantedNow, x => Enum.Parse<StandardPermissionType>(x.PermissionScope) == StandardPermissionType.InvoiceWrite);
 
-        await Task.Delay(SleepTime);
+        // Act: cofnij nadane uprawnienia
+        List<PermissionsOperationStatusResponse> revokeResult = await RevokePermissionsAsync(searchAfterGrant.Permissions, accessToken);
 
-        // 3) Cofnij nadane uprawnienia
-        RevokeResult revokeResult = await RevokePermissionsAsync(grantedNow, accessToken);
-
+        // Assert: weryfikacja wyników cofania
         Assert.NotNull(revokeResult);
-        Assert.NotNull(revokeResult.RevokeResponses);
-        Assert.Equal(grantedNow.Count, revokeResult.RevokeResponses.Count);
+        Assert.NotEmpty(revokeResult);
+        Assert.Equal(searchAfterGrant.Permissions.Count, revokeResult.Count);
+        Assert.All(revokeResult, r =>
+            Assert.True(r.Status.Code == OperationSuccessfulStatusCode,
+                $"Operacja cofnięcia uprawnień nie powiodła się: {r.Status.Description}, szczegóły: [{string.Join(",", r.Status.Details ?? Array.Empty<string>())}]")
+        );
 
-        await Task.Delay(SleepTime);
-
-        // 4) Wyszukaj ponownie — po cofnięciu nie powinno być wpisów (lub zgodnie z oczekiwaniem po błędach cofania)
+        // Act: odpytywanie do momentu, aż uprawnienia o danym opisie znikną
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterRevoke =
-            await SearchGrantedPersonPermissionsAsync(accessToken);
+            await AsyncPollingUtils.PollAsync(
+                async () => await SearchGrantedPersonPermissionsAsync(accessToken),
+                result =>
+                {
+                    if (result is null || result.Permissions is null) return false;
 
+                    List<KSeF.Client.Core.Models.Permissions.PersonPermission> remainingLocal =
+                        result.Permissions.Where(p => p.Description == description).ToList();
+
+                    return remainingLocal.Count == 0;
+                },
+                delay: TimeSpan.FromMilliseconds(SleepTime),
+                maxAttempts: 60,
+                cancellationToken: CancellationToken);
+
+        // Assert: upewnij się, że nie pozostały wpisy z danym opisem
         Assert.NotNull(searchAfterRevoke);
 
         List<KSeF.Client.Core.Models.Permissions.PersonPermission> remaining =
             searchAfterRevoke.Permissions
-                .Where(p => p.Description == PermissionDescription)
+                .Where(p => p.Description == description)
                 .ToList();
 
-        if (revokeResult.ExpectedPermissionsAfterRevoke > 0)
-        {
-            Assert.Equal(revokeResult.ExpectedPermissionsAfterRevoke, remaining.Count);
-        }
-        else
-        {
-            Assert.Empty(remaining);
-        }
+        Assert.Empty(remaining);
     }
 
     /// <summary>
     /// Nadaje uprawnienia dla osoby i zwraca odpowiedź operacji.
     /// </summary>
     private async Task<OperationResponse> GrantPersonPermissionsAsync(
-        SubjectIdentifier subject,
+        Client.Core.Models.Permissions.Person.SubjectIdentifier subject,
         string description,
         string accessToken)
     {
+        // Arrange: zbudowanie żądania nadania uprawnień
         GrantPermissionsPersonRequest request = GrantPersonPermissionsRequestBuilder
             .Create()
             .WithSubject(subject)
@@ -115,9 +139,11 @@ public class PersonPermissionE2ETests : TestBase
             .WithDescription(description)
             .Build();
 
+        // Act: wywołanie API nadawania uprawnień
         OperationResponse response =
             await KsefClient.GrantsPermissionPersonAsync(request, accessToken, CancellationToken);
 
+        // Assert: zwrócenie odpowiedzi (asercje są wykonywane w teście)
         return response;
     }
 
@@ -127,6 +153,7 @@ public class PersonPermissionE2ETests : TestBase
     private async Task<PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>>
         SearchGrantedPersonPermissionsAsync(string accessToken)
     {
+        // Arrange: budowa zapytania wyszukującego uprawnienia
         PersonPermissionsQueryRequest query = new PersonPermissionsQueryRequest
         {
             PermissionTypes = new List<PersonPermissionType>
@@ -136,50 +163,48 @@ public class PersonPermissionE2ETests : TestBase
             }
         };
 
+        // Act: wywołanie API wyszukiwania
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> response =
             await KsefClient.SearchGrantedPersonPermissionsAsync(query, accessToken, pageOffset: 0, pageSize: 10, CancellationToken);
 
+        // Assert: zwrócenie wyniku wyszukiwania
         return response;
     }
 
     /// <summary>
-    /// Cofnięcie wszystkich przekazanych uprawnień; zwraca listę odpowiedzi cofnięcia
-    /// oraz wyliczoną liczbę uprawnień, które pozostały po nieudanych próbach cofnięcia.
+    /// Cofnięcie wszystkich przekazanych uprawnień i zwrócenie statusów operacji.
     /// </summary>
-    private async Task<RevokeResult> RevokePermissionsAsync(
+    private async Task<List<Client.Core.Models.Permissions.PermissionsOperationStatusResponse>> RevokePermissionsAsync(
         IEnumerable<KSeF.Client.Core.Models.Permissions.PersonPermission> grantedPermissions,
         string accessToken)
     {
-        List<OperationResponse> revokeResponses = new();
+        // Arrange: lista odpowiedzi z operacji cofania
+        List<Client.Core.Models.Permissions.OperationResponse> revokeResponses = new List<Client.Core.Models.Permissions.OperationResponse>();
 
-        // Uruchomienie operacji cofania
+        // Act: uruchomienie operacji cofania dla każdej pozycji
         foreach (Client.Core.Models.Permissions.PersonPermission permission in grantedPermissions)
         {
-            OperationResponse resp = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken);
-            revokeResponses.Add(resp);
+            Client.Core.Models.Permissions.OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            revokeResponses.Add(response);
         }
 
-        // Sprawdzanie statusów cofnięć i zliczanie wyjątków
-        int expectedPermissionsAfterRevoke = 0;
+        // Act: odpytywanie statusów do skutku (sukces) i zebranie wyników
+        List<Client.Core.Models.Permissions.PermissionsOperationStatusResponse> statuses = new List<Client.Core.Models.Permissions.PermissionsOperationStatusResponse>();
 
-        foreach (OperationResponse revokeStatus in revokeResponses)
+        foreach (Client.Core.Models.Permissions.OperationResponse revokeResponse in revokeResponses)
         {
-            await Task.Delay(SleepTime);
+            Client.Core.Models.Permissions.PermissionsOperationStatusResponse status =
+                await AsyncPollingUtils.PollAsync(
+                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.OperationReferenceNumber, accessToken),
+                    result => result is not null && result.Status is not null && result.Status.Code == OperationSuccessfulStatusCode,
+                    delay: TimeSpan.FromMilliseconds(SleepTime),
+                    maxAttempts: 60,
+                    cancellationToken: CancellationToken);
 
-            PermissionsOperationStatusResponse status = await KsefClient.OperationsStatusAsync(revokeStatus.OperationReferenceNumber, accessToken);
-
-            if (status.Status.Code == OperationFailureStatusCode
-                && status.Status.Description == OperationFailureDescription
-                && status.Status.Details.First() == PermissionRevokeFailureDetail)
-            {
-                expectedPermissionsAfterRevoke += 1;
-            }
+            statuses.Add(status);
         }
 
-        return new RevokeResult(revokeResponses, expectedPermissionsAfterRevoke);
+        // Assert: zwrócenie statusów (asercje w teście nadrzędnym)
+        return statuses;
     }
-
-    private sealed record RevokeResult(
-        IReadOnlyList<OperationResponse> RevokeResponses,
-        int ExpectedPermissionsAfterRevoke);
 }

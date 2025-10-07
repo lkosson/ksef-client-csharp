@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.SubUnitPermissions;
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
 using KSeF.Client.Core.Models.Permissions;
+using KSeF.Client.Core.Interfaces.Clients;
 
 namespace KSeF.DemoWebApp.Controllers;
 

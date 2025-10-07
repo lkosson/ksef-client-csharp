@@ -1,6 +1,6 @@
 using KSeF.Client.Core.Models.Invoices;
-using KSeF.Client;
 using Microsoft.AspNetCore.Mvc;
+using KSeF.Client.Core.Interfaces.Clients;
 
 namespace WebApplication.Controllers;
 [Route("[controller]")]
@@ -35,30 +35,6 @@ public class InvoicesController : ControllerBase
         CancellationToken cancellationToken)
     {
         return await ksefClient.QueryInvoiceMetadataAsync(body, accessToken, pageOffset, pageSize, cancellationToken);
-    }
-
-    /// <summary>
-    /// Rozpoczęcie asynchronicznego wyszukiwania faktur.
-    /// </summary>
-    [HttpPost("query-async")]
-    public async Task<ActionResult<ExportInvoicesResponse>> AsyncQueryInvoicesAsync(
-        [FromBody] InvoiceExportRequest body,
-        [FromQuery] string accessToken,
-        CancellationToken cancellationToken)
-    {
-        return await ksefClient.ExportInvoicesAsync(body, accessToken, cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Pobranie statusu zapytania asynchronicznego.
-    /// </summary>
-    [HttpGet("query-async/status")]
-    public async Task<ActionResult<InvoiceExportStatusResponse>> GetAsyncQueryInvoicesStatusAsync(
-        [FromQuery] string operationReferenceNumber,
-        [FromQuery] string accessToken,
-        CancellationToken cancellationToken)
-    {
-        return await ksefClient.GetInvoiceExportStatusAsync(operationReferenceNumber, accessToken, cancellationToken);
     }
 
     /// <summary>

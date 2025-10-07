@@ -1,7 +1,7 @@
 using KSeF.Client.Api.Services;
-using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.DI;
-using System.Buffers.Text;
+using KSeF.Client.Extensions;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -27,24 +27,24 @@ public class VerificationLinkServiceTests
     public void BuildInvoiceVerificationUrl_EncodesHashCorrectly(string xml)
     {
         // Arrange
-        var nip = "1234567890";
-        var issueDate = new DateTime(2026, 1, 5);
+        string nip = "1234567890";
+        DateTime issueDate = new DateTime(2026, 1, 5);
 
         byte[] sha;
         using (var sha256 = SHA256.Create())
             sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
 
-        var invoiceHash = Convert.ToBase64String(sha);
-        var expectedHash = Base64Url.EncodeToString(sha);
-        var expectedUrl = $"{BaseUrl}/invoice/{nip}/{issueDate:dd-MM-yyyy}/{expectedHash}";
+        string invoiceHash = Convert.ToBase64String(sha);
+        string expectedHash = sha.EncodeBase64UrlToString();
+        string expectedUrl = $"{BaseUrl}/invoice/{nip}/{issueDate:dd-MM-yyyy}/{expectedHash}";
 
         // Act
-        var url = _svc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
+        string url = _svc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
 
         // Assert
         Assert.Equal(expectedUrl, url);
 
-        var segments = new Uri(url)
+        string[] segments = new Uri(url)
             .Segments
             .Select(s => s.Trim('/'))
             .ToArray();
@@ -60,9 +60,9 @@ public class VerificationLinkServiceTests
     public void BuildCertificateVerificationUrl_WithRsaCertificate_ShouldMatchFormat()
     {
         // Arrange
-        var nip = "0000000000";
-        var xml = "<x/>";
-        var serial = Guid.NewGuid().ToString();
+        string nip = "0000000000";
+        string xml = "<x/>";
+        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         using (var sha256 = SHA256.Create())
         {
@@ -76,7 +76,7 @@ public class VerificationLinkServiceTests
         var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
                     
         // Act
-        var url = _svc.BuildCertificateVerificationUrl(nip,Core.Models.QRCode.ContextIdentifierType.Nip,nip, serial.ToString(), invoiceHash, fullCert);
+        string url = _svc.BuildCertificateVerificationUrl(nip,Core.Models.QRCode.ContextIdentifierType.Nip,nip, serial.ToString(), invoiceHash, fullCert);
 
         // Assert
         var segments = new Uri(url)
@@ -98,9 +98,9 @@ public class VerificationLinkServiceTests
     public void BuildCertificateVerificationUrl_WithEcdsaCertificate_ShouldMatchFormat()
     {
         // Arrange
-        var nip = "0000000000";
-        var xml = "<x/>";
-        var serial = Guid.NewGuid().ToString();
+        string nip = "0000000000";
+        string xml = "<x/>";
+        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         using (var sha256 = SHA256.Create())
         {
@@ -114,7 +114,7 @@ public class VerificationLinkServiceTests
         var fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
 
         // Act
-        var url = _svc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, fullCert,fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
+        string url = _svc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, fullCert,fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
 
         // Assert
         var segments = new Uri(url)
@@ -145,9 +145,9 @@ public class VerificationLinkServiceTests
         var publicBytes = fullCert.Export(X509ContentType.Cert);
         var pubOnly = new X509Certificate2(publicBytes); // brak prywatnego klucza
 
-        var nip = "0000000000";
-        var xml = "<x/>";
-        var serial = Guid.NewGuid().ToString();
+        string nip = "0000000000";
+        string xml = "<x/>";
+        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         using (var sha256 = SHA256.Create())
         {
@@ -190,9 +190,9 @@ public class VerificationLinkServiceTests
             X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet
         );
 
-        var nip = "0000000000";
-        var xml = "<x/>";
-        var serial = Guid.NewGuid().ToString();
+        string nip = "0000000000";
+        string xml = "<x/>";
+        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         using (var sha256 = SHA256.Create())
         {
@@ -201,7 +201,7 @@ public class VerificationLinkServiceTests
         }
 
         // Act
-        var url = _svc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip,
+        string url = _svc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip,
             nip,
             serial,
             invoiceHash,
@@ -212,7 +212,7 @@ public class VerificationLinkServiceTests
         Assert.NotNull(url);
         var uri = new Uri(url);
         var segments = uri.AbsolutePath.Split('/');
-        var signedUrl = segments.Last();
+        string signedUrl = segments.Last();
         Assert.Matches("^[A-Za-z0-9_-]+$", signedUrl);
     }
 
@@ -228,20 +228,20 @@ public class VerificationLinkServiceTests
     public void BuildInvoiceVerificationUrl_EncodesHashCorrectly_Ecc(string xml)
     {
         // Arrange – bez zmian, testuje enkodowanie hash
-        var nip = "1234567890";
+        string nip = "1234567890";
         var issueDate = new DateTime(2026, 1, 5);
 
         byte[] sha;
         using (var sha256 = SHA256.Create())
             sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
 
-        var invoiceHash = Convert.ToBase64String(sha);            
-        var expectedHash = Base64Url.EncodeToString(sha);
+        string invoiceHash = Convert.ToBase64String(sha);            
+        string expectedHash = sha.EncodeBase64UrlToString();
 
-        var expectedUrl = $"{BaseUrl}/invoice/{nip}/{issueDate:dd-MM-yyyy}/{expectedHash}";
+        string expectedUrl = $"{BaseUrl}/invoice/{nip}/{issueDate:dd-MM-yyyy}/{expectedHash}";
 
         // Act
-        var url = _svc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
+        string url = _svc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
 
         // Assert
         Assert.Equal(expectedUrl, url);
@@ -254,9 +254,9 @@ public class VerificationLinkServiceTests
     public void BuildCertificateVerificationUrl_WithEcdsaCertificate_ShouldMatchFormat_Ecc()
     {
         // Arrange – generowanie ECDSA P-256
-        var nip = "0000000000";
-        var xml = "<x/>";
-        var serial = Guid.NewGuid().ToString();
+        string nip = "0000000000";
+        string xml = "<x/>";
+        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         using (var sha256 = SHA256.Create())
         {
@@ -269,7 +269,7 @@ public class VerificationLinkServiceTests
 
         // Act – jawnie przekazujemy prywatny klucz ECDSA
         var privateKeyPem = fullCert.GetECDsaPrivateKey()?.ExportPkcs8PrivateKeyPem();
-        var url = _svc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, fullCert, privateKeyPem);
+        string url = _svc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip, nip, serial, invoiceHash, fullCert, privateKeyPem);
 
         // Assert – format ścieżek
         var segments = new Uri(url).Segments.Select(s => s.Trim('/')).ToArray();
@@ -293,9 +293,9 @@ public class VerificationLinkServiceTests
         var publicBytes = fullCert.Export(X509ContentType.Cert);
         var pubOnly = new X509Certificate2(publicBytes);
 
-        var nip = "0000000000";
-        var xml = "<x/>";
-        var serial = Guid.NewGuid().ToString();
+        string nip = "0000000000";
+        string xml = "<x/>";
+        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         using (var sha256 = SHA256.Create())
         {
@@ -318,20 +318,20 @@ public class VerificationLinkServiceTests
         var pfx = fullCert.Export(X509ContentType.Pfx);
         var certWithKey = new X509Certificate2(pfx, string.Empty, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
 
-        var nip = "0000000000";
-        var xml = "<x/>";
-        var serial = Guid.NewGuid().ToString();
+        string nip = "0000000000";
+        string xml = "<x/>";
+        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         using (var sha256 = SHA256.Create())
             invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
 
         // Act
-        var url = _svc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip,    nip, serial, invoiceHash, certWithKey);
+        string url = _svc.BuildCertificateVerificationUrl(nip, Core.Models.QRCode.ContextIdentifierType.Nip,    nip, serial, invoiceHash, certWithKey);
 
         // Assert: URL zawiera poprawny ECDSA podpis kodowany w Base64
         var uri = new Uri(url);
         var segments = uri.AbsolutePath.Split('/');
-        var signedUrl = segments.Last();
+        string signedUrl = segments.Last();
         Assert.Matches("^[A-Za-z0-9_-]+$", signedUrl);             
     }
 }

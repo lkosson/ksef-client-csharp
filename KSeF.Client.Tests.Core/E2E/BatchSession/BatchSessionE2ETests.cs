@@ -1,8 +1,8 @@
-using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Tests.Utils;
 using KSeF.Client.Tests.Utils.Upo;
-using KSeFClient.Core.Models.Sessions;
+using KSeF.Client.Core.Models.Sessions;
+using KSeF.Client.Core.Interfaces.Services;
 
 namespace KSeF.Client.Tests.Core.E2E.BatchSession;
 
@@ -80,15 +80,32 @@ public partial class BatchSessionE2ETests : TestBase
 
         // 2. Wysłanie wszystkich części
         await SendAllBatchPartsAsync(openBatchSessionResponse, encryptedParts);
-        await Task.Delay(2000);
 
-        // 3. Zamknięcie sesji
+        // 3. Zamknięcie sesji – zamiast stałego opóźnienia użyjemy pollingu aż zamknięcie powiedzie się
         Assert.False(string.IsNullOrWhiteSpace(batchSessionReferenceNumber));
-        await CloseBatchSessionAsync(batchSessionReferenceNumber!, accessToken);
-        await Task.Delay(8000);
-
+        await AsyncPollingUtils.PollAsync(
+            action: async () =>
+            {
+                await CloseBatchSessionAsync(batchSessionReferenceNumber!, accessToken);
+                return true; // jeśli dotarliśmy tutaj, zamknięcie się powiodło
+            },
+            condition: closed => closed,
+            delay: TimeSpan.FromSeconds(1),
+            maxAttempts: 30,
+            shouldRetryOnException: _ => true, // ponawiaj przy dowolnym wyjątku
+            cancellationToken: CancellationToken
+        );
+        
         // 4. Status sesji
-        SessionStatusResponse statusResponse = await GetBatchSessionStatusAsync(batchSessionReferenceNumber, accessToken);
+        SessionStatusResponse statusResponse = await AsyncPollingUtils.PollWithBackoffAsync(
+                                action: () => GetBatchSessionStatusAsync(batchSessionReferenceNumber!, accessToken),
+                                condition: s => s.Status.Code is ExpectedSessionStatusCode, 
+                                initialDelay: TimeSpan.FromSeconds(1),
+                                maxDelay: TimeSpan.FromSeconds(5),
+                                maxAttempts: 30,
+                                cancellationToken: CancellationToken);
+        
+    
 
         Assert.NotNull(statusResponse);
         Assert.True(statusResponse.SuccessfulInvoiceCount == TotalInvoices);
