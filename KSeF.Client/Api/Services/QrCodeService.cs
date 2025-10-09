@@ -1,5 +1,5 @@
-#if QR
 using KSeF.Client.Core.Interfaces.Services;
+#if QR
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Graphics.Skia;
 using QRCoder;
