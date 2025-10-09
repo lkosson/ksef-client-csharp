@@ -20,6 +20,9 @@
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>obj\Generated</CompilerGeneratedFilesOutputPath>
 		<UserSecretsId>7931c1d1-5bfa-4559-8b2e-e9a0a03d4a82</UserSecretsId>
+		<!-- Strong naming the assembly -->
+		<SignAssembly>True</SignAssembly>
+		<AssemblyOriginatorKeyFile>KSeF.Client.snk</AssemblyOriginatorKeyFile>
 	</PropertyGroup>
 
 	<!-- Dependencies -->

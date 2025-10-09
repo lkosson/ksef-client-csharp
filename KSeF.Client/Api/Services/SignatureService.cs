@@ -10,8 +10,9 @@ namespace KSeF.Client.Api.Services;
 /// <inheritdoc />
 public class SignatureService : ISignatureService
 {
-    private static readonly string _xadesNsUrl = "http://uri.etsi.org/01903/v1.3.2#";
-    private static readonly string _signedPropertiesType = "http://uri.etsi.org/01903#SignedProperties";
+    private const string EcdsaSha256AlgorithmUrl = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256";
+    private const string XadesNsUrl = "http://uri.etsi.org/01903/v1.3.2#";
+    private const string SignedPropertiesType = "http://uri.etsi.org/01903#SignedProperties";
 
     /// <inheritdoc />
     /// <summary>
@@ -44,17 +45,28 @@ public class SignatureService : ISignatureService
         if (!certificate.HasPrivateKey)
             throw new InvalidOperationException("Certyfikat nie zawiera klucza prywatnego");
 
-        var privateKey = certificate.GetRSAPrivateKey()
-            ?? throw new InvalidOperationException("Nie można wyodrębnić klucza prywatnego RSA");
+        RSA rsaKey = certificate.GetRSAPrivateKey();
+        ECDsa ecdsaKey = certificate.GetECDsaPrivateKey();
+
+        if (rsaKey == null && ecdsaKey == null)
+            throw new InvalidOperationException("Nie można wyodrębnić klucza prywatnego");
 
         var signatureId = "Signature";
         var signedPropertiesId = "SignedProperties";
 
-        var signedXml = new SignedXmlFixed(xmlDocument)
+        var signedXml = new SignedXmlFixed(xmlDocument);
+
+        if (rsaKey != null)
         {
-            SigningKey = privateKey,
-            Signature = { Id = signatureId }
-        };
+            signedXml.SigningKey = rsaKey;
+        }
+        else if (ecdsaKey != null)
+        {
+            signedXml.SigningKey = ecdsaKey;
+            signedXml.SignedInfo.SignatureMethod = EcdsaSha256AlgorithmUrl;
+        }
+
+        signedXml.Signature.Id = signatureId;
 
         AddKeyInfo(signedXml, certificate);
         AddRootReference(signedXml);
@@ -93,7 +105,7 @@ public class SignatureService : ISignatureService
     {
         var xadesReference = new Reference("#" + id)
         {
-            Type = _signedPropertiesType
+            Type = SignedPropertiesType
         };
 
         xadesReference.AddTransform(new XmlDsigExcC14NTransform());
@@ -110,7 +122,7 @@ public class SignatureService : ISignatureService
         var document = new XmlDocument();
         document.LoadXml(
         $"""
-        <xades:QualifyingProperties Target="#{signatureId}" xmlns:xades="{_xadesNsUrl}" xmlns="{SignedXml.XmlDsigNamespaceUrl}">
+        <xades:QualifyingProperties Target="#{signatureId}" xmlns:xades="{XadesNsUrl}" xmlns="{SignedXml.XmlDsigNamespaceUrl}">
           <xades:SignedProperties Id="{signedPropertiesId}">
             <xades:SignedSignatureProperties>
               <xades:SigningTime>{signingTime:O}</xades:SigningTime>

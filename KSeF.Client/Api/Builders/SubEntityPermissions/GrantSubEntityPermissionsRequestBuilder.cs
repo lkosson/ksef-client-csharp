@@ -16,9 +16,15 @@ public static class GrantSubUnitPermissionsRequestBuilder
         IOptionalStep WithContext(ContextIdentifier context);
     }
 
+    public interface ISubunitNameStep
+    {
+        IOptionalStep WithSubunitName(string subunitName);
+    }
+
     public interface IOptionalStep
     {
         IOptionalStep WithDescription(string description);
+        IOptionalStep WithSubunitName(string subunitName);
         GrantPermissionsSubUnitRequest Build();
     }
 
@@ -30,6 +36,7 @@ public static class GrantSubUnitPermissionsRequestBuilder
         private SubjectIdentifier _subject;
         private ContextIdentifier _context;
         private string _description;
+        private string _subunitName;
 
         private GrantPermissionsRequestBuilderImpl() { }
 
@@ -53,18 +60,27 @@ public static class GrantSubUnitPermissionsRequestBuilder
             return this;
         }
 
+        public IOptionalStep WithSubunitName(string subunitName)
+        {
+            _subunitName = subunitName;
+            return this;
+        }
+
         public GrantPermissionsSubUnitRequest Build()
         {
             if (_subject is null)
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
             if (_context is null)
                 throw new InvalidOperationException("Metoda WithContext(...) musi zostać wywołana po ustawieniu podmiotu.");
+            if (_context.Type == ContextIdentifierType.InternalId && string.IsNullOrWhiteSpace(_subunitName))
+                throw new InvalidOperationException("Dla typu ContextIdentifierType.InternalId, metoda WithSubunitName(...) musi zostać wywołana przed Build().");
 
             return new GrantPermissionsSubUnitRequest
             {
                 SubjectIdentifier = _subject,
                 ContextIdentifier = _context,
                 Description = _description,
+                SubunitName = _subunitName
             };
         }
     }

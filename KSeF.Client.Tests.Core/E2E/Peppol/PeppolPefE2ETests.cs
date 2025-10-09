@@ -168,8 +168,8 @@ namespace KSeF.Client.Tests.Core.E2E.Peppol
                 check: async () =>
                 {
                     int? pageOffset = null;
-                    const int pageSize = 20;
-                    int guardPages = 20;
+                    const int pageSize = 100;
+                    int guardPages = 200;
 
                     do
                     {

@@ -5,6 +5,7 @@ namespace KSeF.Client.Core.Models.Permissions.SubUnit
         public SubjectIdentifier SubjectIdentifier { get; set; }
         public ContextIdentifier ContextIdentifier { get; set; }
         public string Description { get; set; }
+        public string SubunitName { get; set; }
     }
 
     public partial class SubjectIdentifier

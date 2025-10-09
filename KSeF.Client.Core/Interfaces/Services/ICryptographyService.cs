@@ -78,6 +78,13 @@ namespace KSeF.Client.Core.Interfaces.Services
         FileMetadata GetMetaData(Stream fileStream);
 
         /// <summary>
+        /// Zwraca asynchronicznie metadane pliku: rozmiar i hash SHA256 dla strumienia bez buforowania całej zawartości w pamięci.
+        /// </summary>
+        /// <param name="fileStream">Strumień pliku.</param>
+        /// <returns><see cref="FileMetadata"/></returns>
+        Task<FileMetadata> GetMetaDataAsync(Stream fileStream, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Zwraca zaszyfrowany plik formie byte array przy użyciu algorytmu RSA.
         /// </summary>
         /// <param name="content"></param>

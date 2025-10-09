@@ -39,7 +39,7 @@ public class SubunitPermissionsE2ETests : TestBase
     /// 5. Weryfikacja nadanych uprawnień
     /// 6. Odwołanie uprawnień i weryfikacja
     /// </summary>
-    //[Fact] -- TODO: fix test for 5.2.0
+    [Fact]
     public async Task SubUnitPermission_E2E_GrantAndRevoke()
     {
         #region Inicjalizuje uwierzytelnienie jednostki głównej.
@@ -224,6 +224,7 @@ public class SubunitPermissionsE2ETests : TestBase
                 Type = Client.Core.Models.Permissions.SubUnit.ContextIdentifierType.InternalId,
                 Value = _fixture.UnitNipInternal
             })
+            .WithSubunitName("E2E Test Subunit")
             .WithDescription("E2E test grant sub-unit")
             .Build();
 

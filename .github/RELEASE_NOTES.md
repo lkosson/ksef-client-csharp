@@ -1,6 +1,42 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
 
 ---
+# Changelog zmian – ## Wersja 2.0.0 RC5.2.0
+---
+
+### Nowe
+- **Kryptografia**
+  - Obsługa ECDSA (krzywe eliptyczne, P-256) przy generowaniu CSR ➕
+  - ECIES (ECDH + AES-GCM) jako alternatywa szyfrowania tokena KSeF ➕
+  - `ICryptographyService`:
+    - `GenerateCsrWithEcdsa(...)` ➕
+    - `EncryptWithECDSAUsingPublicKey(byte[] content)` (ECIES: SPKI + nonce + tag + ciphertext) ➕
+    - `GetMetaDataAsync(Stream, ...)` ➕
+    - `EncryptStreamWithAES256(Stream, ...)` oraz `EncryptStreamWithAES256Async(Stream, ...)` ➕
+- **CertTestApp** ➕
+  - Dodano możliwość eksportu utworzonych certyfikatów do plików PFX i CER w trybie `--output file`.
+- **Build** ➕
+  - Podpisywanie bibliotek silną nazwą: dodano pliki `.snk` i włączono podpisywanie dla `KSeF.Client` oraz `KSeF.Client.Core`.
+- **Tests / Features** ➕
+  - Rozszerzono scenariusze `.feature` (uwierzytelnianie, sesje, faktury, uprawnienia) oraz E2E (cykl życia certyfikatu, eksport faktur).
+
+### Zmodyfikowane
+- **Kryptografia** 🔧
+  - Usprawniono generowanie CSR ECDSA i obliczanie metadanych plików; dodano wsparcie dla pracy na strumieniach (`GetMetaData(...)`, `GetMetaDataAsync(...)`, `EncryptStreamWithAES256(...)`).
+- **Modele / kontrakty API** 🔧
+  - Dostosowano modele do aktualnych kontraktów API; uspójniono modele eksportu i metadanych faktur (`InvoicePackage`, `InvoicePackagePart`, `ExportInvoicesResponse`, `InvoiceExportRequest`, `GrantPermissionsSubUnitRequest`, `PagedInvoiceResponse`).
+- **Demo (QrCodeController)** 🔧
+  - Etykiety pod QR oraz weryfikacja certyfikatów w linkach weryfikacyjnych.
+
+### Poprawki i zmiany dokumentacji
+- **README** 🔧
+  - Doprecyzowano rejestrację DI i opis eksportu certyfikatów w CertTestApp.
+- **Core** 🔧
+  - `EncryptionMethodEnum` z wartościami `ECDsa`, `Rsa` (przygotowanie pod wybór metody szyfrowania).
+
+---
+
+---
 # Changelog zmian – ## Wersja 2.0.0 RC5.1.1
 ---
 ### Nowe

@@ -2,6 +2,7 @@ using KSeF.Client.Api.Builders.Certificates;
 using KSeF.Client.Api.Builders.X509Certificates;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
+using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Certificates;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -73,7 +74,9 @@ public static class CertificateUtils
         string surname,
         string serialNumberPrefix,
         string serialNumber,
-        string commonName)
+        string commonName,
+        EncryptionMethodEnum encryptionType = EncryptionMethodEnum.Rsa
+        )
     {
         X509Certificate2 certificate = SelfSignedCertificateForSignatureBuilder
                     .Create()
@@ -81,6 +84,7 @@ public static class CertificateUtils
                     .WithSurname(surname)
                     .WithSerialNumber($"{serialNumberPrefix}-{serialNumber}")
                     .WithCommonName(commonName)
+                    .AndEncryptionType(encryptionType)
                     .Build();
         return certificate;
     }

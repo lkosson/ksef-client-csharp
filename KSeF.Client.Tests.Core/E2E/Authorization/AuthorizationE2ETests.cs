@@ -1,3 +1,4 @@
+using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Token;
 
 namespace KSeF.Client.Tests.Core.E2E.Authorization;
@@ -9,12 +10,14 @@ public class AuthorizationE2ETests : TestBase
     /// <summary>
     /// Uwierzytelnia klienta KSeF i sprawdza, czy zwrócony token dostępu jest poprawny
     /// </summary>
-    [Fact]
-    public async Task AuthAsync_FullIntegrationFlow_ReturnsAccessToken()
+    [Theory]
+    [InlineData(EncryptionMethodEnum.Rsa)]
+    [InlineData(EncryptionMethodEnum.ECDsa)]
+    public async Task AuthAsync_FullIntegrationFlow_ReturnsAccessToken(EncryptionMethodEnum encryptionMethodEnum)
     {
         // Arrange & Act
-        Client.Core.Models.Authorization.AuthOperationStatusResponse authResult = 
-            await Utils.AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService);
+        Client.Core.Models.Authorization.AuthOperationStatusResponse authResult =
+            await Utils.AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, default, encryptionMethodEnum);
 
         // Assert
         Assert.NotNull(authResult);

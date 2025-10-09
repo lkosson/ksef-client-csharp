@@ -208,6 +208,48 @@ public class CryptographyService : ICryptographyService
         };
     }
 
+    public async Task<FileMetadata> GetMetaDataAsync(Stream fileStream, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(fileStream);
+
+        long originalPosition = 0;
+        bool restorePosition = false;
+        long fileSize;
+
+        if (fileStream.CanSeek)
+        {
+            originalPosition = fileStream.Position;
+            fileStream.Position = 0;
+            restorePosition = true;
+            fileSize = fileStream.Length;
+        }
+        else
+        {
+            fileSize = 0;
+        }
+
+        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        byte[] buffer = new byte[81920];
+        int read;
+        while ((read = await fileStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            hasher.AppendData(buffer, 0, read);
+            if (!fileStream.CanSeek)
+                fileSize += read;
+        }
+
+        string base64Hash = Convert.ToBase64String(hasher.GetHashAndReset());
+
+        if (restorePosition)
+            fileStream.Position = originalPosition;
+
+        return new FileMetadata
+        {
+            FileSize = fileSize,
+            HashSHA = base64Hash
+        };
+    }
+
     /// <inheritdoc />
     public byte[] EncryptWithRSAUsingPublicKey(byte[] content, RSAEncryptionPadding padding)
     {

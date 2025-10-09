@@ -1,3 +1,4 @@
+using KSeF.Client.Core.Models.Authorization;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -25,8 +26,14 @@ public interface ISelfSignedCertificateForSignatureBuilderWithSerialNumber
     ISelfSignedCertificateForSignatureBuilderReady WithCommonName(string commonName);
 }
 
+public interface ISelfSignedCertificateForSignatureBuilderWithEncryption
+{
+    X509Certificate2 Build();
+}
+
 public interface ISelfSignedCertificateForSignatureBuilderReady
 {
+    ISelfSignedCertificateForSignatureBuilderWithEncryption AndEncryptionType(EncryptionMethodEnum encryptionType);
     X509Certificate2 Build();
 }
 
@@ -37,8 +44,10 @@ internal class SelfSignedCertificateForSignatureBuilderImpl
     , ISelfSignedCertificateForSignatureBuilderWithSurname
     , ISelfSignedCertificateForSignatureBuilderWithSerialNumber
     , ISelfSignedCertificateForSignatureBuilderReady
+    , ISelfSignedCertificateForSignatureBuilderWithEncryption
 {
     private readonly List<string> _subjectParts = [];
+    private EncryptionMethodEnum _encryptionType = EncryptionMethodEnum.Rsa;
 
     public static ISelfSignedCertificateForSignatureBuilder Create() => new SelfSignedCertificateForSignatureBuilderImpl();
 
@@ -76,16 +85,31 @@ internal class SelfSignedCertificateForSignatureBuilderImpl
         return this;
     }
 
+    public ISelfSignedCertificateForSignatureBuilderWithEncryption AndEncryptionType(EncryptionMethodEnum encryptionType)
+    {
+        _encryptionType = encryptionType;
+        return this;
+    }
+
     public X509Certificate2 Build()
     {
         _subjectParts.Add("2.5.4.6=PL");
 
-        var subjectName = string.Join(", ", _subjectParts);
-
-        var certificate = new CertificateRequest(subjectName, RSA.Create(2048), HashAlgorithmName.SHA256, RSASignaturePadding.Pss)
-            .CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-61), DateTimeOffset.Now.AddYears(2));
-
-        return certificate;
+        X500DistinguishedName subjectName = new (string.Join(", ", _subjectParts));
+              
+        CertificateRequest request;
+        if (_encryptionType == EncryptionMethodEnum.ECDsa)
+        {
+            using ECDsa ecdsa = ECDsa.Create(); // P-256
+            request = new CertificateRequest(subjectName, ecdsa, HashAlgorithmName.SHA256);
+            return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-61), DateTimeOffset.Now.AddYears(2));
+        }
+        else
+        {
+            using RSA rsa = RSA.Create(2048);
+            request = new CertificateRequest(subjectName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
+            return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-61), DateTimeOffset.Now.AddYears(2));
+        }
     }
 }
 

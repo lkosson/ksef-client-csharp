@@ -1,6 +1,10 @@
-using KSeF.Client.Tests.Core.Config;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.DI;
+using KSeF.Client.Extensions;
+using KSeF.Client.Tests.Core.Config;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
@@ -54,6 +58,10 @@ public abstract class TestBase : IDisposable
         // opcjonalne: inicjalizacja lub inne czynności startowe
         _scope.ServiceProvider.GetRequiredService<ICryptographyService>()
                            .WarmupAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+        CryptoConfig.AddAlgorithm(
+            typeof(Ecdsa256SignatureDescription),
+              "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

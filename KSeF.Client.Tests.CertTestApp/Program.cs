@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Cryptography.X509Certificates;
 using KSeF.Client.Api.Builders.Auth;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
@@ -62,6 +63,24 @@ try
     var certificate = CertificateUtils.GetPersonalCertificate("A", "R", "TINPL", nip, "A R");
     Console.WriteLine($"    Certyfikat: {certificate.Subject}");
 
+    // (5a) Zapis certyfikatu gdy tryb file
+    // Eksportowanie: PFX (z kluczem prywatnym) oraz CER (część publiczna)
+    string timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+    if (outputMode.Equals("file", StringComparison.OrdinalIgnoreCase))
+    {
+        string certPfxPath = Path.Combine(Environment.CurrentDirectory, $"cert-{timestamp}.pfx");
+        string certCerPath = Path.Combine(Environment.CurrentDirectory, $"cert-{timestamp}.cer");
+
+        byte[] pfxBytes = certificate.Export(X509ContentType.Pfx, string.Empty);
+        byte[] cerBytes = certificate.Export(X509ContentType.Cert);
+
+        await File.WriteAllBytesAsync(certPfxPath, pfxBytes);
+        await File.WriteAllBytesAsync(certCerPath, cerBytes);
+
+        Console.WriteLine($"    Zapisano certyfikat PFX: {certPfxPath}");
+        Console.WriteLine($"    Zapisano certyfikat CER: {certCerPath}");
+    }
+
     // 6) Podpis XAdES
     Console.WriteLine("[6] Podpisywanie XML (XAdES)...");
     string signedXml = signatureService.Sign(unsignedXml, certificate);
@@ -71,9 +90,9 @@ try
     // - screen lub pusty: wyświetlenie XML w konsoli (bez zapisu do pliku)
     if (outputMode.Equals("file", StringComparison.OrdinalIgnoreCase))
     {
-        string filePath = Path.Combine(Environment.CurrentDirectory, $"signed-auth-{DateTime.UtcNow:yyyyMMdd-HHmmss}.xml");
+        string filePath = Path.Combine(Environment.CurrentDirectory, $"signed-auth-{timestamp}.xml");
         await File.WriteAllTextAsync(filePath, signedXml, Encoding.UTF8);
-        Console.WriteLine($"zapisano: {filePath}");
+        Console.WriteLine($"Zapisano podpisany XML: {filePath}");
     }
     else
     {
@@ -125,6 +144,7 @@ catch (Exception ex)
     Console.WriteLine(ex.ToString());
 }
 Console.ReadKey();
+
 static void PrintXmlToConsole(string xml, string title)
 {
     Console.WriteLine($"----- {title} -----");

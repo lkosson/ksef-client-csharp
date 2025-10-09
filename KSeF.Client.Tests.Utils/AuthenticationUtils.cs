@@ -18,7 +18,8 @@ public static class AuthenticationUtils
         IKSeFClient ksefClient,
         ISignatureService signatureService,
         string nip,
-        ContextIdentifierType contextIdentifierType = ContextIdentifierType.Nip)
+        ContextIdentifierType contextIdentifierType = ContextIdentifierType.Nip,
+        EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.Rsa)
     {
         AuthChallengeResponse challengeResponse = await ksefClient
             .GetAuthChallengeAsync();
@@ -87,7 +88,9 @@ public static class AuthenticationUtils
     public static async Task<AuthOperationStatusResponse> AuthenticateAsync(
         IKSeFClient ksefClient,
         ISignatureService signatureService,
-        ContextIdentifierType contextIdentifierType = ContextIdentifierType.Nip)
+        ContextIdentifierType contextIdentifierType = ContextIdentifierType.Nip,
+        EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.Rsa
+        )
     {
         string nip = MiscellaneousUtils.GetRandomNip();
 
@@ -102,7 +105,7 @@ public static class AuthenticationUtils
 
         string unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
 
-        X509Certificate2 certificate = CertificateUtils.GetPersonalCertificate("A", "R", "TINPL", nip, "A R");
+        X509Certificate2 certificate = CertificateUtils.GetPersonalCertificate("A", "R", "TINPL", nip, "A R", encryptionMethod);
 
         string signedXml = signatureService.Sign(unsignedXml, certificate);
 
