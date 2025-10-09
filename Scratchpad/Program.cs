@@ -1,8 +1,8 @@
 ﻿using System.Text;
-using KSeF.Client;
 using KSeF.Client.Api.Builders.Auth;
 using KSeF.Client.Api.Builders.X509Certificates;
-using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.DI;
@@ -10,6 +10,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 var sc = new ServiceCollection();
 sc.AddKSeFClient(opts => { opts.BaseUrl = KsefEnviromentsUris.TEST; opts.CustomHeaders = []; });
+
+sc.AddCryptographyClient(options => { options.WarmupOnStart = WarmupMode.Blocking; });
+
 using var sp = sc.BuildServiceProvider();
 var ksefClient = sp.GetRequiredService<IKSeFClient>();
 
@@ -20,7 +23,7 @@ async Task<(TokenInfo accessToken, TokenInfo refreshToken)> AuthenticateUsingSig
 	var authTokenRequest = AuthTokenRequestBuilder
 		.Create()
 		.WithChallenge(challenge.Challenge)
-		.WithContext(ContextIdentifierType.Nip, nip)
+		.WithContext(KSeF.Client.Core.Models.Authorization.ContextIdentifierType.Nip, nip)
 		.WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
 		.Build();
 	var certificate = SelfSignedCertificateForSignatureBuilder
@@ -31,7 +34,7 @@ async Task<(TokenInfo accessToken, TokenInfo refreshToken)> AuthenticateUsingSig
 				.WithCommonName("JK")
 				.Build();
 	var unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
-	var signedXml = await signatureService.SignAsync(unsignedXml, certificate);
+	var signedXml = signatureService.Sign(unsignedXml, certificate);
 	var authOperationInfo = await ksefClient.SubmitXadesAuthRequestAsync(signedXml, verifyCertificateChain: false);
 
 retry:
@@ -62,7 +65,7 @@ async Task<(TokenInfo accessToken, TokenInfo refreshToken)> AuthenticateUsingTok
 		Challenge = challenge.Challenge,
 		ContextIdentifier = new AuthContextIdentifier
 		{
-			Type = ContextIdentifierType.Nip,
+			Type = KSeF.Client.Core.Models.Authorization.ContextIdentifierType.Nip,
 			Value = nip
 		},
 		EncryptedToken = encryptedRequest,
@@ -104,16 +107,17 @@ async Task GetInvoices(string accessToken)
 	{
 		DateRange = new DateRange
 		{
-			From = DateTime.Now.Date.AddDays(-1),
+			From = DateTime.Now.Date.AddDays(-30),
 			To = DateTime.Now.Date.AddDays(1),
-			DateType = DateType.Issue
+			DateType = DateType.PermanentStorage
 		},
 		SubjectType = SubjectType.Subject1
 	};
 
 	var invoicesMetadata = await ksefClient.QueryInvoiceMetadataAsync(query, accessToken);
+	var nr = invoicesMetadata.Invoices.First().KsefNumber;
 
-	var invoice = await ksefClient.GetInvoiceAsync(invoicesMetadata.Invoices.First().KsefNumber, accessToken);
+	var invoice = await ksefClient.GetInvoiceAsync(nr, accessToken);
 }
 
 /*

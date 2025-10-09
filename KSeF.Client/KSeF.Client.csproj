@@ -18,11 +18,11 @@
 	<!-- Dependencies -->
 	<ItemGroup Condition="!$(DefineConstants.Contains(LW))">
 		<PackageReference Include="Microsoft.AspNetCore.Localization" Version="2.3.0" />		
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.7" />		
 		<PackageReference Include="Microsoft.Extensions.Localization" Version="9.0.7" />		
 		<PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="9.0.7" />		
 	</ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.7" />		
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />		
 		<PackageReference Include="System.Text.Json" Version="9.0.7" />		
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />		
