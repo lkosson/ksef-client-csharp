@@ -1,6 +1,53 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
 
 ---
+# Changelog zmian – ## Wersja 2.0.0 RC5.3.0
+---
+
+### Nowe
+- **REST / Routing**
+  - `IRouteBuilder` + `RouteBuilder` – centralne budowanie ścieżek (`/api/v2/...`) z opcjonalnym `apiVersion`. ➕
+- **REST / Typy i MIME**
+  - `RestContentType` + `ToMime()` – jednoznaczne mapowanie `Json|Xml` → `application/*`. ➕
+- **REST / Baza klienta**
+  - `ClientBase` — wspólna klasa bazowa klientów HTTP; centralizacja konstrukcji URL (via `RouteBuilder`);
+ - **REST / LimitsClient**
+  - `ILimitsClient`, `LimitsClient` — obsługa API **Limits**: `GetLimitsForCurrentContext`, `GetLimitsForCurrentSubject`;
+ - **Testy / TestClient**
+  - `ITestDataClient`, `TestDataClient` — klient udostępnia operacje:
+    `CreatePersonAsync`, `RemovePersonAsync`, `CreateSubjectAsync`, `GrantTestDataPermissionsAsync`. ➕
+- **Testy / PEF**
+  - Rozszerzone scenariusze E2E PEF (Peppol) – asercje statusów i uprawnień. ➕
+- **TestData / Requests**
+  - Modele requestów do środowiska testowego: `PersonCreateRequest`, `PersonRemoveRequest`, `SubjectCreateRequest`, `TestDataPermissionsGrantRequest`. ➕
+- **Templates**
+  - Szablon korekty PEF: `invoice-template-fa-3-pef-correction.xml` (na potrzeby testów). ➕
+
+### Zmodyfikowane
+- **REST / Klient**
+  - Refactor: generyczne `RestRequest<TBody>` i wariant bez body; spójne fluent‑metody `WithBody(...)`, `WithAccept(...)`, `WithTimeout(...)`, `WithApiVersion(...)`. 🔧
+  - Redukcja duplikatów w `IRestClient.SendAsync(...)`; precyzyjniejsze komunikaty błędów. 🔧
+  - Porządek w MIME i nagłówkach – jednolite ustawianie `Content-Type`/`Accept`. 🔧
+  - Aktualizacja podpisów interfejsów (wewnętrznych) pod nową strukturę REST. 🔧
+- **Routing / Spójność**
+  - Konsolidacja prefixów w jednym miejscu (RouteBuilder) zamiast powielania `"/api/v2"` w klientach/testach. 🔧
+- **System codes / PEF**
+  - Uzupełnione mapowania kodów systemowych i wersji pod **PEF** (serializacja/mapping). 🔧
+- **Testy / Utils**
+  - `AsyncPollingUtils` – stabilniejsze retry/backoff, czytelniejsze warunki. 🔧
+- **Code style**
+  - `var` → jawne typy; `ct` → `cancellationToken`; porządek właściwości; usunięte `unused using`. 🔧
+
+### Usunięte
+- **REST**
+  - Nadmiarowe przeciążenia `SendAsync(...)` i pomocnicze fragmenty w kliencie REST (po refaktorze). ➖
+
+### Poprawki i zmiany dokumentacji
+- Doprecyzowane opisy `<summary>`/wyjątków w interfejsach oraz spójne nazewnictwo w testach i requestach (PEF/TestData). 🔧
+
+**Uwaga (kompatybilność)**: zmiany w `IRestClient`/`RestRequest*` mają charakter **internal** – publiczny kontrakt `IKSeFClient` bez zmian funkcjonalnych w tym RC. Jeśli rozszerzałeś warstwę REST, przejrzyj integracje pod nowy `RouteBuilder` i generyczne `RestRequest<TBody>`. 🔧
+
+---
 # Changelog zmian – ## Wersja 2.0.0 RC5.2.0
 ---
 

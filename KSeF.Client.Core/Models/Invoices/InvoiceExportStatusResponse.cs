@@ -7,7 +7,7 @@ namespace KSeF.Client.Core.Models.Invoices
         /// <summary>
         /// Aktualny status operacji (np. IN_PROGRESS, READY, ERROR).
         /// </summary>
-        public Status Status { get; set; }
+        public StatusInfo Status { get; set; }
 
         /// <summary>
         /// Data zakończenia przetwarzania żądania.
@@ -17,6 +17,6 @@ namespace KSeF.Client.Core.Models.Invoices
         /// <summary>
         /// Paczka faktur (InvoicePackage) – obecna tylko jeśli status = READY.
         /// </summary>
-        public InvoicePackage Package { get; set; }
+        public InvoiceExportPackage Package { get; set; }
     }
 }

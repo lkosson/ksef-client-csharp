@@ -17,7 +17,7 @@ public class DelayedTestCollectionOrderer : ITestCollectionOrderer
 {
     public IEnumerable<ITestCollection> OrderTestCollections(IEnumerable<ITestCollection> testCollections)
     {
-        foreach (var collection in testCollections)
+        foreach (ITestCollection collection in testCollections)
         {
             Task.Delay(2000).GetAwaiter().GetResult();
             yield return collection;

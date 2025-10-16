@@ -1,3 +1,4 @@
+using KSeF.Client.Core.Models.Invoices;
 using System;
 
 namespace KSeF.Client.Core.Models.Sessions
@@ -58,5 +59,10 @@ namespace KSeF.Client.Core.Models.Sessions
         /// Status faktury (wymagany obiekt).
         /// </summary>
         public StatusInfo Status { get; set; }
+
+        /// <summary>
+        /// Tryb fakturowania.
+        /// </summary>
+        public InvoicingMode InvoicingMode { get; set; }
     }
 }

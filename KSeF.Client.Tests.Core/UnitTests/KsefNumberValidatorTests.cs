@@ -18,12 +18,12 @@ public class KsefNumberValidatorTests
     public void IsValid_EmptyOrWhitespace_ReturnsFalseWithMessage()
     {
         // Arrange (Przygotowanie)
-        var empty = string.Empty;
-        var whitespace = "   ";
+        string empty = string.Empty;
+        string whitespace = "   ";
 
         // Act (Działanie)
-        var resultEmpty = KsefNumberValidator.IsValid(empty, out var emptyMsg);
-        var resultWs = KsefNumberValidator.IsValid(whitespace, out var wsMsg);
+        bool resultEmpty = KsefNumberValidator.IsValid(empty, out string? emptyMsg);
+        bool resultWs = KsefNumberValidator.IsValid(whitespace, out string? wsMsg);
 
         // Assert (Weryfikacja)
         Assert.False(resultEmpty);
@@ -42,12 +42,12 @@ public class KsefNumberValidatorTests
     {
         // Arrange (Przygotowanie)
         // 34 znaki: 32 dane + 2 suma kontrolna (brakuje jednego znaku do 35)
-        var data32 = GetRandomConventionalData32(); // długość 32
-        var checksum = ComputeChecksum(data32);
-        var tooShort = data32 + checksum; // 34
+        string data32 = GetRandomConventionalData32(); // długość 32
+        string checksum = ComputeChecksum(data32);
+        string tooShort = data32 + checksum; // 34
 
         // Act (Działanie)
-        var result = KsefNumberValidator.IsValid(tooShort, out var msg);
+        bool result = KsefNumberValidator.IsValid(tooShort, out string? msg);
 
         // Assert (Weryfikacja)
         Assert.False(result);
@@ -62,11 +62,11 @@ public class KsefNumberValidatorTests
     public void IsValid_ValidDataAndChecksum_ReturnsTrue()
     {
         // Arrange (Przygotowanie)
-        var data32 = GetRandomConventionalData32(); // długość 32
-        var ksef = BuildKsefNumber(data32, 'X');    // 32 + 1 znak wypełniający + 2 suma kontrolna = 35
+        string data32 = GetRandomConventionalData32(); // długość 32
+        string ksef = BuildKsefNumber(data32, 'X');    // 32 + 1 znak wypełniający + 2 suma kontrolna = 35
 
         // Act (Działanie)
-        var result = KsefNumberValidator.IsValid(ksef, out var msg);
+        bool result = KsefNumberValidator.IsValid(ksef, out string? msg);
 
         // Assert (Weryfikacja)
         Assert.True(result);
@@ -81,14 +81,14 @@ public class KsefNumberValidatorTests
     public void IsValid_MismatchedChecksum_ReturnsFalseAndEmptyMessage()
     {
         // Arrange (Przygotowanie)
-        var data32 = GetRandomConventionalData32();
-        var ksef = BuildKsefNumber(data32, 'X');
+        string data32 = GetRandomConventionalData32();
+        string ksef = BuildKsefNumber(data32, 'X');
 
         // Zmień ostatnią cyfrę sumy kontrolnej, aby wymusić niezgodność
-        var invalid = ksef[..^1] + (ksef[^1] == '0' ? '1' : '0');
+        string invalid = ksef[..^1] + (ksef[^1] == '0' ? '1' : '0');
 
         // Act (Działanie)
-        var result = KsefNumberValidator.IsValid(invalid, out var msg);
+        bool result = KsefNumberValidator.IsValid(invalid, out string? msg);
 
         // Assert (Weryfikacja)
         Assert.False(result);
@@ -104,13 +104,13 @@ public class KsefNumberValidatorTests
     public void IsValid_Modifying33rdCharacter_DoesNotAffectValidation_CurrentBehavior()
     {
         // Arrange (Przygotowanie)
-        var data32 = GetRandomConventionalData32();
-        var baseKsef = BuildKsefNumber(data32, 'X');
-        var alteredKsef = BuildKsefNumber(data32, 'Y'); // różni się tylko 33. znak
+        string data32 = GetRandomConventionalData32();
+        string baseKsef = BuildKsefNumber(data32, 'X');
+        string alteredKsef = BuildKsefNumber(data32, 'Y'); // różni się tylko 33. znak
 
         // Act (Działanie)
-        var resultBase = KsefNumberValidator.IsValid(baseKsef, out var msg1);
-        var resultAltered = KsefNumberValidator.IsValid(alteredKsef, out var msg2);
+        bool resultBase = KsefNumberValidator.IsValid(baseKsef, out string? msg1);
+        bool resultAltered = KsefNumberValidator.IsValid(alteredKsef, out string? msg2);
 
         // Assert (Weryfikacja)
         Assert.True(resultBase);
@@ -121,7 +121,7 @@ public class KsefNumberValidatorTests
 
     private static string BuildKsefNumber(string data32, char filler)
     {
-        var checksum = ComputeChecksum(data32);
+        string checksum = ComputeChecksum(data32);
         // UWAGA: Oczekiwana długość to 35, podczas gdy Dane(32) + SumaKontrolna(2) = 34.
         // Dodajemy znak wypełniający, aby uzyskać 35. Bieżący walidator ignoruje ten znak.
         return data32 + filler + checksum;
@@ -131,26 +131,26 @@ public class KsefNumberValidatorTests
     // a następnie ucina do 32 znaków, aby spełnić założenia walidatora.
     private static string GetRandomConventionalData32()
     {
-        var date = DateTime.UtcNow.ToString("yyyyMMdd"); // np. 20250916
-        var part1 = RandomHex(10);                       // 10 znaków HEX
-        var part2 = RandomHex(10);                       // 10 znaków HEX
-        var suffix = RandomNumberGenerator.GetInt32(0, 100).ToString("D2"); // 2 cyfry 00-99
+        string date = DateTime.UtcNow.ToString("yyyyMMdd"); // np. 20250916
+        string part1 = RandomHex(10);                       // 10 znaków HEX
+        string part2 = RandomHex(10);                       // 10 znaków HEX
+        string suffix = RandomNumberGenerator.GetInt32(0, 100).ToString("D2"); // 2 cyfry 00-99
 
-        var full = $"{date}-EE-{part1}-{part2}-{suffix}"; // długość 36
+        string full = $"{date}-EE-{part1}-{part2}-{suffix}"; // długość 36
         return full[..32]; // obcięcie do 32 znaków
     }
 
     private static string RandomHex(int length)
     {
-        var byteLen = (length + 1) / 2;
+        int byteLen = (length + 1) / 2;
         Span<byte> bytes = stackalloc byte[byteLen];
         RandomNumberGenerator.Fill(bytes);
 
-        var sb = new StringBuilder(byteLen * 2);
-        foreach (var b in bytes)
+        StringBuilder sb = new StringBuilder(byteLen * 2);
+        foreach (byte b in bytes)
             sb.Append(b.ToString("X2"));
 
-        var hex = sb.ToString();
+        string hex = sb.ToString();
         return hex[..length]; // zwróć dokładnie 'length' znaków HEX (A-F wielkie)
     }
 
@@ -158,7 +158,7 @@ public class KsefNumberValidatorTests
     private static string ComputeChecksum(string data32)
     {
         byte crc = 0x00;
-        foreach (var b in Encoding.UTF8.GetBytes(data32))
+        foreach (byte b in Encoding.UTF8.GetBytes(data32))
         {
             crc ^= b;
             for (int i = 0; i < 8; i++)

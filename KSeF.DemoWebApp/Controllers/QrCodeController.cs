@@ -22,9 +22,9 @@ public class QrCodeController(
         string invoiceHash,
         string ksefNumber)
     {
-        var url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
-        var qrCode = qrSvc.GenerateQrCode(url);
-        var labeledQr = qrSvc.AddLabelToQrCode(qrCode, ksefNumber);
+        string url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
+        byte[] qrCode = qrSvc.GenerateQrCode(url);
+        byte[] labeledQr = qrSvc.AddLabelToQrCode(qrCode, ksefNumber);
 
         return Ok(new QrCodeResult(url, Convert.ToBase64String(labeledQr)));
     }
@@ -36,9 +36,9 @@ public class QrCodeController(
         DateTime issueDate,
         string invoiceHash)
     {
-        var url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
-        var qrCode = qrSvc.GenerateQrCode(url);
-        var labeledQr = qrSvc.AddLabelToQrCode(qrCode, "OFFLINE");
+        string url = linkSvc.BuildInvoiceVerificationUrl(nip, issueDate, invoiceHash);
+        byte[] qrCode = qrSvc.GenerateQrCode(url);
+        byte[] labeledQr = qrSvc.AddLabelToQrCode(qrCode, "OFFLINE");
 
         return Ok(new QrCodeResult(url, Convert.ToBase64String(labeledQr)));
     }
@@ -47,7 +47,7 @@ public class QrCodeController(
     [HttpGet("certificate")]
     public ActionResult<QrCodeResult> GetCertificateQr(
         string sellerNip,
-        ContextIdentifierType contextIdentifierType,
+        QRCodeContextIdentifierType contextIdentifierType,
         string contextIdentifierValue,
         string certSerial,
         string invoiceHash,
@@ -55,10 +55,10 @@ public class QrCodeController(
         string privateKey = ""        
        )
     {
-        var cert = new X509Certificate2(Convert.FromBase64String(certbase64));
-        var url = linkSvc.BuildCertificateVerificationUrl(sellerNip,contextIdentifierType ,contextIdentifierValue ,certSerial, invoiceHash, cert, privateKey);
-        var qrCode = qrSvc.GenerateQrCode(url);
-        var labeledQr = qrSvc.AddLabelToQrCode(qrCode, "CERTYFIKAT");
+        X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certbase64));
+        string url = linkSvc.BuildCertificateVerificationUrl(sellerNip,contextIdentifierType ,contextIdentifierValue ,certSerial, invoiceHash, cert, privateKey);
+        byte[] qrCode = qrSvc.GenerateQrCode(url);
+        byte[] labeledQr = qrSvc.AddLabelToQrCode(qrCode, "CERTYFIKAT");
 
         return Ok(new QrCodeResult(url, Convert.ToBase64String(labeledQr)));
     }

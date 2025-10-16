@@ -1,5 +1,4 @@
 using KSeF.Client.Core.Models.Permissions.EUEntityRepresentative;
-using StandardPermissionType = KSeF.Client.Core.Models.Permissions.EUEntityRepresentative.StandardPermissionType;
 
 namespace KSeF.Client.Api.Builders.EUEntityRepresentativePermissions;
 
@@ -9,12 +8,12 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
 
     public interface ISubjectStep
     {
-        IPermissionsStep WithSubject(SubjectIdentifier subject);
+        IPermissionsStep WithSubject(EUEntitRepresentativeSubjectIdentifier subject);
     }
 
     public interface IPermissionsStep
     {
-        IOptionalStep WithPermissions(params StandardPermissionType[] permissions);
+        IOptionalStep WithPermissions(params EUEntitRepresentativeStandardPermissionType[] permissions);
     }
 
     public interface IOptionalStep
@@ -28,21 +27,21 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
         IPermissionsStep,
         IOptionalStep
     {
-        private SubjectIdentifier _subject;
-        private ICollection<StandardPermissionType> _permissions;
+        private EUEntitRepresentativeSubjectIdentifier _subject;
+        private ICollection<EUEntitRepresentativeStandardPermissionType> _permissions;
         private string _description;
 
         private GrantPermissionsRequestBuilderImpl() { }
 
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
-        public IPermissionsStep WithSubject(SubjectIdentifier subject)
+        public IPermissionsStep WithSubject(EUEntitRepresentativeSubjectIdentifier subject)
         {
             _subject = subject ?? throw new ArgumentNullException(nameof(subject));
             return this;
         }
 
-        public IOptionalStep WithPermissions(params StandardPermissionType[] permissions)
+        public IOptionalStep WithPermissions(params EUEntitRepresentativeStandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
                 throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));

@@ -2,7 +2,7 @@ using System.Runtime.Serialization;
 
 namespace KSeF.Client.Core.Models.QRCode
 {
-    public enum ContextIdentifierType
+    public enum QRCodeContextIdentifierType
     {
         [EnumMember(Value = "Nip")]
         Nip,

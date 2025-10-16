@@ -24,7 +24,7 @@ public class PeppolController : ControllerBase
         [FromQuery] int? pageSize,
         CancellationToken cancellationToken)
     {
-        var result = await _client.QueryPeppolProvidersAsync(accessToken, pageOffset, pageSize, cancellationToken);
+        QueryPeppolProvidersResponse result = await _client.QueryPeppolProvidersAsync(accessToken, pageOffset, pageSize, cancellationToken);
         return Ok(result);
     }
 }

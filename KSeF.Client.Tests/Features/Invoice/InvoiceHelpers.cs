@@ -22,7 +22,7 @@ public partial class InvoiceTests
         /// <exception cref="DirectoryNotFoundException">Gdy plik szablonu nie zostanie znaleziony pod zbudowaną ścieżką.</exception>
         public static string GetTemplateText(string templatePath, string nip)
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "Templates", templatePath);
+            string path = Path.Combine(AppContext.BaseDirectory, "Templates", templatePath);
             if (!File.Exists(path))
                 throw new DirectoryNotFoundException($"Templates nie znaleziono pod: {path}");
 
@@ -43,9 +43,9 @@ public partial class InvoiceTests
         /// <exception cref="System.Xml.XmlException">Gdy wejściowy tekst nie jest poprawnym XML-em.</exception>
         public static string SetElementValue(string xml, string localName, string value)
         {
-            var doc = XDocument.Parse(xml, LoadOptions.PreserveWhitespace);
+            XDocument doc = XDocument.Parse(xml, LoadOptions.PreserveWhitespace);
 
-            var el = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == localName)
+            XElement el = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == localName)
                      ?? throw new InvalidOperationException($"Element '{localName}' nie znaleziono w Templates.");
             el.Value = value;
 

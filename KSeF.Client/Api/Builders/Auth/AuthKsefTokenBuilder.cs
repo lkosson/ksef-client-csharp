@@ -15,7 +15,7 @@ public interface IAuthKsefTokenRequestBuilder
 
 public interface IAuthKsefTokenRequestBuilderWithChallenge
 {
-    IAuthKsefTokenRequestBuilderWithContext WithContext(ContextIdentifierType type, string value);
+    IAuthKsefTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifierType type, string value);
 }
 
 public interface IAuthKsefTokenRequestBuilderWithContext
@@ -25,8 +25,8 @@ public interface IAuthKsefTokenRequestBuilderWithContext
 
 public interface IAuthKsefTokenRequestBuilderWithEncryptedToken
 {
-    IAuthKsefTokenRequestBuilderWithEncryptedToken WithAuthorizationPolicy(AuthorizationPolicy authorizationPolicy);
-    AuthKsefTokenRequest Build();
+    IAuthKsefTokenRequestBuilderWithEncryptedToken WithAuthorizationPolicy(AuthenticationTokenAuthorizationPolicy authorizationPolicy);
+    AuthenticationKsefTokenRequest Build();
 }
 
 internal sealed class AuthKsefTokenRequestBuilderImpl :
@@ -36,9 +36,9 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
     IAuthKsefTokenRequestBuilderWithEncryptedToken
 {
     private string _challenge;
-    private AuthContextIdentifier _contextIdentifier;
+    private AuthenticationTokenContextIdentifier _contextIdentifier;
     private string _encryptedToken;
-    private AuthorizationPolicy _authorizationPolicy; 
+    private AuthenticationTokenAuthorizationPolicy _authorizationPolicy; 
 
     private AuthKsefTokenRequestBuilderImpl() { }
 
@@ -54,12 +54,12 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
         return this;
     }
 
-    public IAuthKsefTokenRequestBuilderWithContext WithContext(ContextIdentifierType type, string value)
+    public IAuthKsefTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifierType type, string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             throw new ArgumentException(nameof(value));
 
-        _contextIdentifier = new AuthContextIdentifier { Type = type, Value = value };
+        _contextIdentifier = new AuthenticationTokenContextIdentifier { Type = type, Value = value };
         return this;
     }
 
@@ -72,18 +72,18 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
         return this;
     }
 
-    public IAuthKsefTokenRequestBuilderWithEncryptedToken WithAuthorizationPolicy(AuthorizationPolicy authorizationPolicy)
+    public IAuthKsefTokenRequestBuilderWithEncryptedToken WithAuthorizationPolicy(AuthenticationTokenAuthorizationPolicy authorizationPolicy)
     {
         _authorizationPolicy = authorizationPolicy ?? throw new ArgumentNullException(nameof(authorizationPolicy));
         return this;
     }
 
-    public AuthKsefTokenRequest Build()
+    public AuthenticationKsefTokenRequest Build()
     {
         if (_challenge is null || _contextIdentifier is null || _encryptedToken is null)
             throw new InvalidOperationException("Brak wymaganych pól.");
 
-        return new AuthKsefTokenRequest
+        return new AuthenticationKsefTokenRequest
         {
             Challenge = _challenge,
             ContextIdentifier = _contextIdentifier,

@@ -40,7 +40,7 @@ public class QrCodeOnlineE2ETests : TestBase
         _qrSvc = new QrCodeService();
         _fixture.Nip = MiscellaneousUtils.GetRandomNip();
 
-        AuthOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, _fixture.Nip).GetAwaiter().GetResult();
+        AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, _fixture.Nip).GetAwaiter().GetResult();
         _fixture.AccessToken = authInfo.AccessToken.Token;
     }
 

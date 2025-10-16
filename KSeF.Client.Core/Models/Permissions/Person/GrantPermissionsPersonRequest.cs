@@ -4,12 +4,12 @@ namespace KSeF.Client.Core.Models.Permissions.Person
 {
     public class GrantPermissionsPersonRequest
     {
-        public SubjectIdentifier SubjectIdentifier { get; set; }
-        public ICollection<StandardPermissionType> Permissions { get; set; }
+        public PersonSubjectIdentifier SubjectIdentifier { get; set; }
+        public ICollection<PersonStandardPermissionType> Permissions { get; set; }
         public string Description { get; set; }
     }
 
-    public enum StandardPermissionType
+    public enum PersonStandardPermissionType
     {
         InvoiceRead,
         InvoiceWrite,
@@ -20,39 +20,39 @@ namespace KSeF.Client.Core.Models.Permissions.Person
         SubunitManage
     }
 
-    public partial class SubjectIdentifier
+    public partial class PersonSubjectIdentifier
     {
-        public SubjectIdentifierType Type { get; set; }
+        public PersonSubjectIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public partial class AuthorizedIdentifier
+    public partial class PersonAuthorizedIdentifier
     {
-        public AuthorizedIdentifierType Type { get; set; }
+        public PersonAuthorizedIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public partial class TargetIdentifier
+    public partial class PersonTargetIdentifier
     {
-        public TargetIdentifierType Type { get; set; }
+        public PersonTargetIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public enum SubjectIdentifierType
+    public enum PersonSubjectIdentifierType
     {
         Nip,
         Pesel,
         Fingerprint
     }
 
-    public enum AuthorizedIdentifierType
+    public enum PersonAuthorizedIdentifierType
     {
         Nip,
         Pesel,
         Fingerprint
     }
 
-    public enum TargetIdentifierType
+    public enum PersonTargetIdentifierType
     {
         Nip,
         AllPartners

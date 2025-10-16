@@ -2,16 +2,17 @@ namespace KSeF.Client.Core.Models.Permissions.SubUnit
 {
     public class SubunitPermissionsQueryRequest
     {
-        public SubunitPermissionsSubunitIdentifier SubunitIdentifier { get; set; }
+        public SubUnitPermissionsSubunitIdentifier SubunitIdentifier { get; set; }
     }
-    public class SubunitPermissionsSubunitIdentifier
+    public class SubUnitPermissionsSubunitIdentifier
     {
-        public SubunitIdentifierType Type { get; set; }
+        public SubUnitIQuerydentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public enum SubunitIdentifierType
+    public enum SubUnitIQuerydentifierType
     {
-        InternalId
+        InternalId,
+        Nip
     }
 }

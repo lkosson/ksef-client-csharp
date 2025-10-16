@@ -1,7 +1,9 @@
 using KSeF.Client.Api.Builders.IndirectEntityPermissions;
 using KSeF.Client.Api.Builders.PersonPermissions;
 using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Permissions;
+using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using KSeF.Client.Core.Models.Permissions.Person;
 
 namespace KSeF.Client.Tests.Utils;
@@ -24,17 +26,17 @@ public static class PermissionsUtils
     public static async Task<IReadOnlyList<PersonPermission>> SearchPersonPermissionsAsync(
         IKSeFClient ksefClient,
         string accessToken,
-        QueryTypeEnum queryType,
-        PermissionState state,
+        PersonQueryType queryType,
+        PersonPermissionState state,
         int pageOffset = 0, int pageSize = 10)
     {
-        var query = new PersonPermissionsQueryRequest
+        PersonPermissionsQueryRequest query = new PersonPermissionsQueryRequest
         {
             QueryType = queryType,
             PermissionState = state
         };
 
-        var searchResult = await ksefClient.SearchGrantedPersonPermissionsAsync(query, accessToken, pageOffset: pageOffset, pageSize: pageSize);
+        PagedPermissionsResponse<PersonPermission> searchResult = await ksefClient.SearchGrantedPersonPermissionsAsync(query, accessToken, pageOffset: pageOffset, pageSize: pageSize);
         return searchResult?.Permissions ?? [];
     }
 
@@ -72,11 +74,11 @@ public static class PermissionsUtils
     public static async Task<OperationResponse> GrantPersonPermissionsAsync(
         IKSeFClient client,
         string accessToken,
-        Core.Models.Permissions.Person.SubjectIdentifier subject,
-        StandardPermissionType[] permissions,
+        PersonSubjectIdentifier subject,
+        PersonStandardPermissionType[] permissions,
         string? description = null)
     {
-        var request = GrantPersonPermissionsRequestBuilder
+        GrantPermissionsPersonRequest request = GrantPersonPermissionsRequestBuilder
             .Create()
             .WithSubject(subject)
             .WithPermissions(permissions)
@@ -99,12 +101,12 @@ public static class PermissionsUtils
     public static async Task<OperationResponse> GrantIndirectPermissionsAsync(
         IKSeFClient client,
         string accessToken,
-        Core.Models.Permissions.IndirectEntity.SubjectIdentifier subject,
-        Core.Models.Permissions.IndirectEntity.TargetIdentifier context,
-        Core.Models.Permissions.IndirectEntity.StandardPermissionType[] permissions,
+        IndirectEntitySubjectIdentifier subject,
+        IndirectEntityTargetIdentifier context,
+        IndirectEntityStandardPermissionType[] permissions,
         string? description = null)
     {
-        var request = GrantIndirectEntityPermissionsRequestBuilder
+        GrantPermissionsIndirectEntityRequest request = GrantIndirectEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(subject)
             .WithContext(context)
@@ -123,8 +125,8 @@ public static class PermissionsUtils
     /// <param name="state">Stan uprawnienia.</param>
     /// <returns>Lista uprawnień osoby.</returns>a
     public static async Task<IReadOnlyList<PersonPermission>> SearchPersonPermissionsAsync(
-        IKSeFClient client, string accessToken, PermissionState state)
-        => await SearchPersonPermissionsAsync(client, accessToken, QueryTypeEnum.PermissionsGrantedInCurrentContext, state);
+        IKSeFClient client, string accessToken, PersonPermissionState state)
+        => await SearchPersonPermissionsAsync(client, accessToken, PersonQueryType.PermissionsGrantedInCurrentContext, state);
 
     /// <summary>
     /// Sprawdza, czy operacja zakończyła się sukcesem, oczekując na wynik jej statusu.
@@ -136,12 +138,12 @@ public static class PermissionsUtils
     public static async Task<bool> ConfirmOperationSuccessAsync(
         IKSeFClient client, OperationResponse operationResponse, string accessToken)
     {
-        if (string.IsNullOrWhiteSpace(operationResponse?.OperationReferenceNumber))
+        if (string.IsNullOrWhiteSpace(operationResponse?.ReferenceNumber))
             return false;
 
         await Task.Delay(2000);
 
-        var status = await GetPermissionsOperationStatusAsync(client, operationResponse.OperationReferenceNumber!, accessToken);
+        PermissionsOperationStatusResponse status = await GetPermissionsOperationStatusAsync(client, operationResponse.ReferenceNumber!, accessToken);
         return status?.Status?.Code == 200;
     }
 }

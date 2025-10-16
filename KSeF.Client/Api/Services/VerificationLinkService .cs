@@ -19,15 +19,15 @@ namespace KSeF.Client.Api.Services
 
         public string BuildInvoiceVerificationUrl(string nip, DateTime issueDate, string invoiceHash)
         {
-            var date = issueDate.ToString("dd-MM-yyyy");
-            var bytes = Convert.FromBase64String(invoiceHash);
-            var urlEncoded = bytes.EncodeBase64UrlToString();
+            string date = issueDate.ToString("dd-MM-yyyy");
+            byte[] bytes = Convert.FromBase64String(invoiceHash);
+            string urlEncoded = bytes.EncodeBase64UrlToString();
             return $"{BaseUrl}/invoice/{nip}/{date}/{urlEncoded}";
         }
 
         public string BuildCertificateVerificationUrl(
             string sellerNip,
-            ContextIdentifierType contextIdentifierType,
+            QRCodeContextIdentifierType contextIdentifierType,
             string contextIdentifierValue,
             string certificateSerial,
             string invoiceHash,
@@ -35,11 +35,11 @@ namespace KSeF.Client.Api.Services
             string privateKey = ""
         )
         {
-            var bytes = Convert.FromBase64String(invoiceHash);
-            var invoiceHashUrlEncoded = bytes.EncodeBase64UrlToString();
+            byte[] bytes = Convert.FromBase64String(invoiceHash);
+            string invoiceHashUrlEncoded = bytes.EncodeBase64UrlToString();
 
-            var pathToSign = $"{BaseUrl}/certificate/{contextIdentifierType}/{contextIdentifierValue}/{sellerNip}/{certificateSerial}/{invoiceHashUrlEncoded}".Replace("https://", "");
-            var signedHash = ComputeUrlEncodedSignedHash(pathToSign, signingCertificate, privateKey);
+            string pathToSign = $"{BaseUrl}/certificate/{contextIdentifierType}/{contextIdentifierValue}/{sellerNip}/{certificateSerial}/{invoiceHashUrlEncoded}".Replace("https://", "");
+            string signedHash = ComputeUrlEncodedSignedHash(pathToSign, signingCertificate, privateKey);
 
             return $"{BaseUrl}/certificate/{contextIdentifierType}/{contextIdentifierValue}/{sellerNip}/{certificateSerial}/{invoiceHashUrlEncoded}/{signedHash}";
         }
@@ -50,7 +50,7 @@ namespace KSeF.Client.Api.Services
             // 1. SHA-256
             byte[] sha;
 
-            using (var sha256 = SHA256.Create())
+            using (SHA256 sha256 = SHA256.Create())
             {
                 sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(pathToSign));
             }
@@ -73,13 +73,13 @@ namespace KSeF.Client.Api.Services
                 {
                     if (cert.GetRSAPublicKey() != null)
                     {
-                        using var rsaTemp = RSA.Create();
+                        using RSA rsaTemp = RSA.Create();
                         rsaTemp.ImportRSAPrivateKey(privateKeyBytes, out _);
                         cert = cert.CopyWithPrivateKey(rsaTemp);
                     }
                     else if (cert.GetECDsaPublicKey() != null)
                     {
-                        using var ecdsaTemp = ECDsa.Create();
+                        using ECDsa ecdsaTemp = ECDsa.Create();
                         ecdsaTemp.ImportPkcs8PrivateKey(privateKeyBytes, out _);
                         cert = cert.CopyWithPrivateKey(ecdsaTemp);
                     }

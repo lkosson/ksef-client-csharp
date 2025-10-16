@@ -22,10 +22,10 @@ public class ActiveSessionsController : ControllerBase
     {
         const int pageSize = 20;
         string? continuationToken = null;
-        var activeSessions = new List<AuthenticationListItem>();
+        List<AuthenticationListItem> activeSessions = new List<AuthenticationListItem>();
         do
         {
-            var response = await ksefClient.GetActiveSessions(accessToken, pageSize, continuationToken, cancellationToken);
+            AuthenticationListResponse response = await ksefClient.GetActiveSessions(accessToken, pageSize, continuationToken, cancellationToken);
             continuationToken = response.ContinuationToken;
             activeSessions.AddRange(response.Items);
         }

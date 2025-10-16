@@ -1,5 +1,4 @@
 using KSeF.Client.Core.Models.Permissions.Authorizations;
-using AuthorizationPermissionType = KSeF.Client.Core.Models.Permissions.Authorizations.AuthorizationPermissionType;
 
 namespace KSeF.Client.Api.Builders.AuthorizationPermissions;
 
@@ -9,7 +8,7 @@ public static class GrantAuthorizationPermissionsRequestBuilder
 
     public interface ISubjectStep
     {
-        IPermissionsStep WithSubject(SubjectIdentifier subject);
+        IPermissionsStep WithSubject(AuthorizationSubjectIdentifier subject);
     }
 
     public interface IPermissionsStep
@@ -20,7 +19,7 @@ public static class GrantAuthorizationPermissionsRequestBuilder
     public interface IOptionalStep
     {
         IOptionalStep WithDescription(string description);
-        GrantAuthorizationPermissionsRequest Build();
+        GrantPermissionsAuthorizationRequest Build();
     }
 
     private sealed class GrantPermissionsRequestBuilderImpl :
@@ -28,7 +27,7 @@ public static class GrantAuthorizationPermissionsRequestBuilder
         IPermissionsStep,
         IOptionalStep
     {
-        private SubjectIdentifier _subject;
+        private AuthorizationSubjectIdentifier _subject;
         private AuthorizationPermissionType _permission;
         private string _description;
 
@@ -36,7 +35,7 @@ public static class GrantAuthorizationPermissionsRequestBuilder
 
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
-        public IPermissionsStep WithSubject(SubjectIdentifier subject)
+        public IPermissionsStep WithSubject(AuthorizationSubjectIdentifier subject)
         {
             _subject = subject ?? throw new ArgumentNullException(nameof(subject));
             return this;
@@ -55,12 +54,12 @@ public static class GrantAuthorizationPermissionsRequestBuilder
             return this;
         }
 
-        public GrantAuthorizationPermissionsRequest Build()
+        public GrantPermissionsAuthorizationRequest Build()
         {
             if (_subject is null)
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
 
-            return new GrantAuthorizationPermissionsRequest
+            return new GrantPermissionsAuthorizationRequest
             {
                 SubjectIdentifier = _subject,
                 Permission = _permission,

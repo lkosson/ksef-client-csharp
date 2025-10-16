@@ -41,8 +41,11 @@
     <None Update="Templates\invoice-template-fa-2.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Templates\invoice-template-fa-3-pef-correction.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Templates\invoice-template-fa-3-pef-with-attachment.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Templates\invoice-template-fa-3-pef.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

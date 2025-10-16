@@ -10,7 +10,7 @@ namespace KSeF.Client.Core.Models.Permissions.EUEntity
     }
     public enum EuEntityPermissionsQueryPermissionType
     {
-        CredentialsManage,
+        VatUeManage,
         InvoiceWrite,
         InvoiceRead,
         Introspection

@@ -7,12 +7,9 @@ using KSeF.Client.Api.Builders.Auth;
 using KSeF.Client.Core.Exceptions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
-using EntityStandardPermissionType = KSeF.Client.Core.Models.Permissions.Entity.StandardPermissionType;
-using PersonSubjectIdentifier = KSeF.Client.Core.Models.Permissions.Person.SubjectIdentifier;
-using PersonSubjectIdentifierType = KSeF.Client.Core.Models.Permissions.Person.SubjectIdentifierType;
-using StandardPermissionType = KSeF.Client.Core.Models.Permissions.Person.StandardPermissionType;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Models.Permissions.Person;
 
 namespace KSeF.Client.Tests.Features;
 
@@ -25,41 +22,41 @@ public class AuthenticateTests : KsefIntegrationTestBase
     [Trait("Scenario", "Uwierzytelnienie za pomocą certyfikatu z identyfikatorem NIP, na uprawnienie właściciel")]
     public async Task GivenOwnerContextAndOwnerPermission_WhenAuthenticatingWithCertificate_ThenAccessTokenReturned()
     {
-        var nip = MiscellaneousUtils.GetRandomNip();
-        var accessToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip)).AccessToken.Token;
+        string nip = MiscellaneousUtils.GetRandomNip();
+        string accessToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip)).AccessToken.Token;
 
         Assert.NotNull(accessToken);
 
-        var per = GetPerAsStringSet(accessToken);
+        HashSet<string> per = GetPerAsStringSet(accessToken);
         Assert.Contains("Owner", per);
     }
 
     [Theory]
     // ===== pesel =====
-    [InlineData("pesel", new StandardPermissionType[] { StandardPermissionType.InvoiceWrite })]
-    [InlineData("pesel", new StandardPermissionType[] { StandardPermissionType.InvoiceRead })]
-    [InlineData("pesel", new StandardPermissionType[] { StandardPermissionType.CredentialsManage })]
-    [InlineData("pesel", new StandardPermissionType[] { StandardPermissionType.CredentialsRead })]
-    [InlineData("pesel", new StandardPermissionType[] { StandardPermissionType.Introspection })]
-    [InlineData("pesel", new StandardPermissionType[] { StandardPermissionType.SubunitManage })]
+    [InlineData("pesel", new PersonStandardPermissionType[] { PersonStandardPermissionType.InvoiceWrite })]
+    [InlineData("pesel", new PersonStandardPermissionType[] { PersonStandardPermissionType.InvoiceRead })]
+    [InlineData("pesel", new PersonStandardPermissionType[] { PersonStandardPermissionType.CredentialsManage })]
+    [InlineData("pesel", new PersonStandardPermissionType[] { PersonStandardPermissionType.CredentialsRead })]
+    [InlineData("pesel", new PersonStandardPermissionType[] { PersonStandardPermissionType.Introspection })]
+    [InlineData("pesel", new PersonStandardPermissionType[] { PersonStandardPermissionType.SubunitManage })]
     // ===== nip =====
-    [InlineData("nip", new StandardPermissionType[] { StandardPermissionType.InvoiceWrite })]
-    [InlineData("nip", new StandardPermissionType[] { StandardPermissionType.InvoiceRead })]
-    [InlineData("nip", new StandardPermissionType[] { StandardPermissionType.CredentialsManage })]
-    [InlineData("nip", new StandardPermissionType[] { StandardPermissionType.CredentialsRead })]
-    [InlineData("nip", new StandardPermissionType[] { StandardPermissionType.Introspection })]
-    [InlineData("nip", new StandardPermissionType[] { StandardPermissionType.SubunitManage })]
+    [InlineData("nip", new PersonStandardPermissionType[] { PersonStandardPermissionType.InvoiceWrite })]
+    [InlineData("nip", new PersonStandardPermissionType[] { PersonStandardPermissionType.InvoiceRead })]
+    [InlineData("nip", new PersonStandardPermissionType[] { PersonStandardPermissionType.CredentialsManage })]
+    [InlineData("nip", new PersonStandardPermissionType[] { PersonStandardPermissionType.CredentialsRead })]
+    [InlineData("nip", new PersonStandardPermissionType[] { PersonStandardPermissionType.Introspection })]
+    [InlineData("nip", new PersonStandardPermissionType[] { PersonStandardPermissionType.SubunitManage })]
     [Trait("Scenario", "Uwierzytelnienie certyfikatem (PESEL/NIP) na różne uprawnienia")]
     public async Task GivenOwnerContextAndPermissionGranted_WhenAuthenticatingAsSubject_ThenAccessTokenReturned(
         string identifierKind,
-        StandardPermissionType[] permissions,
-        ContextIdentifierType contextIdentifierType = ContextIdentifierType.Nip)
+        PersonStandardPermissionType[] permissions,
+        AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip)
     {
-        var ownerNip = MiscellaneousUtils.GetRandomNip();
-        var ownerToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip)).AccessToken.Token;
+        string ownerNip = MiscellaneousUtils.GetRandomNip();
+        string ownerToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip)).AccessToken.Token;
 
-        var delegateNip = MiscellaneousUtils.GetRandomNip();
-        var pesel = MiscellaneousUtils.GetRandomPesel();
+        string delegateNip = MiscellaneousUtils.GetRandomNip();
+        string pesel = MiscellaneousUtils.GetRandomPesel();
 
         PersonSubjectIdentifier subjectIdentifier;
         if (identifierKind.Equals("pesel", StringComparison.OrdinalIgnoreCase))
@@ -72,20 +69,20 @@ public class AuthenticateTests : KsefIntegrationTestBase
         }
         await PermissionsUtils.GrantPersonPermissionsAsync(KsefClient, ownerToken, subjectIdentifier, permissions);
 
-        var challengeResponse = await KsefClient
+        AuthenticationChallengeResponse challengeResponse = await KsefClient
             .GetAuthChallengeAsync();
 
-        var authTokenRequest = AuthTokenRequestBuilder
+        AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
            .Create()
            .WithChallenge(challengeResponse.Challenge)
            .WithContext(contextIdentifierType, ownerNip)
-           .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
-           .WithAuthorizationPolicy(new AuthorizationPolicy { /* ... */ })
+           .WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
+           .WithAuthorizationPolicy(new AuthenticationTokenAuthorizationPolicy { /* ... */ })
            .Build();
 
-        var unsignedXml = authTokenRequest.SerializeToXmlString();
+        string unsignedXml = authTokenRequest.SerializeToXmlString();
 
-        using var certificate = identifierKind.Equals("pesel", StringComparison.OrdinalIgnoreCase)
+        using System.Security.Cryptography.X509Certificates.X509Certificate2 certificate = identifierKind.Equals("pesel", StringComparison.OrdinalIgnoreCase)
             ? SelfSignedCertificateForSignatureBuilder
                 .Create()
                 .WithGivenName("A")
@@ -100,21 +97,21 @@ public class AuthenticateTests : KsefIntegrationTestBase
                 .WithSerialNumber("TINPL-" + delegateNip)
                 .WithCommonName("Jan Kowalski")
                 .Build();
-        var signedXml = SignatureService.Sign(unsignedXml, certificate);
+        string signedXml = SignatureService.Sign(unsignedXml, certificate);
 
-        var authOperationInfo = await KsefClient
+        SignatureResponse authOperationInfo = await KsefClient
           .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
 
-        var status = await EnsureAuthenticationCompletedAsync(
+        AuthStatus status = await EnsureAuthenticationCompletedAsync(
             KsefClient,
             authOperationInfo.ReferenceNumber,
             authOperationInfo.AuthenticationToken.Token);
 
         Assert.Equal(200, status.Status.Code);
 
-        var accessToken = await KsefClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
+        AuthenticationOperationStatusResponse accessToken = await KsefClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
         Assert.NotNull(accessToken);
-        var actual = GetPerAsEnumSet<StandardPermissionType>(accessToken.AccessToken.Token);
+        HashSet<PersonStandardPermissionType> actual = GetPerAsEnumSet<PersonStandardPermissionType>(accessToken.AccessToken.Token);
         Assert.True(permissions.ToHashSet().IsSubsetOf(actual));
     }
 
@@ -125,60 +122,60 @@ public class AuthenticateTests : KsefIntegrationTestBase
     [Trait("Scenario", "Uwierzytelnienie za pomocą pieczęci z nip, na różne uprawnienia")]
     public async Task GivenOwnerContextAndPermissionGranted_WhenAuthenticatingAsSubjectEntity_ThenAccessTokenReturned(
         EntityStandardPermissionType permission,
-        ContextIdentifierType contextIdentifierType = ContextIdentifierType.Nip)
+        AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip)
     {
-        var ownerNip = MiscellaneousUtils.GetRandomNip();
-        var ownerToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip)).AccessToken.Token;
+        string ownerNip = MiscellaneousUtils.GetRandomNip();
+        string ownerToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip)).AccessToken.Token;
 
-        var delegateNip = MiscellaneousUtils.GetRandomNip();
+        string delegateNip = MiscellaneousUtils.GetRandomNip();
 
-        Core.Models.Permissions.Entity.SubjectIdentifier subject = new Core.Models.Permissions.Entity.SubjectIdentifier
-        { Type = Core.Models.Permissions.Entity.SubjectIdentifierType.Nip, Value = delegateNip };
+        EntitySubjectIdentifier subject = new EntitySubjectIdentifier
+        { Type = EntitySubjectIdentifierType.Nip, Value = delegateNip };
 
-        var request = GrantEntityPermissionsRequestBuilder
+        GrantPermissionsEntityRequest request = GrantEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(subject)
-            .WithPermissions(Permission.New(permission, true))
+            .WithPermissions(EntityPermission.New(permission, true))
             .WithDescription($"Grant {string.Join(", ", permission)} to {subject.Type}:{subject.Value}")
             .Build();
 
         await KsefClient.GrantsPermissionEntityAsync(request, ownerToken);
 
-        var challengeResponse = await KsefClient
+        AuthenticationChallengeResponse challengeResponse = await KsefClient
             .GetAuthChallengeAsync();
 
-        var authTokenRequest = AuthTokenRequestBuilder
+        AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
            .Create()
            .WithChallenge(challengeResponse.Challenge)
            .WithContext(contextIdentifierType, ownerNip)
-           .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
-           .WithAuthorizationPolicy(new AuthorizationPolicy { /* ... */ })
+           .WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
+           .WithAuthorizationPolicy(new AuthenticationTokenAuthorizationPolicy { /* ... */ })
            .Build();
 
-        var unsignedXml = authTokenRequest.SerializeToXmlString();
+        string unsignedXml = authTokenRequest.SerializeToXmlString();
 
-        using var certificate = SelfSignedCertificateForSealBuilder
+        using System.Security.Cryptography.X509Certificates.X509Certificate2 certificate = SelfSignedCertificateForSealBuilder
             .Create()
             .WithOrganizationName("AR sp. z o.o")
             .WithOrganizationIdentifier("VATPL-" + delegateNip)
             .WithCommonName("A R")
             .Build();
 
-        var signedXml = SignatureService.Sign(unsignedXml, certificate);
+        string signedXml = SignatureService.Sign(unsignedXml, certificate);
 
-        var authOperationInfo = await KsefClient
+        SignatureResponse authOperationInfo = await KsefClient
           .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
 
-        var status = await EnsureAuthenticationCompletedAsync(
+        AuthStatus status = await EnsureAuthenticationCompletedAsync(
             KsefClient,
             authOperationInfo.ReferenceNumber,
             authOperationInfo.AuthenticationToken.Token);
 
         Assert.Equal(200, status.Status.Code);
 
-        var token = await KsefClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
+        AuthenticationOperationStatusResponse token = await KsefClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
         Assert.NotNull(token);
-        var entitySet = GetPerAsEnumSet<EntityStandardPermissionType>(token.AccessToken.Token);
+        HashSet<EntityStandardPermissionType> entitySet = GetPerAsEnumSet<EntityStandardPermissionType>(token.AccessToken.Token);
         Assert.Contains(permission, entitySet);
     }
 
@@ -186,27 +183,27 @@ public class AuthenticateTests : KsefIntegrationTestBase
     [Trait("Scenario", "Uwierzytelnienie za pomocą PESEL oraz niepoprawnego certyfikatu z PESEL")]
     public async Task GivenOwnerContextAndWrongCertificate_WhenAuthenticateWithPESEL_ThenError()
     {
-        var ownerNip = MiscellaneousUtils.GetRandomNip();
-        var ownerToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip)).AccessToken.Token;
+        string ownerNip = MiscellaneousUtils.GetRandomNip();
+        string ownerToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip)).AccessToken.Token;
 
-        var delegateNip = MiscellaneousUtils.GetRandomNip();
-        var pesel = MiscellaneousUtils.GetRandomPesel();
+        string delegateNip = MiscellaneousUtils.GetRandomNip();
+        string pesel = MiscellaneousUtils.GetRandomPesel();
 
-        var challengeResponse = await KsefClient
+        AuthenticationChallengeResponse challengeResponse = await KsefClient
             .GetAuthChallengeAsync();
 
-        var authTokenRequest = AuthTokenRequestBuilder
+        AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
            .Create()
            .WithChallenge(challengeResponse.Challenge)
-           .WithContext(ContextIdentifierType.Nip, ownerNip)
-           .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
-           .WithAuthorizationPolicy(new AuthorizationPolicy { /* ... */ })
+           .WithContext(AuthenticationTokenContextIdentifierType.Nip, ownerNip)
+           .WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
+           .WithAuthorizationPolicy(new AuthenticationTokenAuthorizationPolicy { /* ... */ })
            .Build();
 
-        var unsignedXml = authTokenRequest.SerializeToXmlString();
+        string unsignedXml = authTokenRequest.SerializeToXmlString();
 
         //błąd w certyfikacie
-        using var certificate = SelfSignedCertificateForSignatureBuilder
+        using System.Security.Cryptography.X509Certificates.X509Certificate2 certificate = SelfSignedCertificateForSignatureBuilder
            .Create()
            .WithGivenName("A")
            .WithSurname("R")
@@ -214,11 +211,11 @@ public class AuthenticateTests : KsefIntegrationTestBase
            .WithCommonName("A R")
            .Build();
 
-        var signedXml = SignatureService.Sign(unsignedXml, certificate);
+        string signedXml = SignatureService.Sign(unsignedXml, certificate);
 
-        var ex = await Assert.ThrowsAsync<KsefApiException>(async () =>
+        KsefApiException ex = await Assert.ThrowsAsync<KsefApiException>(async () =>
         {
-            var authOperationInfo = await KsefClient
+            SignatureResponse authOperationInfo = await KsefClient
           .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
         });
     }
@@ -227,12 +224,12 @@ public class AuthenticateTests : KsefIntegrationTestBase
     [Trait("Scenario", "Niepoprawne uwierzytelnienia - brak żądania autoryzacyjnego")]
     public async Task GivenOwnerContextAndNip_WhenAuthenticatingWithWrongData_ThenError()
     {
-        var nip = MiscellaneousUtils.GetRandomNip();
+        string nip = MiscellaneousUtils.GetRandomNip();
 
         // brak żądania autoryzacyjnego
-        var unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(null);
+        string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(null);
 
-        using var certificate = SelfSignedCertificateForSignatureBuilder
+        using System.Security.Cryptography.X509Certificates.X509Certificate2 certificate = SelfSignedCertificateForSignatureBuilder
                .Create()
                .WithGivenName("Jan")
                .WithSurname("Kowalski")
@@ -240,10 +237,10 @@ public class AuthenticateTests : KsefIntegrationTestBase
                .WithCommonName("Jan Kowalski")
                .Build();
 
-        var signedXml = SignatureService.Sign(unsignedXml, certificate);
-        var ex = await Assert.ThrowsAsync<KsefApiException>(async () =>
+        string signedXml = SignatureService.Sign(unsignedXml, certificate);
+        KsefApiException ex = await Assert.ThrowsAsync<KsefApiException>(async () =>
         {
-            var authOperationInfo = await KsefClient
+            SignatureResponse authOperationInfo = await KsefClient
           .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
         });
     }
@@ -252,23 +249,23 @@ public class AuthenticateTests : KsefIntegrationTestBase
     [Trait("Scenario", "Niepoprawne uwierzytelnienia - zły nip w podpisie")]
     public async Task GivenOwnerContext_WhenAuthenticatingWithWrongNip_ThenError()
     {
-        var ownerNip = MiscellaneousUtils.GetRandomNip();
+        string ownerNip = MiscellaneousUtils.GetRandomNip();
 
-        var challengeResponse = await KsefClient
+        AuthenticationChallengeResponse challengeResponse = await KsefClient
                         .GetAuthChallengeAsync();
 
-        var authTokenRequest = AuthTokenRequestBuilder
+        AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
            .Create()
            .WithChallenge(challengeResponse.Challenge)
-           .WithContext(ContextIdentifierType.Nip, ownerNip)
-           .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
-           .WithAuthorizationPolicy(new AuthorizationPolicy { /* ... */ })
+           .WithContext(AuthenticationTokenContextIdentifierType.Nip, ownerNip)
+           .WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
+           .WithAuthorizationPolicy(new AuthenticationTokenAuthorizationPolicy { /* ... */ })
            .Build();
 
-        var unsignedXml = authTokenRequest.SerializeToXmlString();
+        string unsignedXml = authTokenRequest.SerializeToXmlString();
 
         //niepoprawny nip
-        using var certificate = SelfSignedCertificateForSignatureBuilder
+        using System.Security.Cryptography.X509Certificates.X509Certificate2 certificate = SelfSignedCertificateForSignatureBuilder
                .Create()
                .WithGivenName("Jan")
                .WithSurname("Kowalski")
@@ -276,11 +273,11 @@ public class AuthenticateTests : KsefIntegrationTestBase
                .WithCommonName("Jan Kowalski")
                .Build();
 
-        var signedXml = SignatureService.Sign(unsignedXml, certificate);
+        string signedXml = SignatureService.Sign(unsignedXml, certificate);
 
-        var ex = await Assert.ThrowsAsync<KsefApiException>(async () =>
+        KsefApiException ex = await Assert.ThrowsAsync<KsefApiException>(async () =>
         {
-            var authOperationInfo = await KsefClient
+            SignatureResponse authOperationInfo = await KsefClient
           .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
         });
     }
@@ -289,23 +286,23 @@ public class AuthenticateTests : KsefIntegrationTestBase
     [Trait("Scenario", "Niepoprawne uwierzytelnienia - błędny plik autoryzacyjny")]
     public async Task GivenOwnerContext_WhenAuthenticatingWithWrongAuthenticateFile_ThenError()
     {
-        var ownerNip = MiscellaneousUtils.GetRandomNip();
-        var nip = MiscellaneousUtils.GetRandomNip();
+        string ownerNip = MiscellaneousUtils.GetRandomNip();
+        string nip = MiscellaneousUtils.GetRandomNip();
 
-        var challengeResponse = await KsefClient
+        AuthenticationChallengeResponse challengeResponse = await KsefClient
                         .GetAuthChallengeAsync();
 
-        var authTokenRequest = AuthTokenRequestBuilder
+        AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
            .Create()
            .WithChallenge(challengeResponse.Challenge)
-           .WithContext(ContextIdentifierType.Nip, ownerNip)
-           .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
-           .WithAuthorizationPolicy(new AuthorizationPolicy { /* ... */ })
+           .WithContext(AuthenticationTokenContextIdentifierType.Nip, ownerNip)
+           .WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
+           .WithAuthorizationPolicy(new AuthenticationTokenAuthorizationPolicy { /* ... */ })
            .Build();
 
-        var unsignedXml = authTokenRequest.SerializeToXmlString();
+        string unsignedXml = authTokenRequest.SerializeToXmlString();
 
-        using var certificate = SelfSignedCertificateForSignatureBuilder
+        using System.Security.Cryptography.X509Certificates.X509Certificate2 certificate = SelfSignedCertificateForSignatureBuilder
                .Create()
                .WithGivenName("Jan")
                .WithSurname("Kowalski")
@@ -322,17 +319,17 @@ public class AuthenticateTests : KsefIntegrationTestBase
         string authToken,
         TimeSpan? timeout = null,
         TimeSpan? pollInterval = null,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
         timeout ??= TimeSpan.FromSeconds(60);
         pollInterval ??= TimeSpan.FromSeconds(1);
 
-        var maxAttempts = (int)Math.Ceiling(timeout.Value.TotalMilliseconds / pollInterval.Value.TotalMilliseconds);
+        int maxAttempts = (int)Math.Ceiling(timeout.Value.TotalMilliseconds / pollInterval.Value.TotalMilliseconds);
 
         return await AsyncPollingUtils.PollAsync(
             action: async () =>
             {
-                var status = await client.GetAuthStatusAsync(operationReferenceNumber, authToken, ct);
+                AuthStatus status = await client.GetAuthStatusAsync(operationReferenceNumber, authToken, cancellationToken);
                 Console.WriteLine(
                     $"Polling: StatusCode={status.Status.Code}, " +
                     $"Description='{status.Status.Description}'");
@@ -341,20 +338,20 @@ public class AuthenticateTests : KsefIntegrationTestBase
             condition: status => status.Status.Code == 200,
             delay: pollInterval,
             maxAttempts: maxAttempts,
-            cancellationToken: ct);
+            cancellationToken: cancellationToken);
     }
     private static HashSet<string> GetPerAsStringSet(string jwtToken)
     {
-        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(jwtToken);
+        JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(jwtToken);
 
-        var perClaims = jwt.Claims
+        string[] perClaims = jwt.Claims
             .Where(c => c.Type == "per")
             .Select(c => c.Value)
             .ToArray();
 
         if (perClaims.Length == 1 && perClaims[0].TrimStart().StartsWith("["))
         {
-            var arr = JsonSerializer.Deserialize<string[]>(perClaims[0]) ?? Array.Empty<string>();
+            string[] arr = JsonSerializer.Deserialize<string[]>(perClaims[0]) ?? Array.Empty<string>();
             return arr.ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
 
@@ -364,17 +361,17 @@ public class AuthenticateTests : KsefIntegrationTestBase
     private static HashSet<TEnum> GetPerAsEnumSet<TEnum>(string jwtToken)
           where TEnum : struct, Enum
     {
-        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(jwtToken);
-        var perValues = jwt.Claims.Where(c => c.Type == "per").Select(c => c.Value).ToArray();
+        JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(jwtToken);
+        string[] perValues = jwt.Claims.Where(c => c.Type == "per").Select(c => c.Value).ToArray();
 
         IEnumerable<string> raw =
             perValues.Length == 1 && perValues[0].TrimStart().StartsWith("[")
                 ? JsonSerializer.Deserialize<string[]>(perValues[0]) ?? Array.Empty<string>()
                 : perValues;
 
-        var set = new HashSet<TEnum>();
-        foreach (var s in raw)
-            if (Enum.TryParse<TEnum>(s, ignoreCase: true, out var e))
+        HashSet<TEnum> set = new HashSet<TEnum>();
+        foreach (string s in raw)
+            if (Enum.TryParse<TEnum>(s, ignoreCase: true, out TEnum e))
                 set.Add(e);
 
         return set;

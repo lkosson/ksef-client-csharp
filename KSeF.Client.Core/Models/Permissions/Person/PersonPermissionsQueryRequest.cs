@@ -6,26 +6,26 @@ namespace KSeF.Client.Core.Models.Permissions.Person
     {
         public PersonPermissionsAuthorIdentifier AuthorIdentifier { get; set; }
         public PersonPermissionsAuthorizedIdentifier AuthorizedIdentifier { get; set; }
-        public ContextIdentifier ContextIdentifier { get; set; }
+        public PersonalContextIdentifier ContextIdentifier { get; set; }
         public PersonPermissionsTargetIdentifier TargetIdentifier { get; set; }
         public List<PersonPermissionType> PermissionTypes { get; set; }
-        public PermissionState PermissionState { get; set; }
-        public QueryTypeEnum QueryType { get; set; }
+        public PersonPermissionState PermissionState { get; set; }
+        public PersonQueryType QueryType { get; set; }
     }
 
     public class PersonPermissionsAuthorIdentifier
     {
-        public SubjectIdentifierType Type { get; set; }
+        public PersonSubjectIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
     public class PersonPermissionsAuthorizedIdentifier
     {
-        public AuthorizedIdentifierType Type { get; set; }
+        public PersonAuthorizedIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
     public class PersonPermissionsTargetIdentifier
     {
-        public TargetIdentifierType Type { get; set; }
+        public PersonTargetIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
@@ -41,12 +41,12 @@ namespace KSeF.Client.Core.Models.Permissions.Person
         VatUeManage,
         Owner
     }
-    public enum PermissionState
+    public enum PersonPermissionState
     {
         Active,
         Inactive
     }
-    public enum QueryTypeEnum
+    public enum PersonQueryType
     {
         PermissionsInCurrentContext,
         PermissionsGrantedInCurrentContext

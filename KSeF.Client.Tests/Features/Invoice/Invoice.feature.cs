@@ -15,7 +15,7 @@ namespace KSeF.Client.Tests.Features
         public InvoiceTests()
         {
             nip = MiscellaneousUtils.GetRandomNip();
-            var authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip).GetAwaiter().GetResult();
+            Core.Models.Authorization.AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip).GetAwaiter().GetResult();
             authToken = authInfo.AccessToken.Token;
         }
 
@@ -29,16 +29,16 @@ namespace KSeF.Client.Tests.Features
             Assert.NotNull(authToken);
 
             // proceed with invoice online session
-            var encryptionData = CryptographyService.GetEncryptionData();
+            Core.Models.Sessions.EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
-            var openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient,
+            Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient,
                 encryptionData,
                 authToken,
                 systemCode);
             Assert.NotNull(openSessionRequest);
             Assert.NotNull(openSessionRequest.ReferenceNumber);
 
-            var sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(KsefClient,
+            Core.Models.Sessions.OnlineSession.SendInvoiceResponse sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(KsefClient,
                 openSessionRequest.ReferenceNumber,
                 authToken,
                 nip,
@@ -50,22 +50,22 @@ namespace KSeF.Client.Tests.Features
 
             try
             {
-                var sendInvoiceStatus = await OnlineSessionUtils.GetSessionInvoiceStatusAsync(KsefClient,
+                Core.Models.Sessions.SessionInvoice sendInvoiceStatus = await OnlineSessionUtils.GetSessionInvoiceStatusAsync(KsefClient,
                     openSessionRequest.ReferenceNumber,
                     sendInvoiceResponse.ReferenceNumber,
                     authToken);
                 Assert.NotNull(sendInvoiceStatus);
                 Assert.Equal(200, sendInvoiceStatus.Status.Code);
 
-                var sessionInvoices = await OnlineSessionUtils.GetSessionInvoicesMetadataAsync(KsefClient,
+                Core.Models.Sessions.SessionInvoicesResponse sessionInvoices = await OnlineSessionUtils.GetSessionInvoicesMetadataAsync(KsefClient,
                 openSessionRequest.ReferenceNumber,
                 authToken);
                 Assert.NotNull(sessionInvoices);
                 Assert.NotEmpty(sessionInvoices.Invoices);
 
-                foreach (var item in sessionInvoices.Invoices)
+                foreach (Core.Models.Sessions.SessionInvoice? item in sessionInvoices.Invoices)
                 {
-                    var invoiceMetadata = await OnlineSessionUtils.GetSessionInvoiceUpoAsync(KsefClient,
+                    string invoiceMetadata = await OnlineSessionUtils.GetSessionInvoiceUpoAsync(KsefClient,
                     openSessionRequest.ReferenceNumber,
                     item.KsefNumber,
                     authToken);
@@ -73,7 +73,7 @@ namespace KSeF.Client.Tests.Features
 
                     await Task.Delay(60000);
 
-                    var invoice = await KsefClient.GetInvoiceAsync(item.KsefNumber, authToken);
+                    string invoice = await KsefClient.GetInvoiceAsync(item.KsefNumber, authToken);
                     Assert.NotNull(invoice);
                 }
             }
@@ -89,15 +89,15 @@ namespace KSeF.Client.Tests.Features
         [Trait("Scenario", "Posiadając uprawnienie właścicielskie wysyłamy szyfrowaną fakturę z nieprawidłowym numerem NIP sprzedawcy")]
         public async Task GivenInvalidNewInvoice_SendedToKsef_ThenReturnsErrorInvalidKsefNumber(SystemCodeEnum systemCode, string invoiceTemplatePath)
         {
-            var wrongNIP = MiscellaneousUtils.GetRandomNip();
+            string wrongNIP = MiscellaneousUtils.GetRandomNip();
 
             // authenticated in constructor
             Assert.NotNull(authToken);
 
-        // proceed with invoice online session
-        var encryptionData = CryptographyService.GetEncryptionData();
+            // proceed with invoice online session
+            Core.Models.Sessions.EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
-            var openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient,
+            Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient,
                 encryptionData,
                 authToken,
                 systemCode);
@@ -105,7 +105,7 @@ namespace KSeF.Client.Tests.Features
             Assert.NotNull(openSessionRequest);
             Assert.NotNull(openSessionRequest.ReferenceNumber);
 
-        var sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(KsefClient,
+            Core.Models.Sessions.OnlineSession.SendInvoiceResponse sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(KsefClient,
             openSessionRequest.ReferenceNumber,
             authToken,
             wrongNIP,
@@ -117,7 +117,7 @@ namespace KSeF.Client.Tests.Features
 
             try
             {
-                var sendInvoiceStatus = await OnlineSessionUtils.GetSessionInvoiceStatusAsync(KsefClient,
+                Core.Models.Sessions.SessionInvoice sendInvoiceStatus = await OnlineSessionUtils.GetSessionInvoiceStatusAsync(KsefClient,
                     openSessionRequest.ReferenceNumber,
                     sendInvoiceResponse.ReferenceNumber,
                     authToken);
@@ -139,25 +139,25 @@ namespace KSeF.Client.Tests.Features
         public async Task GivenInvoice_WithDataWytworzeniaFa_BeforeCutoff_ShouldFail(
             SystemCodeEnum systemCode, string templatePath)
         {
-            var cutoffUtc = new DateTime(2025, 8, 31);
+            DateTime cutoffUtc = new DateTime(2025, 8, 31);
 
-        var encryptionData = CryptographyService.GetEncryptionData();
+            Core.Models.Sessions.EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
-            var openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient, encryptionData, authToken, systemCode);
+            Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient, encryptionData, authToken, systemCode);
             Assert.False(string.IsNullOrWhiteSpace(openSessionRequest?.ReferenceNumber));
 
-            var template = InvoiceHelpers.GetTemplateText(templatePath, nip);
+            string template = InvoiceHelpers.GetTemplateText(templatePath, nip);
 
-            var invalidXml = InvoiceHelpers.SetElementValue(
+            string invalidXml = InvoiceHelpers.SetElementValue(
                 template, "DataWytworzeniaFa", InvoiceHelpers.SetDateForElement("DataWytworzeniaFa", cutoffUtc));
 
         try
         {
-            var sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceFromXmlAsync(
+                Core.Models.Sessions.OnlineSession.SendInvoiceResponse sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceFromXmlAsync(
                 KsefClient, openSessionRequest.ReferenceNumber, authToken, invalidXml, encryptionData, CryptographyService);
             Assert.False(string.IsNullOrWhiteSpace(sendInvoiceResponse?.ReferenceNumber));
 
-                var sendInvoiceStatus = await OnlineSessionUtils.GetSessionInvoiceStatusAsync(KsefClient,
+                Core.Models.Sessions.SessionInvoice sendInvoiceStatus = await OnlineSessionUtils.GetSessionInvoiceStatusAsync(KsefClient,
                     openSessionRequest.ReferenceNumber,
                     sendInvoiceResponse.ReferenceNumber,
                     authToken);
@@ -180,24 +180,24 @@ namespace KSeF.Client.Tests.Features
         public async Task GivenInvoice_WithP1_InFuture_ShouldFail(
             SystemCodeEnum systemCode, string templatePath)
         {
-            var encryptionData = CryptographyService.GetEncryptionData();
+            Core.Models.Sessions.EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
-            var openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient, encryptionData, authToken, systemCode);
+            Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openSessionRequest = await OnlineSessionUtils.OpenOnlineSessionAsync(KsefClient, encryptionData, authToken, systemCode);
             Assert.False(string.IsNullOrWhiteSpace(openSessionRequest?.ReferenceNumber));
 
-            var template = InvoiceHelpers.GetTemplateText(templatePath, nip);
+            string template = InvoiceHelpers.GetTemplateText(templatePath, nip);
 
             // Tomorrow UTC
-            var tomorrowUtc = DateTime.UtcNow.Date.AddDays(1);
-            var invalidXml = InvoiceHelpers.SetElementValue(template, "P_1", InvoiceHelpers.SetDateForElement("P_1", tomorrowUtc));
+            DateTime tomorrowUtc = DateTime.UtcNow.Date.AddDays(1);
+            string invalidXml = InvoiceHelpers.SetElementValue(template, "P_1", InvoiceHelpers.SetDateForElement("P_1", tomorrowUtc));
 
         try
         {
-            var sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceFromXmlAsync(
+                Core.Models.Sessions.OnlineSession.SendInvoiceResponse sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceFromXmlAsync(
                 KsefClient, openSessionRequest.ReferenceNumber, authToken, invalidXml, encryptionData, CryptographyService);
             Assert.False(string.IsNullOrWhiteSpace(sendInvoiceResponse?.ReferenceNumber));
 
-                var sendInvoiceStatus = await OnlineSessionUtils.GetSessionInvoiceStatusAsync(KsefClient,
+                Core.Models.Sessions.SessionInvoice sendInvoiceStatus = await OnlineSessionUtils.GetSessionInvoiceStatusAsync(KsefClient,
                     openSessionRequest.ReferenceNumber,
                     sendInvoiceResponse.ReferenceNumber,
                     authToken);
@@ -224,7 +224,7 @@ namespace KSeF.Client.Tests.Features
             // authenticated in constructor
             Assert.NotNull(authToken);
 
-            var invoiceMetadataQueryRequest = new InvoiceQueryFilters
+            InvoiceQueryFilters invoiceMetadataQueryRequest = new InvoiceQueryFilters
             {
                 SubjectType = SubjectType.Subject1,
                 DateRange = new DateRange

@@ -3,8 +3,9 @@ using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Tests.Utils;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions;
 
 [Collection("EuEntityPermissionE2EScenarioCollection")]
 public class EuEntityPermissionE2ETests : TestBase
@@ -23,7 +24,7 @@ public class EuEntityPermissionE2ETests : TestBase
         TestFixture = new EuEntityPermissionScenarioE2EFixture();
         string nip = MiscellaneousUtils.GetRandomNip();
         TestFixture.NipVatUe = MiscellaneousUtils.GetRandomNipVatEU(nip, "CZ");
-        AuthOperationStatusResponse authOperationStatusResponse =
+        AuthenticationOperationStatusResponse authOperationStatusResponse =
             AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip).GetAwaiter().GetResult();
         accessToken = authOperationStatusResponse.AccessToken.Token;
         TestFixture.EuEntity.Value = MiscellaneousUtils.GetRandomNipVatEU("CZ");
@@ -37,9 +38,9 @@ public class EuEntityPermissionE2ETests : TestBase
     {
         #region Nadaj uprawnienia jednostce EU
         // Arrange
-        Client.Core.Models.Permissions.EUEntity.ContextIdentifier contextIdentifier = new Client.Core.Models.Permissions.EUEntity.ContextIdentifier
+        EUEntityContextIdentifier contextIdentifier = new EUEntityContextIdentifier
         {
-            Type = Client.Core.Models.Permissions.EUEntity.ContextIdentifierType.NipVatUe,
+            Type = EUEntityContextIdentifierType.NipVatUe,
             Value = TestFixture.NipVatUe
         };
 
@@ -49,12 +50,12 @@ public class EuEntityPermissionE2ETests : TestBase
 
         // Assert
         Assert.NotNull(TestFixture.GrantResponse);
-        Assert.False(string.IsNullOrEmpty(TestFixture.GrantResponse.OperationReferenceNumber));
+        Assert.False(string.IsNullOrEmpty(TestFixture.GrantResponse.ReferenceNumber));
         #endregion
 
         #region Wyszukaj nadane uprawnienia
         // Act
-        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> grantedPermissionsPaged =
+        PagedPermissionsResponse<EuEntityPermission> grantedPermissionsPaged =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchPermissionsAsync(EuEntityPermissionsQueryRequest),
                 result => result is not null && result.Permissions is { Count: > 0 },
@@ -83,7 +84,7 @@ public class EuEntityPermissionE2ETests : TestBase
 
         #region Sprawdź czy po odwołaniu uprawnienia już nie występują
         // Act
-        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> euEntityPermissionsWhenRevoked =
+        PagedPermissionsResponse<EuEntityPermission> euEntityPermissionsWhenRevoked =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchPermissionsAsync(EuEntityPermissionsQueryRequest),
                 result => result is not null && (result.Permissions is null || result.Permissions.Count == 0),
@@ -103,9 +104,9 @@ public class EuEntityPermissionE2ETests : TestBase
     /// </summary>
     /// <param name="contextIdentifier"></param>
     /// <returns>Numer referencyjny operacji</returns>
-    private async Task<OperationResponse> GrantPermissionForEuEntityAsync(Client.Core.Models.Permissions.EUEntity.ContextIdentifier contextIdentifier)
+    private async Task<OperationResponse> GrantPermissionForEuEntityAsync(EUEntityContextIdentifier contextIdentifier)
     {
-        GrantPermissionsRequest grantPermissionsRequest = GrantEUEntityPermissionsRequestBuilder
+        GrantPermissionsEUEntityRequest grantPermissionsRequest = GrantEUEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(TestFixture.EuEntity)
             .WithSubjectName(EuEntitySubjectName)
@@ -124,9 +125,9 @@ public class EuEntityPermissionE2ETests : TestBase
     /// </summary>
     /// <param name="expectAny"></param>
     /// <returns>Stronicowana lista wyszukanych uprawnień</returns>
-    private async Task<PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission>> SearchPermissionsAsync(EuEntityPermissionsQueryRequest euEntityPermissionsQueryRequest)
+    private async Task<PagedPermissionsResponse<EuEntityPermission>> SearchPermissionsAsync(EuEntityPermissionsQueryRequest euEntityPermissionsQueryRequest)
     {
-        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> response =
+        PagedPermissionsResponse<EuEntityPermission> response =
             await KsefClient
             .SearchGrantedEuEntityPermissionsAsync(
                 euEntityPermissionsQueryRequest,
@@ -143,19 +144,19 @@ public class EuEntityPermissionE2ETests : TestBase
     /// </summary>
     private async Task RevokePermissionsAsync()
     {
-        List<OperationResponse> revokeResponses = new List<Client.Core.Models.Permissions.OperationResponse>();
+        List<OperationResponse> revokeResponses = new List<OperationResponse>();
 
-        foreach (Client.Core.Models.Permissions.EuEntityPermission permission in TestFixture.SearchResponse.Permissions)
+        foreach (EuEntityPermission permission in TestFixture.SearchResponse.Permissions)
         {
-            Client.Core.Models.Permissions.OperationResponse operationResponse = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            OperationResponse operationResponse = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
             revokeResponses.Add(operationResponse);
         }
 
-        foreach (Client.Core.Models.Permissions.OperationResponse revokeResponse in revokeResponses)
+        foreach (OperationResponse revokeResponse in revokeResponses)
         {
-            Client.Core.Models.Permissions.PermissionsOperationStatusResponse status =
+            PermissionsOperationStatusResponse status =
                 await AsyncPollingUtils.PollAsync(
-                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.OperationReferenceNumber, accessToken),
+                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken),
                     s => s is not null && s.Status is not null && s.Status.Code == OperationSuccessfulStatusCode,
                     delay: TimeSpan.FromMilliseconds(SleepTime),
                     maxAttempts: 60,

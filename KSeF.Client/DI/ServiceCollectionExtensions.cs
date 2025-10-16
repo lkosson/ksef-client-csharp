@@ -1,5 +1,7 @@
 using KSeF.Client.Api.Services;
 using KSeF.Client.Clients;
+using KSeF.Client.Core.Interfaces.Rest;
+using KSeF.Client.Core.Infrastructure.Rest;
 using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
@@ -26,20 +28,20 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddKSeFClient(this IServiceCollection services,
         Action<KSeFClientOptions> configure)
     {
-        var options = new KSeFClientOptions();
+        KSeFClientOptions options = new KSeFClientOptions();
         configure(options);
         if (string.IsNullOrEmpty(options.BaseUrl))
             throw new ArgumentException("BaseUrl musi być poprawnym URL.", nameof(options.BaseUrl));
 
         services.AddSingleton(options);
-
+        
         services
             .AddHttpClient<IRestClient, RestClient>(http =>
             {
                 http.BaseAddress = new Uri(options.BaseUrl);
                 if (options.CustomHeaders != null && options.CustomHeaders.Count > 0)
                 {
-                    foreach (var header in options.CustomHeaders)
+                    foreach (KeyValuePair<string, string> header in options.CustomHeaders)
                         http.DefaultRequestHeaders.Add(header.Key, header.Value);
                 }
                 http.DefaultRequestHeaders.Accept.Add(
@@ -47,7 +49,7 @@ public static class ServiceCollectionExtensions
             })
             .ConfigurePrimaryHttpMessageHandler(() =>
             {
-                var handler = new HttpClientHandler();
+                HttpClientHandler handler = new HttpClientHandler();
                 if (options.WebProxy != null)
                 {
                     handler.Proxy = options.WebProxy;
@@ -56,8 +58,14 @@ public static class ServiceCollectionExtensions
                 return handler;
             });
 
+        services.AddSingleton<IRouteBuilder>(sp =>
+        {            
+            return new RouteBuilder(options.ApiConfiguration.ApiPrefix, options.ApiConfiguration.ApiVersion);
+        });
         services.AddScoped<IKSeFClient, KSeFClient>();
+        services.AddScoped<ITestDataClient, TestDataClient>();
         services.AddScoped<IAuthCoordinator, AuthCoordinator>();
+        services.AddScoped<ILimitsClient, LimitsClient>();
         services.AddHostedService<CryptographyWarmupHostedService>();
         
 
@@ -92,7 +100,7 @@ public static class ServiceCollectionExtensions
         Action<CryptographyClientOptions> configure,
         Func<IServiceProvider, CancellationToken, Task<ICollection<PemCertificateInfo>>> pemCertificatesFetcher = null)
     {
-        var options = new CryptographyClientOptions();
+        CryptographyClientOptions options = new CryptographyClientOptions();
         configure(options);
 
         services.TryAddSingleton<ICryptographyClient, CryptographyClient>();
@@ -107,8 +115,8 @@ public static class ServiceCollectionExtensions
             {
                 return new CryptographyService(async cancellationToken =>
                 {
-                    using var scope = serviceProvider.CreateScope();
-                    var cryptographyClient = scope.ServiceProvider.GetRequiredService<ICryptographyClient>();
+                    using IServiceScope scope = serviceProvider.CreateScope();
+                    ICryptographyClient cryptographyClient = scope.ServiceProvider.GetRequiredService<ICryptographyClient>();
                     return await cryptographyClient.GetPublicCertificatesAsync(cancellationToken);
                 });
             }

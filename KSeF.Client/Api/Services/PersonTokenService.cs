@@ -85,7 +85,7 @@ public class PersonTokenService : IPersonTokenService
         if (string.IsNullOrWhiteSpace(maybeJson)) return default;
         try
         {
-            var s = UnwrapIfQuotedJson(maybeJson);
+            string s = UnwrapIfQuotedJson(maybeJson);
             return JsonSerializer.Deserialize<T>(s, _jsonSerializerOptions);
         }
         catch

@@ -1,6 +1,7 @@
 using KSeF.Client.Core.Models.Invoices;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Models;
 
 namespace WebApplication.Controllers;
 [Route("[controller]")]
@@ -41,15 +42,15 @@ public class InvoicesController : ControllerBase
     /// Eksport faktur zgodnie z podanymi filtrami.
     /// </summary>
     [HttpPost("exports")]
-    [ProducesResponseType(typeof(ExportInvoicesResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ExportInvoicesResponse>> ExportInvoices(
+    [ProducesResponseType(typeof(OperationResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<OperationResponse>> ExportInvoices(
         [FromBody] InvoiceExportRequest request,
         [FromHeader(Name = "Authorization")] string accessToken,
         [FromQuery] int? pageOffset,
         [FromQuery] int? pageSize,
         CancellationToken cancellationToken)
     {
-        var result = await ksefClient.ExportInvoicesAsync(request, accessToken, cancellationToken);
+        OperationResponse result = await ksefClient.ExportInvoicesAsync(request, accessToken, cancellationToken);
         return Ok(result);
     }
 
@@ -63,7 +64,7 @@ public class InvoicesController : ControllerBase
         [FromHeader(Name = "Authorization")] string accessToken,
         CancellationToken cancellationToken)
     {
-        var result = await ksefClient.GetInvoiceExportStatusAsync(operationReferenceNumber, accessToken, cancellationToken);
+        InvoiceExportStatusResponse result = await ksefClient.GetInvoiceExportStatusAsync(operationReferenceNumber, accessToken, cancellationToken);
         return Ok(result);
     }
 }

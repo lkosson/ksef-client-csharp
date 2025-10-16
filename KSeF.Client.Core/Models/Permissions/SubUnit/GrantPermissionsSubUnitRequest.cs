@@ -2,32 +2,32 @@ namespace KSeF.Client.Core.Models.Permissions.SubUnit
 {
     public class GrantPermissionsSubUnitRequest
     {
-        public SubjectIdentifier SubjectIdentifier { get; set; }
-        public ContextIdentifier ContextIdentifier { get; set; }
+        public SubUnitSubjectIdentifier SubjectIdentifier { get; set; }
+        public SubUnitContextIdentifier ContextIdentifier { get; set; }
         public string Description { get; set; }
         public string SubunitName { get; set; }
     }
 
-    public partial class SubjectIdentifier
+    public partial class SubUnitSubjectIdentifier 
     {
-        public SubjectIdentifierType Type { get; set; }
+        public SubUnitSubjectIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public partial class ContextIdentifier
+    public partial class SubUnitContextIdentifier
     {
-        public ContextIdentifierType Type { get; set; }
+        public SubUnitContextIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public enum SubjectIdentifierType
+    public enum SubUnitSubjectIdentifierType
     {
         Nip,
         Pesel,
         Fingerprint
     }
 
-    public enum ContextIdentifierType
+    public enum SubUnitContextIdentifierType
     {
         Nip,
         InternalId,

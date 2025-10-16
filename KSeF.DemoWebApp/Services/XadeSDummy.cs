@@ -5,13 +5,13 @@ public static class XadeSDummy
     public static async Task<string> SignWithPZ(string xml, string directoryPath, TimeSpan? timeout = null)
     {
         timeout ??= TimeSpan.FromMinutes(5); // domyślnie 5 min
-        var pollInterval = TimeSpan.FromSeconds(1); // poll co sekundę
+        TimeSpan pollInterval = TimeSpan.FromSeconds(1); // poll co sekundę
 
         // 1. Generuj unikalny guid
-        var guid = Guid.NewGuid().ToString("N");
-        var baseFileName = $"ksefDummySign_{guid}.xml";
-        var fileToSignPath = Path.Combine(directoryPath, baseFileName);
-        var fileSignedPath = Path.Combine(directoryPath, $"ksefDummySign_{guid} (1).xml");
+        string guid = Guid.NewGuid().ToString("N");
+        string baseFileName = $"ksefDummySign_{guid}.xml";
+        string fileToSignPath = Path.Combine(directoryPath, baseFileName);
+        string fileSignedPath = Path.Combine(directoryPath, $"ksefDummySign_{guid} (1).xml");
 
         try
         {
@@ -21,7 +21,7 @@ public static class XadeSDummy
             Console.WriteLine($"File written: {fileToSignPath}. Waiting for signed version...");
 
             // 3. Czekaj aż pojawi się plik podpisany (ksefDummySign_{guid}(1).xml)
-            var start = DateTime.UtcNow;
+            DateTime start = DateTime.UtcNow;
             while (DateTime.UtcNow - start < timeout)
             {
                 if (File.Exists(fileSignedPath))

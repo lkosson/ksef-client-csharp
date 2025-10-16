@@ -8,12 +8,12 @@ public static class GrantEntityPermissionsRequestBuilder
 
     public interface ISubjectStep
     {
-        IPermissionsStep WithSubject(SubjectIdentifier subject);
+        IPermissionsStep WithSubject(EntitySubjectIdentifier subject);
     }
 
     public interface IPermissionsStep
     {
-        IOptionalStep WithPermissions(params Permission[] permissions);
+        IOptionalStep WithPermissions(params EntityPermission[] permissions);
     }
 
     public interface IOptionalStep
@@ -27,21 +27,21 @@ public static class GrantEntityPermissionsRequestBuilder
         IPermissionsStep,
         IOptionalStep
     {
-        private SubjectIdentifier _subject;
-        private ICollection<Permission> _permissions;
+        private EntitySubjectIdentifier _subject;
+        private ICollection<EntityPermission> _permissions;
         private string _description;
 
         private GrantPermissionsRequestBuilderImpl() { }
 
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
-        public IPermissionsStep WithSubject(SubjectIdentifier subject)
+        public IPermissionsStep WithSubject(EntitySubjectIdentifier subject)
         {
             _subject = subject ?? throw new ArgumentNullException(nameof(subject));
             return this;
         }
 
-        public IOptionalStep WithPermissions(params Permission[] permissions)
+        public IOptionalStep WithPermissions(params EntityPermission[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
                 throw new ArgumentException("Wymagane jest co najmniej jedno uprawnienie.", nameof(permissions));

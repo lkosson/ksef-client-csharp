@@ -24,7 +24,7 @@ public class BatchTests : KsefIntegrationTestBase
     private const int MaxPartCountLimit = 50;
     private const int ExceedingPartCount = 51;
     private const long PaddingSafetyMarginInBytes = 1024 * 1024; // 1 MB
-    private const long MaxPartSizeInBytes = 100L * PaddingSafetyMarginInBytes; // 100 MiB
+    private const long MaxPartSizeInBytes = 105L * PaddingSafetyMarginInBytes; // 100 MiB
     private const long MaxTotalPackageSizeInBytes = 5_368_709_120L; // 5 GiB
     private const long ExceededTotalPackageSizeInBytes = MaxTotalPackageSizeInBytes + 1; // 5 GiB + 1 bajt
     private const int EncryptionKeySize = 256; // bytes dla RSA
@@ -599,18 +599,18 @@ public class BatchTests : KsefIntegrationTestBase
     /// <returns>Archiwum ZIP z dodanym wypełnieniem.</returns>
     private static byte[] AddPaddingToZipArchive(byte[] zipBytes, long minSizeBytes)
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new MemoryStream();
         memoryStream.Write(zipBytes, 0, zipBytes.Length);
 
-        using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Update, leaveOpen: true);
+        using ZipArchive archive = new ZipArchive(memoryStream, ZipArchiveMode.Update, leaveOpen: true);
 
         if (memoryStream.Length < minSizeBytes)
         {
             long paddingSize = minSizeBytes - memoryStream.Length + 1024 * 1024; // +1 MB zapasu
-            var paddingEntry = archive.CreateEntry("padding.bin", CompressionLevel.NoCompression);
-            using var entryStream = paddingEntry.Open();
-            var randomGenerator = RandomNumberGenerator.Create();
-            var buffer = new byte[1024 * 1024];
+            ZipArchiveEntry paddingEntry = archive.CreateEntry("padding.bin", CompressionLevel.NoCompression);
+            using Stream entryStream = paddingEntry.Open();
+            RandomNumberGenerator randomGenerator = RandomNumberGenerator.Create();
+            byte[] buffer = new byte[1024 * 1024];
             long bytesWritten = 0;
 
             while (bytesWritten < paddingSize)

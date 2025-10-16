@@ -13,6 +13,7 @@ public class SignatureService : ISignatureService
     private const string EcdsaSha256AlgorithmUrl = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256";
     private const string XadesNsUrl = "http://uri.etsi.org/01903/v1.3.2#";
     private const string SignedPropertiesType = "http://uri.etsi.org/01903#SignedProperties";
+    private static readonly TimeSpan CertificateTimeBuffer = TimeSpan.FromMinutes(-1);
 
     /// <inheritdoc />
     /// <summary>
@@ -23,7 +24,7 @@ public class SignatureService : ISignatureService
         ArgumentException.ThrowIfNullOrWhiteSpace(xml);
         ArgumentNullException.ThrowIfNull(certificate);
 
-        var xmlDocument = new XmlDocument() { PreserveWhitespace = true };
+        XmlDocument xmlDocument = new XmlDocument() { PreserveWhitespace = true };
         xmlDocument.LoadXml(xml);
 
         Sign(xmlDocument, certificate);
@@ -51,10 +52,10 @@ public class SignatureService : ISignatureService
         if (rsaKey == null && ecdsaKey == null)
             throw new InvalidOperationException("Nie można wyodrębnić klucza prywatnego");
 
-        var signatureId = "Signature";
-        var signedPropertiesId = "SignedProperties";
+        string signatureId = "Signature";
+        string signedPropertiesId = "SignedProperties";
 
-        var signedXml = new SignedXmlFixed(xmlDocument);
+        SignedXmlFixed signedXml = new SignedXmlFixed(xmlDocument);
 
         if (rsaKey != null)
         {
@@ -72,15 +73,15 @@ public class SignatureService : ISignatureService
         AddRootReference(signedXml);
         AddSignedPropertiesReference(signedXml, signedPropertiesId);
 
-        var qualifyingProperties = BuildQualifyingProperties(
+        XmlNodeList qualifyingProperties = BuildQualifyingProperties(
              signatureId, signedPropertiesId,
-             certificate, DateTimeOffset.UtcNow.AddMinutes(-1));
+             certificate, DateTimeOffset.UtcNow.Add(CertificateTimeBuffer));
 
-        var dataObject = new DataObject { Data = qualifyingProperties };
+        DataObject dataObject = new DataObject { Data = qualifyingProperties };
 
         signedXml.AddDataObject(dataObject);
         signedXml.ComputeSignature();
-        var xmlSignature = signedXml.GetXml();
+        XmlElement xmlSignature = signedXml.GetXml();
 
         xmlDocument.DocumentElement.AppendChild(xmlDocument.ImportNode(xmlSignature, true));
 
@@ -95,7 +96,7 @@ public class SignatureService : ISignatureService
 
     private static void AddRootReference(SignedXml signedXml)
     {
-        var rootReference = new Reference(string.Empty);
+        Reference rootReference = new Reference(string.Empty);
         rootReference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
         rootReference.AddTransform(new XmlDsigExcC14NTransform());
         signedXml.AddReference(rootReference);
@@ -103,7 +104,7 @@ public class SignatureService : ISignatureService
 
     private static void AddSignedPropertiesReference(SignedXml signedXml, string id)
     {
-        var xadesReference = new Reference("#" + id)
+        Reference xadesReference = new Reference("#" + id)
         {
             Type = SignedPropertiesType
         };
@@ -115,11 +116,11 @@ public class SignatureService : ISignatureService
     private static XmlNodeList BuildQualifyingProperties(string signatureId, string signedPropertiesId,
         X509Certificate2 signingCertificate, DateTimeOffset signingTime)
     {
-        var certificateDigest = Convert.ToBase64String(signingCertificate.GetCertHash(HashAlgorithmName.SHA256));
-        var certificateIssuerName = signingCertificate.Issuer;
-        var certificateSerialNumber = new BigInteger(signingCertificate.GetSerialNumber()).ToString();
+        string certificateDigest = Convert.ToBase64String(signingCertificate.GetCertHash(HashAlgorithmName.SHA256));
+        string certificateIssuerName = signingCertificate.Issuer;
+        string certificateSerialNumber = new BigInteger(signingCertificate.GetSerialNumber()).ToString();
 
-        var document = new XmlDocument();
+        XmlDocument document = new XmlDocument();
         document.LoadXml(
         $"""
         <xades:QualifyingProperties Target="#{signatureId}" xmlns:xades="{XadesNsUrl}" xmlns="{SignedXml.XmlDsigNamespaceUrl}">
@@ -152,7 +153,7 @@ public class SignatureService : ISignatureService
 
         public override XmlElement GetIdElement(XmlDocument document, string idValue)
         {
-            var element = base.GetIdElement(document, idValue);
+            XmlElement element = base.GetIdElement(document, idValue);
 
             return element ?? _dataObjects
                 .SelectMany(x => x.Data.Cast<XmlNode>())

@@ -32,7 +32,7 @@ public static class AsyncPollingUtils
         if (condition is null) throw new ArgumentNullException(nameof(condition));
         if (maxAttempts <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttempts));
 
-        var defaultWait = delay ?? TimeSpan.FromSeconds(1);
+        TimeSpan defaultWait = delay ?? TimeSpan.FromSeconds(1);
         shouldRetryOnException ??= static ex => ex is not OperationCanceledException and not TaskCanceledException;
 
         Exception? lastError = null;
@@ -54,7 +54,7 @@ public static class AsyncPollingUtils
                 // Możliwość oznaczenia rate limitu na podstawie wyniku (jeśli wynik niesie takie informacje)
                 if (rateLimitOnResult is not null)
                 {
-                    var rl = rateLimitOnResult(lastResult);
+                    RateLimitDecision rl = rateLimitOnResult(lastResult);
                     if (rl.IsRateLimited)
                     {
                         doNotCountAttempt = true;
@@ -69,7 +69,7 @@ public static class AsyncPollingUtils
                 // Decyzja rate limit na podstawie wyjątku (np. HTTP 429)
                 if (rateLimitOnException is not null)
                 {
-                    var rl = rateLimitOnException(ex);
+                    RateLimitDecision rl = rateLimitOnException(ex);
                     if (rl.IsRateLimited)
                     {
                         doNotCountAttempt = true;
@@ -112,7 +112,8 @@ public static class AsyncPollingUtils
         Func<Exception, bool>? shouldRetryOnException = null,
         CancellationToken cancellationToken = default,
         Func<Exception, RateLimitDecision>? rateLimitOnException = null,
-        Func<TResult, RateLimitDecision>? rateLimitOnResult = null)
+        Func<TResult, RateLimitDecision>? rateLimitOnResult = null,
+        string description = "")
     {
         if (action is null) throw new ArgumentNullException(nameof(action));
         if (condition is null) throw new ArgumentNullException(nameof(condition));
@@ -123,8 +124,8 @@ public static class AsyncPollingUtils
 
         shouldRetryOnException ??= static ex => ex is not OperationCanceledException and not TaskCanceledException;
 
-        var currentDelay = initialDelay;
-        var rng = jitter ? new Random() : null;
+        TimeSpan currentDelay = initialDelay;
+        Random? rng = jitter ? new Random() : null;
 
         Exception? lastError = null;
         TResult lastResult = default!;
@@ -144,7 +145,7 @@ public static class AsyncPollingUtils
 
                 if (rateLimitOnResult is not null)
                 {
-                    var rl = rateLimitOnResult(lastResult);
+                    RateLimitDecision rl = rateLimitOnResult(lastResult);
                     if (rl.IsRateLimited)
                     {
                         doNotCountAttempt = true;
@@ -158,7 +159,7 @@ public static class AsyncPollingUtils
             {
                 if (rateLimitOnException is not null)
                 {
-                    var rl = rateLimitOnException(ex);
+                    RateLimitDecision rl = rateLimitOnException(ex);
                     if (rl.IsRateLimited)
                     {
                         doNotCountAttempt = true;
@@ -171,12 +172,12 @@ public static class AsyncPollingUtils
 
             if (attempt < maxAttempts)
             {
-                var wait = waitThisTime;
+                TimeSpan wait = waitThisTime;
                 if (!doNotCountAttempt && rng is not null && wait == currentDelay)
                 {
                     // Pełny jitter w zakresie [0.5x, 1.5x] tylko dla zwykłego backoffu
-                    var ms = Math.Max(1, (int)wait.TotalMilliseconds);
-                    var jitterMs = rng.Next((int)(ms * 0.5), (int)(ms * 1.5) + 1);
+                    int ms = Math.Max(1, (int)wait.TotalMilliseconds);
+                    int jitterMs = rng.Next((int)(ms * 0.5), (int)(ms * 1.5) + 1);
                     wait = TimeSpan.FromMilliseconds(jitterMs);
                 }
 
@@ -185,7 +186,7 @@ public static class AsyncPollingUtils
                 // Postęp backoffu tylko dla zwykłej ścieżki (nie dla rate limit override)
                 if (!doNotCountAttempt)
                 {
-                    var nextMs = Math.Min(maxDelay.TotalMilliseconds, currentDelay.TotalMilliseconds * backoffFactor);
+                    double nextMs = Math.Min(maxDelay.TotalMilliseconds, currentDelay.TotalMilliseconds * backoffFactor);
                     currentDelay = TimeSpan.FromMilliseconds(nextMs);
                 }
                 else
@@ -197,8 +198,8 @@ public static class AsyncPollingUtils
         }
 
         throw lastError is not null
-            ? new TimeoutException($"Nie spełniono warunku w {maxAttempts} próbach. Ostatni błąd: {lastError.Message}", lastError)
-            : new TimeoutException($"Nie spełniono warunku w {maxAttempts} próbach.");
+            ? new TimeoutException($"{description} {Environment.NewLine}Nie spełniono warunku w {maxAttempts} próbach. Ostatni błąd: {lastError.Message}", lastError)
+            : new TimeoutException($"{description} {Environment.NewLine}Nie spełniono warunku w {maxAttempts} próbach.");
     }
 
     /// <summary>

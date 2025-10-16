@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.SubUnitPermissions;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
-using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Models;
 
 namespace KSeF.DemoWebApp.Controllers;
 
@@ -13,7 +13,7 @@ public class SubUnitPermissionsController(IKSeFClient ksefClient) : ControllerBa
     [HttpPost("grant-sub-entity-permissions")]
     public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, GrantPermissionsSubUnitRequest grantPermissionsRequest, CancellationToken cancellationToken)
     {
-        var request = GrantSubUnitPermissionsRequestBuilder
+        GrantPermissionsSubUnitRequest request = GrantSubUnitPermissionsRequestBuilder
             .Create()
             .WithSubject(grantPermissionsRequest.SubjectIdentifier)
             .WithContext(grantPermissionsRequest.ContextIdentifier)

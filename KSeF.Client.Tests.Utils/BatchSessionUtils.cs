@@ -93,26 +93,26 @@ public static class BatchUtils
     /// Buduje ZIP w pamięci z podanych plików i zwraca bajty oraz metadane (przed szyfrowaniem).
     /// </summary>
     /// <param name="files">Kolekcja plików do spakowania.</param>
-    /// <param name="crypto">Serwis kryptograficzny.</param>
+    /// <param name="cryptographyService">Serwis kryptograficzny.</param>
     /// <returns>Krotka: bajty ZIP oraz metadane pliku.</returns>
     public static (byte[] ZipBytes, FileMetadata Meta) BuildZip(
         IEnumerable<(string FileName, byte[] Content)> files,
-        ICryptographyService crypto)
+        ICryptographyService cryptographyService)
     {
-        using var zipStream = new MemoryStream();
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true);
+        using MemoryStream zipStream = new MemoryStream();
+        using ZipArchive archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true);
 
-        foreach (var (fileName, content) in files)
+        foreach ((string fileName, byte[] content) in files)
         {
-            var entry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
-            using var entryStream = entry.Open();
+            ZipArchiveEntry entry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
+            using Stream entryStream = entry.Open();
             entryStream.Write(content);
         }
 
         archive.Dispose();
 
-        var zipBytes = zipStream.ToArray();
-        var meta = crypto.GetMetaData(zipBytes);
+        byte[] zipBytes = zipStream.ToArray();
+        FileMetadata meta = cryptographyService.GetMetaData(zipBytes);
 
         return (zipBytes, meta);
     }
@@ -128,16 +128,16 @@ public static class BatchUtils
         ArgumentNullException.ThrowIfNull(input);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(partCount);
 
-        var result = new List<byte[]>(partCount);
-        var partSize = (int)Math.Ceiling((double)input.Length / partCount);
+        List<byte[]> result = new List<byte[]>(partCount);
+        int partSize = (int)Math.Ceiling((double)input.Length / partCount);
 
         for (int i = 0; i < partCount; i++)
         {
-            var start = i * partSize;
-            var size = Math.Min(partSize, input.Length - start);
+            int start = i * partSize;
+            int size = Math.Min(partSize, input.Length - start);
             if (size <= 0) break;
 
-            var part = new byte[size];
+            byte[] part = new byte[size];
             Array.Copy(input, start, part, 0, size);
             result.Add(part);
         }
@@ -150,29 +150,29 @@ public static class BatchUtils
     /// </summary>
     /// <param name="zipBytes">Bajty ZIP do podziału i zaszyfrowania.</param>
     /// <param name="encryption">Dane szyfrowania.</param>
-    /// <param name="crypto">Serwis kryptograficzny.</param>
+    /// <param name="cryptographyService">Serwis kryptograficzny.</param>
     /// <param name="partCount">Liczba części.</param>
     /// <returns>Lista zaszyfrowanych partów do wysyłki.</returns>
     public static List<BatchPartSendingInfo> EncryptAndSplit(
         byte[] zipBytes,
         EncryptionData encryption,
-        ICryptographyService crypto,
+        ICryptographyService cryptographyService,
         int partCount = 1)
     {
         ArgumentNullException.ThrowIfNull(zipBytes);
         ArgumentNullException.ThrowIfNull(encryption);
-        ArgumentNullException.ThrowIfNull(crypto);
+        ArgumentNullException.ThrowIfNull(cryptographyService);
 
-        var rawParts = partCount <= 1
+        List<byte[]> rawParts = partCount <= 1
             ? new List<byte[]> { zipBytes }
             : Split(zipBytes, partCount);
 
-        var result = new List<BatchPartSendingInfo>(rawParts.Count);
+        List<BatchPartSendingInfo> result = new List<BatchPartSendingInfo>(rawParts.Count);
 
         for (int i = 0; i < rawParts.Count; i++)
         {
-            var encrypted = crypto.EncryptBytesWithAES256(rawParts[i], encryption.CipherKey, encryption.CipherIv);
-            var meta = crypto.GetMetaData(encrypted);
+            byte[] encrypted = cryptographyService.EncryptBytesWithAES256(rawParts[i], encryption.CipherKey, encryption.CipherIv);
+            FileMetadata meta = cryptographyService.GetMetaData(encrypted);
 
             result.Add(new BatchPartSendingInfo
             {
@@ -203,12 +203,12 @@ public static class BatchUtils
         string schemaVersion = DefaultSchemaVersion,
         string value = DefaultValue)
     {
-        var builder = OpenBatchSessionRequestBuilder
+        IOpenBatchSessionRequestBuilderBatchFile builder = OpenBatchSessionRequestBuilder
             .Create()
             .WithFormCode(systemCode: SystemCodeHelper.GetSystemCode(systemCode), schemaVersion: schemaVersion, value: value)
             .WithBatchFile(fileSize: zipMeta.FileSize, fileHash: zipMeta.HashSHA);
 
-        foreach (var p in encryptedParts)
+        foreach (BatchPartSendingInfo p in encryptedParts)
         {
             builder = builder.AddBatchFilePart(
                 ordinalNumber: p.OrdinalNumber,
@@ -277,22 +277,138 @@ public static class BatchUtils
         string templatePath,
         Func<string>? invoiceNumberFactory = null)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "Templates", templatePath);
+        string path = Path.Combine(AppContext.BaseDirectory, "Templates", templatePath);
         if (!File.Exists(path))
             throw new FileNotFoundException($"Template not found at: {path}");
 
-        var template = File.ReadAllText(path, Encoding.UTF8);
+        string template = File.ReadAllText(path, Encoding.UTF8);
 
         List<(string FileName, byte[] Content)> list = new(count);
 
         for (int i = 0; i < count; i++)
         {
-            var xml = template
+            string xml = template
                 .Replace("#nip#", nip)
                 .Replace("#invoice_number#", (invoiceNumberFactory?.Invoke() ?? Guid.NewGuid().ToString()));
             list.Add(($"faktura_{i + 1}.xml", Encoding.UTF8.GetBytes(xml)));
         }
 
         return list;
+    }
+
+
+    /// <summary>
+    /// Rozpakowuje archiwum ZIP ze strumienia i zwraca słownik plików (nazwa -> zawartość).
+    /// </summary>
+    /// <param name="zipStream">Strumień zawierający archiwum ZIP.</param>
+    /// <param name="cancellationToken">Token anulowania operacji.</param>
+    /// <returns>Słownik zawierający nazwy plików i ich zawartość jako string.</returns>
+    public static async Task<Dictionary<string, string>> UnzipAsync(
+        Stream zipStream,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(zipStream);
+
+        Dictionary<string, string> files = new(StringComparer.OrdinalIgnoreCase);
+
+        using ZipArchive archive = new(zipStream, ZipArchiveMode.Read, leaveOpen: true);
+
+        foreach (ZipArchiveEntry entry in archive.Entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Name))
+            {
+                continue;
+            }
+
+            using Stream entryStream = entry.Open();
+            using StreamReader reader = new(entryStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            string content = await reader.ReadToEndAsync(cancellationToken);
+            files[entry.Name] = content;
+        }
+
+        return files;
+    }
+
+    /// <summary>
+    /// Rozpakowuje archiwum ZIP z tablicy bajtów i zwraca słownik plików (nazwa -> zawartość).
+    /// </summary>
+    /// <param name="zipBytes">Tablica bajtów zawierająca archiwum ZIP.</param>
+    /// <param name="cancellationToken">Token anulowania operacji.</param>
+    /// <returns>Słownik zawierający nazwy plików i ich zawartość jako string.</returns>
+    public static async Task<Dictionary<string, string>> UnzipAsync(
+        byte[] zipBytes,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(zipBytes);
+
+        using MemoryStream stream = new(zipBytes);
+        return await UnzipAsync(stream, cancellationToken);
+    }
+
+    /// <summary>
+    /// Pobiera, deszyfruje i łączy części paczki eksportu w jeden strumień.
+    /// </summary>
+    /// <param name="parts">Kolekcja części paczki do pobrania i połączenia.</param>
+    /// <param name="encryptionData">Dane szyfrowania używane do deszyfrowania części.</param>
+    /// <param name="crypto">Serwis kryptograficzny.</param>
+    /// <param name="httpClientFactory">Funkcja fabrykująca HttpClient (opcjonalnie, domyślnie tworzy nowy HttpClient).</param>
+    /// <param name="cancellationToken">Token anulowania operacji.</param>
+    /// <returns>Strumień zawierający odszyfrowane i połączone dane.</returns>
+    public static async Task<MemoryStream> DownloadAndDecryptPackagePartsAsync(
+        IEnumerable<InvoiceExportPackagePart> parts,
+        EncryptionData encryptionData,
+        ICryptographyService crypto,
+        Func<HttpClient>? httpClientFactory = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parts);
+        ArgumentNullException.ThrowIfNull(encryptionData);
+        ArgumentNullException.ThrowIfNull(crypto);
+
+        MemoryStream decryptedStream = new();
+
+        try
+        {
+            foreach (var part in parts.OrderBy(p => p.OrdinalNumber))
+            {
+                byte[] encryptedBytes = await DownloadPackagePartAsync(part, httpClientFactory, cancellationToken);
+                byte[] decryptedBytes = crypto.DecryptBytesWithAES256(encryptedBytes, encryptionData.CipherKey, encryptionData.CipherIv);
+
+                await decryptedStream.WriteAsync(decryptedBytes, 0, decryptedBytes.Length, cancellationToken);
+            }
+
+            decryptedStream.Position = 0;
+            return decryptedStream;
+        }
+        catch
+        {
+            decryptedStream.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Pobiera pojedynczą część paczki eksportu z URL.
+    /// </summary>
+    /// <param name="part">Część paczki do pobrania.</param>
+    /// <param name="httpClientFactory">Funkcja fabrykująca HttpClient (opcjonalnie, domyślnie tworzy nowy HttpClient).</param>
+    /// <param name="cancellationToken">Token anulowania operacji.</param>
+    /// <returns>Tablica bajtów zawierająca pobraną część.</returns>
+    private static async Task<byte[]> DownloadPackagePartAsync(
+        InvoiceExportPackagePart part,
+        Func<HttpClient>? httpClientFactory = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(part.Url))
+        {
+            throw new InvalidOperationException($"Brak URL dla części paczki {part.OrdinalNumber}.");
+        }
+
+        using HttpClient httpClient = httpClientFactory?.Invoke() ?? new HttpClient();
+        using HttpRequestMessage request = new(new HttpMethod(part.Method ?? HttpMethod.Get.Method), part.Url);
+        using HttpResponseMessage response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 }

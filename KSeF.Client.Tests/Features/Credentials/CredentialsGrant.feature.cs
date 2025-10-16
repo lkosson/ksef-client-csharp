@@ -1,3 +1,5 @@
+using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Tests.Utils;
 
@@ -9,100 +11,100 @@ namespace KSeF.Client.Tests.Features
     public class CredentialsGrantTests : KsefIntegrationTestBase
     {
         [Theory]
-        [InlineData("90091309123", new[] { StandardPermissionType.InvoiceWrite })]
-        [InlineData("90091309123", new[] { StandardPermissionType.InvoiceRead, StandardPermissionType.InvoiceWrite })]
-        [InlineData("90091309123", new[] { StandardPermissionType.CredentialsManage })]
-        [InlineData("90091309123", new[] { StandardPermissionType.CredentialsRead })]
-        [InlineData("90091309123", new[] { StandardPermissionType.Introspection })]
-        [InlineData("90091309123", new[] { StandardPermissionType.SubunitManage })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.InvoiceWrite })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.InvoiceRead, PersonStandardPermissionType.InvoiceWrite })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.CredentialsManage })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.CredentialsRead })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.Introspection })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.SubunitManage })]
 
-        [InlineData("6651887777", new[] { StandardPermissionType.InvoiceWrite })]
-        [InlineData("6651887777", new[] { StandardPermissionType.InvoiceRead })]
-        [InlineData("6651887777", new[] { StandardPermissionType.CredentialsManage })]
-        [InlineData("6651887777", new[] { StandardPermissionType.CredentialsRead })]
-        [InlineData("6651887777", new[] { StandardPermissionType.Introspection })]
-        [InlineData("6651887777", new[] { StandardPermissionType.InvoiceWrite, StandardPermissionType.InvoiceRead })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.InvoiceWrite })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.InvoiceRead })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.CredentialsManage })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.CredentialsRead })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.Introspection })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.InvoiceWrite, PersonStandardPermissionType.InvoiceRead })]
         [Trait("Scenario", "Nadanie uprawnienia wystawianie faktur")]
-        public async Task GivenOwnerIsAuthenticated_WhenGrantInvoiceIssuingPermissionToEntity_ThenPermissionIsConfirmed(string identyficator, StandardPermissionType[] permissions)
+        public async Task GivenOwnerIsAuthenticated_WhenGrantInvoiceIssuingPermissionToEntity_ThenPermissionIsConfirmed(string identyficator, PersonStandardPermissionType[] permissions)
         {
-            var ownerNIP = MiscellaneousUtils.GetRandomNip();
+            string ownerNIP = MiscellaneousUtils.GetRandomNip();
 
             await TestGrantPermissions(identyficator, permissions, ownerNIP);
         }
 
         [Theory]
-        [InlineData("90091309123", new[] { StandardPermissionType.InvoiceWrite })]
-        [InlineData("90091309123", new[] { StandardPermissionType.InvoiceRead, StandardPermissionType.InvoiceWrite })]
-        [InlineData("90091309123", new[] { StandardPermissionType.CredentialsManage })]
-        [InlineData("90091309123", new[] { StandardPermissionType.CredentialsRead })]
-        [InlineData("90091309123", new[] { StandardPermissionType.Introspection })]
-        [InlineData("90091309123", new[] { StandardPermissionType.SubunitManage })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.InvoiceWrite })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.InvoiceRead, PersonStandardPermissionType.InvoiceWrite })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.CredentialsManage })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.CredentialsRead })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.Introspection })]
+        [InlineData("90091309123", new[] { PersonStandardPermissionType.SubunitManage })]
 
-        [InlineData("6651887777", new[] { StandardPermissionType.InvoiceWrite })]
-        [InlineData("6651887777", new[] { StandardPermissionType.InvoiceRead })]
-        [InlineData("6651887777", new[] { StandardPermissionType.CredentialsManage })]
-        [InlineData("6651887777", new[] { StandardPermissionType.CredentialsRead })]
-        [InlineData("6651887777", new[] { StandardPermissionType.Introspection })]
-        [InlineData("6651887777", new[] { StandardPermissionType.InvoiceWrite, StandardPermissionType.InvoiceRead })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.InvoiceWrite })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.InvoiceRead })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.CredentialsManage })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.CredentialsRead })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.Introspection })]
+        [InlineData("6651887777", new[] { PersonStandardPermissionType.InvoiceWrite, PersonStandardPermissionType.InvoiceRead })]
         [Trait("Scenario", "Nadanie uprawnień przez osobę z uprawnieniem do zarządzania uprawnieniami")]
-        public async Task GivenDelegatedByOwnerIsAuthenticated_WhenGrantInvoiceIssuingPermissionToEntity_ThenPermissionIsConfirmed(string identyficator, StandardPermissionType[] permissions)
+        public async Task GivenDelegatedByOwnerIsAuthenticated_WhenGrantInvoiceIssuingPermissionToEntity_ThenPermissionIsConfirmed(string identyficator, PersonStandardPermissionType[] permissions)
         {
-            var ownerNIP = MiscellaneousUtils.GetRandomNip();
-            var authToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNIP)).AccessToken.Token;
+            string ownerNIP = MiscellaneousUtils.GetRandomNip();
+            string authToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNIP)).AccessToken.Token;
 
-            var nipWhichWillDelegatePermissions = MiscellaneousUtils.GetRandomNip();
+            string nipWhichWillDelegatePermissions = MiscellaneousUtils.GetRandomNip();
 
-            var subjectIdentifier = new SubjectIdentifier { Type = SubjectIdentifierType.Nip, Value = nipWhichWillDelegatePermissions };
+            PersonSubjectIdentifier subjectIdentifier = new PersonSubjectIdentifier { Type = PersonSubjectIdentifierType.Nip, Value = nipWhichWillDelegatePermissions };
 
-            var managePermission = new[] { StandardPermissionType.CredentialsManage };
+            PersonStandardPermissionType[] managePermission = new[] { PersonStandardPermissionType.CredentialsManage };
 
-            var operationResponse = await PermissionsUtils.GrantPersonPermissionsAsync(KsefClient, authToken, subjectIdentifier, permissions);
+            OperationResponse operationResponse = await PermissionsUtils.GrantPersonPermissionsAsync(KsefClient, authToken, subjectIdentifier, permissions);
 
             await Task.Delay(1000);
             //tests
             await TestGrantPermissions(identyficator, permissions, nipWhichWillDelegatePermissions);
 
             //revoke permissions to delegate
-            var grantedPermissions = await PermissionsUtils.SearchPersonPermissionsAsync(KsefClient, authToken, PermissionState.Active);
+            IReadOnlyList<PersonPermission> grantedPermissions = await PermissionsUtils.SearchPersonPermissionsAsync(KsefClient, authToken, PersonPermissionState.Active);
             Assert.True(grantedPermissions.Any());
 
-            foreach (var item in grantedPermissions)
+            foreach (PersonPermission item in grantedPermissions)
             {
-                var revokeSuccessful = await PermissionsUtils.RevokePersonPermissionAsync(KsefClient, authToken, item.Id);
+                OperationResponse revokeSuccessful = await PermissionsUtils.RevokePersonPermissionAsync(KsefClient, authToken, item.Id);
                 Assert.NotNull(revokeSuccessful);
                 await Task.Delay(3000);
             }
 
-            var activePermissionsAfterRevoke = await PermissionsUtils.SearchPersonPermissionsAsync(KsefClient, authToken, PermissionState.Active);
+            IReadOnlyList<PersonPermission> activePermissionsAfterRevoke = await PermissionsUtils.SearchPersonPermissionsAsync(KsefClient, authToken, PersonPermissionState.Active);
             Assert.Empty(activePermissionsAfterRevoke);
         }
 
-        private async Task TestGrantPermissions(string identyficator, StandardPermissionType[] permissions, string nip)
+        private async Task TestGrantPermissions(string identyficator, PersonStandardPermissionType[] permissions, string nip)
         {
-            var authToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip)).AccessToken.Token;
+            string authToken = (await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip)).AccessToken.Token;
 
             bool isNIP = identyficator.Length == 10;
 
-            var subjectIdentifier = new SubjectIdentifier { Type = isNIP ? SubjectIdentifierType.Nip : SubjectIdentifierType.Pesel, Value = identyficator };
-            var grantPermissionsResponse = await PermissionsUtils.GrantPersonPermissionsAsync(KsefClient,
+            PersonSubjectIdentifier subjectIdentifier = new PersonSubjectIdentifier { Type = isNIP ? PersonSubjectIdentifierType.Nip : PersonSubjectIdentifierType.Pesel, Value = identyficator };
+            OperationResponse grantPermissionsResponse = await PermissionsUtils.GrantPersonPermissionsAsync(KsefClient,
                     authToken,
                     subjectIdentifier,
                     permissions, "CredentialsGrantTests");
 
-            var grantPermissionsActionStatus = await PermissionsUtils.GetPermissionsOperationStatusAsync(KsefClient, grantPermissionsResponse.OperationReferenceNumber, authToken);
+            PermissionsOperationStatusResponse grantPermissionsActionStatus = await PermissionsUtils.GetPermissionsOperationStatusAsync(KsefClient, grantPermissionsResponse.ReferenceNumber, authToken);
 
             await Task.Delay(3000);
-            var grantedPermissions = await PermissionsUtils.SearchPersonPermissionsAsync(KsefClient, authToken, PermissionState.Active);
+            IReadOnlyList<PersonPermission> grantedPermissions = await PermissionsUtils.SearchPersonPermissionsAsync(KsefClient, authToken, PersonPermissionState.Active);
             Assert.True(grantedPermissions.Count == permissions.Length);
 
-            foreach (var item in grantedPermissions)
+            foreach (PersonPermission item in grantedPermissions)
             {
-                var revokeSuccessful = await PermissionsUtils.RevokePersonPermissionAsync(KsefClient, authToken, item.Id);
+                OperationResponse revokeSuccessful = await PermissionsUtils.RevokePersonPermissionAsync(KsefClient, authToken, item.Id);
                 Assert.NotNull(revokeSuccessful);
                 await Task.Delay(3000);
             }
 
-            var activePermissionsAfterRevoke = await PermissionsUtils.SearchPersonPermissionsAsync(KsefClient, authToken, PermissionState.Active);
+            IReadOnlyList<PersonPermission> activePermissionsAfterRevoke = await PermissionsUtils.SearchPersonPermissionsAsync(KsefClient, authToken, PersonPermissionState.Active);
             Assert.Empty(activePermissionsAfterRevoke);
         }
     }

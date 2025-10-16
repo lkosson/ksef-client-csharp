@@ -21,17 +21,17 @@ public class AuthCoordinator : IAuthCoordinator
     }
 
     /// <inheritdoc />
-    public async Task<AuthOperationStatusResponse> AuthKsefTokenAsync(
-        ContextIdentifierType contextIdentifierType,
+    public async Task<AuthenticationOperationStatusResponse> AuthKsefTokenAsync(
+        AuthenticationTokenContextIdentifierType contextIdentifierType,
         string contextIdentifierValue,
         string tokenKsef,
         ICryptographyService cryptographyService,
         EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.ECDsa,
-        AuthorizationPolicy ipAddressPolicy = default,
+        AuthenticationTokenAuthorizationPolicy ipAddressPolicy = default,
         CancellationToken cancellationToken = default)
     {
         // 1) Pobranie challenge i timestamp
-        AuthChallengeResponse challengeResponse = await _ksefClient
+        AuthenticationChallengeResponse challengeResponse = await _ksefClient
             .GetAuthChallengeAsync(cancellationToken);
 
         string challenge = challengeResponse.Challenge;
@@ -63,7 +63,7 @@ public class AuthCoordinator : IAuthCoordinator
         if (ipAddressPolicy != null)
             requestBuilder = requestBuilder.WithAuthorizationPolicy(ipAddressPolicy);
 
-        AuthKsefTokenRequest authKsefTokenRequest = requestBuilder.Build();
+        AuthenticationKsefTokenRequest authKsefTokenRequest = requestBuilder.Build();
 
         // 5) Wysłanie do KSeF
         SignatureResponse submissionResponse = await _ksefClient
@@ -86,7 +86,7 @@ public class AuthCoordinator : IAuthCoordinator
             
             if (authStatus.Status.Code == 400)
             {
-                var exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description={authStatus.Status.Description}, Details={string.Join(", ", (authStatus.Status.Details ?? new List<string>()))}'";
+                string exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description={authStatus.Status.Description}, Details={string.Join(", ", (authStatus.Status.Details ?? new List<string>()))}'";
                 throw new Exception(exMsg);
             }
 
@@ -102,10 +102,10 @@ public class AuthCoordinator : IAuthCoordinator
         if (authStatus.Status.Code != 200)
         {
             Console.WriteLine("Timeout: Brak tokena po 2 minutach.");
-            var exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description={authStatus.Status.Description}, Details={string.Join(", ", (authStatus.Status.Details ?? new List<string>()))}'";
+            string exMsg = $"Polling: StatusCode={authStatus.Status.Code}, Description={authStatus.Status.Description}, Details={string.Join(", ", (authStatus.Status.Details ?? new List<string>()))}'";
             throw new Exception("Timeout Uwierzytelniania: Brak tokena po 2 minutach." + exMsg);
         }
-        var accessTokenResponse = await _ksefClient.GetAccessTokenAsync(submissionResponse.AuthenticationToken.Token, cancellationToken);
+        AuthenticationOperationStatusResponse accessTokenResponse = await _ksefClient.GetAccessTokenAsync(submissionResponse.AuthenticationToken.Token, cancellationToken);
 
         // 7) Zwróć token            
         return accessTokenResponse;
@@ -113,17 +113,17 @@ public class AuthCoordinator : IAuthCoordinator
 
 
     /// <inheritdoc />
-    public async Task<AuthOperationStatusResponse> AuthAsync(
-        ContextIdentifierType contextIdentifierType,
+    public async Task<AuthenticationOperationStatusResponse> AuthAsync(
+        AuthenticationTokenContextIdentifierType contextIdentifierType,
         string contextIdentifierValue,
-        SubjectIdentifierTypeEnum identifierType,
+        AuthenticationTokenSubjectIdentifierTypeEnum identifierType,
         Func<string, Task<string>> xmlSigner,
-        AuthorizationPolicy ipAddressPolicy = default,
+        AuthenticationTokenAuthorizationPolicy ipAddressPolicy = default,
         CancellationToken cancellationToken = default,
         bool verifyCertificateChain = false)
     {
         // 1) Challenge
-        AuthChallengeResponse challengeResponse = await _ksefClient
+        AuthenticationChallengeResponse challengeResponse = await _ksefClient
             .GetAuthChallengeAsync(cancellationToken);
 
         string challenge = challengeResponse.Challenge;
@@ -142,10 +142,10 @@ public class AuthCoordinator : IAuthCoordinator
             .WithAuthorizationPolicy(ipAddressPolicy);               
         }
 
-        AuthTokenRequest authorizeRequest = authTokenRequest.Build();
+        AuthenticationTokenRequest authorizeRequest = authTokenRequest.Build();
 
         // 3) Serializacja do XML
-        string unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authorizeRequest);
+        string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authorizeRequest);
 
         // 4) wywołanie mechanizmu podpisującego XML
         string signedXml = await xmlSigner.Invoke(unsignedXml);
@@ -182,7 +182,7 @@ public class AuthCoordinator : IAuthCoordinator
             Console.WriteLine("Timeout: Brak tokena po 2 minutach.");
             throw new Exception("Timeout Uwierzytelniania: Brak tokena po 2 minutach.");
         }
-        var accessTokenResponse = await _ksefClient.GetAccessTokenAsync(authSubmission.AuthenticationToken.Token, cancellationToken);
+        AuthenticationOperationStatusResponse accessTokenResponse = await _ksefClient.GetAccessTokenAsync(authSubmission.AuthenticationToken.Token, cancellationToken);
 
         // 7) Zwróć token            
         return accessTokenResponse;

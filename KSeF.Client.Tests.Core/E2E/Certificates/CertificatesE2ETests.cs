@@ -1,10 +1,14 @@
 using KSeF.Client.Api.Builders.Certificates;
 using KSeF.Client.Api.Builders.PersonPermissions;
+using KSeF.Client.Api.Builders.X509Certificates;
+using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Tests.Utils;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 namespace KSeF.Client.Tests.Core.E2E.Certificates;
 
@@ -16,16 +20,24 @@ public class CertificatesE2ETests : TestBase
     private const int StatusCompletedCode = 200;
     private readonly CertificatesScenarioE2EFixture TestFixture;
 
+    private const string GivenName = "Jan";
+    private const string Surname = "Kowalski";
+    private const string SerialNumberPrefix = "TEST";
+    private const string CommonName = "Jan Kowalski";
+
+    private const string OrganizationName = "Spółka Testowa sp. z o.o.";
+    private const string OrganizationCommonName = "Spółka Testowa";
+
     public CertificatesE2ETests()
     {
         TestFixture = new CertificatesScenarioE2EFixture();
     }
 
     /// <summary>
-    /// Loguje się jako właściciel,
-    /// nadaje uprawnienia CredentialManage dla podmiotu trzeciego.
+    /// Logowanie jako właściciel,
+    /// nadanie uprawnień CredentialManage dla podmiotu trzeciego.
     /// podmiot delegowany przeprowadza podstawowe operacje 
-    /// Właściciel zdejmuje uprawnienia z podmiotu trzeciego.
+    /// Właściciel odwołuje uprawnienia dla podmiotu trzeciego.
     /// </summary>
     [Fact]
     public async Task GivenGrantedCredentialManagePermission_WhenThirdPartyCreatesAndRevokesCertificate_ThenCertificateLifecycleCompletesSuccessfully()
@@ -35,15 +47,15 @@ public class CertificatesE2ETests : TestBase
         string delegateNip = MiscellaneousUtils.GetRandomNip();
 
         //zaloguj jako właściciel 
-        AuthOperationStatusResponse ownerAuthProcessRepsponse = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip);
+        AuthenticationOperationStatusResponse ownerAuthProcessRepsponse = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip);
         string ownerAccessToken = ownerAuthProcessRepsponse.AccessToken.Token;
 
         #region nadanie uprawnień CredentialsManage
 
         GrantPermissionsPersonRequest request = GrantPersonPermissionsRequestBuilder
         .Create()
-        .WithSubject(new Client.Core.Models.Permissions.Person.SubjectIdentifier { Type = Client.Core.Models.Permissions.Person.SubjectIdentifierType.Nip, Value = delegateNip })
-        .WithPermissions(Client.Core.Models.Permissions.Person.StandardPermissionType.CredentialsManage)
+        .WithSubject(new PersonSubjectIdentifier { Type = PersonSubjectIdentifierType.Nip, Value = delegateNip })
+        .WithPermissions(PersonStandardPermissionType.CredentialsManage)
         .WithDescription("Access for quarterly review")
         .Build();
 
@@ -53,7 +65,7 @@ public class CertificatesE2ETests : TestBase
         // Poll status operacji nadania uprawnień do momentu zakończenia (200)
         PermissionsOperationStatusResponse operationStatus =
             await AsyncPollingUtils.PollAsync(
-                async () => await KsefClient.OperationsStatusAsync(operationResult.OperationReferenceNumber, ownerAccessToken, CancellationToken),
+                async () => await KsefClient.OperationsStatusAsync(operationResult.ReferenceNumber, ownerAccessToken, CancellationToken),
                 result => result.Status.Code == 200,
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 30,
@@ -66,9 +78,9 @@ public class CertificatesE2ETests : TestBase
 
         #region zaloguj jako podmiot trzeci w kontekście właściciela
 
-        AuthOperationStatusResponse delegateAuthOperationStatusResponse =
+        AuthenticationOperationStatusResponse delegateAuthOperationStatusResponse =
             await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, delegateNip, ownerNip);
-        var delegateAccessToken = delegateAuthOperationStatusResponse.AccessToken.Token;
+        string delegateAccessToken = delegateAuthOperationStatusResponse.AccessToken.Token;
 
         #endregion
 
@@ -95,7 +107,7 @@ public class CertificatesE2ETests : TestBase
 
         #region Wyślij zgłoszenie nowe
         // Arrange
-        (string csr, string key) = CryptographyService.GenerateCsrWithRsa(TestFixture.EnrollmentInfo, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+        (string csr, string key) = CryptographyService.GenerateCsrWithRsa(TestFixture.EnrollmentInfo, RSASignaturePadding.Pkcs1);
         SendCertificateEnrollmentRequest sendCertificateEnrollmentRequest = SendCertificateEnrollmentRequestBuilder
             .Create()
             .WithCertificateName(TestCertificateName)
@@ -152,7 +164,7 @@ public class CertificatesE2ETests : TestBase
             .Build();
 
         // Act && Assert
-        var exception = await Record.ExceptionAsync(async () =>
+        Exception exception = await Record.ExceptionAsync(async () =>
             await RevokeCertificateAsync(certificateRevokeRequest, certificateSerialNumber, delegateAccessToken)
         );
         Assert.Null(exception);
@@ -167,9 +179,9 @@ public class CertificatesE2ETests : TestBase
         Assert.Contains(TestFixture.MetadataList.Certificates.ToList(), m => TestFixture.SerialNumbers.Contains(m.CertificateSerialNumber));
         #endregion
 
-        #region zdejmij uprawnienia
+        #region odwołaj uprawnienia
 
-        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> permissions =
+        PagedPermissionsResponse<PersonPermission> permissions =
             await KsefClient
             .SearchGrantedPersonPermissionsAsync(
                 new PersonPermissionsQueryRequest { },
@@ -183,8 +195,8 @@ public class CertificatesE2ETests : TestBase
         OperationResponse operationResponse = await KsefClient.RevokeCommonPermissionAsync(permissions.Permissions.First().Id, ownerAccessToken, CancellationToken);
 
         // Poll status operacji cofnięcia uprawnień do 200
-        var revokeOpStatus = await AsyncPollingUtils.PollAsync(
-            async () => await KsefClient.OperationsStatusAsync(operationResponse.OperationReferenceNumber, ownerAccessToken, CancellationToken),
+        PermissionsOperationStatusResponse revokeOpStatus = await AsyncPollingUtils.PollAsync(
+            async () => await KsefClient.OperationsStatusAsync(operationResponse.ReferenceNumber, ownerAccessToken, CancellationToken),
             result => result.Status.Code == 200,
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: 30,
@@ -210,7 +222,69 @@ public class CertificatesE2ETests : TestBase
         #endregion zdejmij uprawnienia
     }
 
+    /// <summary>
+    /// Sprawdzenie tworzenia osobistego certyfikatu samopodpisanego do podpisu XAdES.
+    /// </summary>
+    /// <param name="encryptionMethodEnum"></param>
+    [Theory]
+    [InlineData(EncryptionMethodEnum.Rsa)]
+    [InlineData(EncryptionMethodEnum.ECDsa)]
+    public void SelfSignedCertificateForSignatureBuilder_Create_ShouldReturnObject(EncryptionMethodEnum encryptionMethodEnum)
+    {
+        // Arrange
+        EncryptionMethodEnum encryptionType = encryptionMethodEnum;
+        string serialNumber = MiscellaneousUtils.GetRandomNip();
 
+        // Act
+        X509Certificate2 certificate = SelfSignedCertificateForSignatureBuilder
+                    .Create()
+                    .WithGivenName(GivenName)
+                    .WithSurname(Surname)
+                    .WithSerialNumber($"{SerialNumberPrefix}-{serialNumber}")
+                    .WithCommonName(CommonName)
+                    .AndEncryptionType(encryptionType)
+                    .Build();
+
+        // Assert
+        Assert.NotNull(certificate);
+        Assert.True(certificate.HasPrivateKey);
+        if (encryptionType == EncryptionMethodEnum.ECDsa)
+        {
+            Assert.IsAssignableFrom<ECDsa>(certificate.GetECDsaPrivateKey());
+        }
+        else
+        {
+            Assert.IsAssignableFrom<RSA>(certificate.GetRSAPrivateKey());
+        }
+    }
+
+    /// <summary>
+    /// Sprawdzenie tworzenia firmowego certyfikatu (company seal) samopodpisanego do podpisu XAdES.
+    /// </summary>
+    /// <param name="encryptionMethodEnum"></param>
+    [Theory]
+    [InlineData(EncryptionMethodEnum.Rsa)]
+    [InlineData(EncryptionMethodEnum.ECDsa)]
+    public void SelfSignedCompanySealForSignatureBuilder_Create_ShouldReturnObject(EncryptionMethodEnum encryptionMethodEnum)
+    {
+        // Arrange
+        string organizationIdentifier = MiscellaneousUtils.GetRandomNip();
+        string serialNumber = MiscellaneousUtils.GetRandomNip();
+        
+        EncryptionMethodEnum encryptionType = encryptionMethodEnum;
+
+        // Act
+        X509Certificate2 certificate = SelfSignedCertificateForSealBuilder
+                    .Create()
+                    .WithOrganizationName(OrganizationName)
+                    .WithOrganizationIdentifier(organizationIdentifier)
+                    .WithCommonName(OrganizationCommonName)
+                    .Build();
+
+        // Assert
+        Assert.NotNull(certificate);
+        Assert.True(certificate.HasPrivateKey);
+    }
 
     /// <summary>
     /// Pobiera limity certyfikatów dla uwierzytelnionego użytkownika.

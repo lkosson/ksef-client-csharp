@@ -28,7 +28,7 @@ public abstract class KsefIntegrationTestBase : IDisposable
 
         ApiSettings apiSettings = TestConfig.GetApiSettings();
 
-        var customHeadersFromSettings = TestConfig.Load()["ApiSettings:customHeaders"];
+        string? customHeadersFromSettings = TestConfig.Load()["ApiSettings:customHeaders"];
         if (!string.IsNullOrEmpty(customHeadersFromSettings))
         {
             apiSettings.CustomHeaders = JsonSerializer.Deserialize<Dictionary<string, string>>(customHeadersFromSettings);

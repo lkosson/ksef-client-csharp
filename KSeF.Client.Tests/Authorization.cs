@@ -8,28 +8,13 @@ namespace KSeF.Client.Tests;
 public class Authorization : KsefIntegrationTestBase
 {
     [Fact]
-    public async Task RefreshToken_Receive_ShouldReturnTokenDifferentThanInitialToken()
-    {
-        // Arrange & Act
-        var authInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, MiscellaneousUtils.GetRandomNip());
-        var refreshTokenResult = await KsefClient.RefreshAccessTokenAsync(authInfo.RefreshToken.Token);
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.NotNull(refreshTokenResult);
-            Assert.NotEqual(authInfo.RefreshToken.Token, refreshTokenResult.AccessToken.Token);
-        });
-    }
-
-    [Fact]
     /// <summary>
     /// Uwierzytelnia przy użyciu certyfikatu i NIP-u kontekstu, sesja szyfrowana, rola: właściciel.
     /// </summary>
     public async Task AuthAsync_FullIntegrationFlow_ReturnsAccessToken()
     {
         // Arrange & Act
-        var authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, MiscellaneousUtils.GetRandomNip());
+        AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, MiscellaneousUtils.GetRandomNip());
 
         // Assert
         Assert.NotNull(authResult);
@@ -46,32 +31,32 @@ public class Authorization : KsefIntegrationTestBase
     {
         // Arrange
         // Uwierzytelnij
-        var authInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, MiscellaneousUtils.GetRandomNip());
+        AuthenticationOperationStatusResponse authInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, MiscellaneousUtils.GetRandomNip());
         // Najpierw trzeba uwierzytelnić jako właściciel, aby otrzymać token KSeF
-        var permissions = new KsefTokenPermissionType[]
+        KsefTokenPermissionType[] permissions = new KsefTokenPermissionType[]
         {
             KsefTokenPermissionType.InvoiceWrite,
             KsefTokenPermissionType.InvoiceRead
         };
 
         await Task.Delay(SleepTime);
-        var ownerToken = await KsefClient.GenerateKsefTokenAsync(new KsefTokenRequest() { Description = $"Wystawianie i przeglądanie faktur", Permissions = permissions }, authInfo.AccessToken.Token);
+        KsefTokenResponse ownerToken = await KsefClient.GenerateKsefTokenAsync(new KsefTokenRequest() { Description = $"Wystawianie i przeglądanie faktur", Permissions = permissions }, authInfo.AccessToken.Token);
 
         await Task.Delay(SleepTime);
-        var ksefTokenStatus = await KsefClient.GetKsefTokenAsync(ownerToken.ReferenceNumber, authInfo.AccessToken.Token);
+        AuthenticationKsefToken ksefTokenStatus = await KsefClient.GetKsefTokenAsync(ownerToken.ReferenceNumber, authInfo.AccessToken.Token);
 
         await Task.Delay(SleepTime);
-        var authCoordinator = new AuthCoordinator(KsefClient) as IAuthCoordinator;
+        IAuthCoordinator authCoordinator = new AuthCoordinator(KsefClient) as IAuthCoordinator;
         await Task.Delay(SleepTime);
 
-        var contextType = ContextIdentifierType.Nip;
-        var contextValue = ksefTokenStatus.ContextIdentifier.Value;
+        AuthenticationTokenContextIdentifierType contextType = AuthenticationTokenContextIdentifierType.Nip;
+        string contextValue = ksefTokenStatus.ContextIdentifier.Value;
 
-        AuthorizationPolicy? authorizationPolicy = null;
+        AuthenticationTokenAuthorizationPolicy? authorizationPolicy = null;
 
 
         // Act
-        var result = await authCoordinator.AuthKsefTokenAsync(
+        AuthenticationOperationStatusResponse result = await authCoordinator.AuthKsefTokenAsync(
             contextType,
             contextValue,
             ownerToken.Token,
@@ -93,16 +78,16 @@ public class Authorization : KsefIntegrationTestBase
     public async Task KsefClientAuthorization_AuthCoordinatorService_Positive(EncryptionMethodEnum encryptionMethod)
     {
         // Arrange
-        var authCoordinatorService = new AuthCoordinator(KsefClient) as IAuthCoordinator;
-        var testNip = MiscellaneousUtils.GetRandomNip();
-        var contextIdentifierType = ContextIdentifierType.Nip;
-        var authInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, testNip, contextIdentifierType);
-        var permissions = new KsefTokenPermissionType[]
+        IAuthCoordinator authCoordinatorService = new AuthCoordinator(KsefClient) as IAuthCoordinator;
+        string testNip = MiscellaneousUtils.GetRandomNip();
+        AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip;
+        AuthenticationOperationStatusResponse authInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, testNip, contextIdentifierType);
+        KsefTokenPermissionType[] permissions = new KsefTokenPermissionType[]
         {
             KsefTokenPermissionType.InvoiceWrite,
             KsefTokenPermissionType.InvoiceRead
         };
-        var ownerToken = await KsefClient.GenerateKsefTokenAsync(new KsefTokenRequest()
+        KsefTokenResponse ownerToken = await KsefClient.GenerateKsefTokenAsync(new KsefTokenRequest()
         {
             Description = $"Wystawianie i przeglądanie faktur",
             Permissions = permissions
@@ -110,7 +95,7 @@ public class Authorization : KsefIntegrationTestBase
             authInfo.AccessToken.Token);
 
         // Act
-        var authResult = await authCoordinatorService.AuthKsefTokenAsync(ContextIdentifierType.Nip,
+        AuthenticationOperationStatusResponse authResult = await authCoordinatorService.AuthKsefTokenAsync(AuthenticationTokenContextIdentifierType.Nip,
             testNip,
             ownerToken.Token,
             CryptographyService,

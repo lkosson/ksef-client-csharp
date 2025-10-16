@@ -20,11 +20,11 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
     [Trait("Scenario", "Pytam o status aktualnej sesji interaktywnej")]
     public async Task GivenActiveInteractiveSession_WhenCheckingStatus_ThenReturnsValidStatus(SystemCodeEnum systemCode)
     {
-        var authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, OwnerContextNip);
+        Core.Models.Authorization.AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, OwnerContextNip);
 
-        var encryptionData = CryptographyService.GetEncryptionData();
+        Core.Models.Sessions.EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
-        var openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionRequest openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
            .Create()
            .WithFormCode(systemCode: SystemCodeHelper.GetSystemCode(systemCode), schemaVersion: "1-0E", value: "FA")
            .WithEncryption(
@@ -32,11 +32,11 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
                initializationVector: encryptionData.EncryptionInfo.InitializationVector)
            .Build();
 
-        var openOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
         Assert.NotNull(openOnlineSessionResponse);
         Assert.NotNull(openOnlineSessionResponse.ReferenceNumber);
 
-        var sessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
+        Core.Models.Sessions.SessionStatusResponse sessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
 
         Assert.NotNull(sessionStatusResponse);
         Assert.NotNull(sessionStatusResponse.Status);
@@ -49,11 +49,11 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
     [Trait("Scenario", "Pytam o status innej sesji interaktywnej z mojego kontekstu")]
     public async Task GivenSessionFromSameContext_WhenCheckingStatus_ThenReturnsValidStatus(SystemCodeEnum systemCode)
     {
-        var authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, OwnerContextNip);
+        Core.Models.Authorization.AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, OwnerContextNip);
 
-        var encryptionData = CryptographyService.GetEncryptionData();
+        Core.Models.Sessions.EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
-        var openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionRequest openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
                .Create()
                .WithFormCode(systemCode: SystemCodeHelper.GetSystemCode(systemCode), schemaVersion: "1-0E", value: "FA")
                .WithEncryption(
@@ -61,17 +61,17 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
                    initializationVector: encryptionData.EncryptionInfo.InitializationVector)
                .Build();
 
-        var openOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
         Assert.NotNull(openOnlineSessionResponse.ReferenceNumber);
 
-        var sessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
+        Core.Models.Sessions.SessionStatusResponse sessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
         Assert.NotNull(sessionStatusResponse);
         Assert.True(sessionStatusResponse.Status.Code == 100);
 
-        var openSecondOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openSecondOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
         Assert.NotNull(openSecondOnlineSessionResponse.ReferenceNumber);
 
-        var secondSessionStatusResponse = await KsefClient.GetSessionStatusAsync(openSecondOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
+        Core.Models.Sessions.SessionStatusResponse secondSessionStatusResponse = await KsefClient.GetSessionStatusAsync(openSecondOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
 
         Assert.NotNull(secondSessionStatusResponse);
         Assert.True(secondSessionStatusResponse.Status.Code == 100);
@@ -83,11 +83,11 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
     [Trait("Scenario", "Pytam o status innej sesji interaktywnej z innego kontekstu")]
     public async Task GivenSessionFromDifferentContext_WhenCheckingStatus_ThenReturnsAuthorizationError(SystemCodeEnum systemCode)
     {
-        var authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, OwnerContextNip);
+        Core.Models.Authorization.AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, OwnerContextNip);
 
-        var encryptionData = CryptographyService.GetEncryptionData();
+        Core.Models.Sessions.EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
-        var openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionRequest openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
                .Create()
                .WithFormCode(systemCode: SystemCodeHelper.GetSystemCode(systemCode), schemaVersion: "1-0E", value: "FA")
                .WithEncryption(
@@ -95,22 +95,22 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
                    initializationVector: encryptionData.EncryptionInfo.InitializationVector)
                .Build();
 
-        var openOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
         Assert.NotNull(openOnlineSessionResponse);
         Assert.NotNull(openOnlineSessionResponse.ReferenceNumber);
 
-        var sessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
+        Core.Models.Sessions.SessionStatusResponse sessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
         Assert.True(sessionStatusResponse.Status.Code == 100);
 
         authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, SecondContextNip); //new context
-        var openSecondOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openSecondOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
 
-        var secondSessionStatusResponse = await KsefClient.GetSessionStatusAsync(openSecondOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
+        Core.Models.Sessions.SessionStatusResponse secondSessionStatusResponse = await KsefClient.GetSessionStatusAsync(openSecondOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
         Assert.NotNull(secondSessionStatusResponse);
         Assert.NotNull(secondSessionStatusResponse.Status);
         Assert.True(secondSessionStatusResponse.Status.Code == 100);
 
-        var callFromSecondContextResponse = await Assert.ThrowsAsync<KsefApiException>(() =>
+        KsefApiException callFromSecondContextResponse = await Assert.ThrowsAsync<KsefApiException>(() =>
                     KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token));
 
         Assert.NotNull(callFromSecondContextResponse);
@@ -123,11 +123,11 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
     [Trait("Scenario", "Zamykam sesję interaktywną")]
     public async Task GivenInteractiveSession_WhenClosingSession_ThenSessionIsClosed(SystemCodeEnum systemCode)
     {
-        var authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, OwnerContextNip);
+        Core.Models.Authorization.AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, OwnerContextNip);
 
-        var encryptionData = CryptographyService.GetEncryptionData();
+        Core.Models.Sessions.EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
-        var openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionRequest openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
                .Create()
                .WithFormCode(systemCode: SystemCodeHelper.GetSystemCode(systemCode), schemaVersion: "1-0E", value: "FA")
                .WithEncryption(
@@ -135,14 +135,14 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
                    initializationVector: encryptionData.EncryptionInfo.InitializationVector)
                .Build();
 
-        var openOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
-        var sessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
+        Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openOnlineSessionResponse = await KsefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, authResult.AccessToken.Token);
+        Core.Models.Sessions.SessionStatusResponse sessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
         Assert.NotNull(sessionStatusResponse);
         Assert.NotNull(sessionStatusResponse.Status);
         Assert.True(sessionStatusResponse.Status.Code == 100);
 
         await KsefClient.CloseOnlineSessionAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
-        var closedSessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
+        Core.Models.Sessions.SessionStatusResponse closedSessionStatusResponse = await KsefClient.GetSessionStatusAsync(openOnlineSessionResponse.ReferenceNumber, authResult.AccessToken.Token);
 
         Assert.NotNull(closedSessionStatusResponse);
         Assert.NotNull(closedSessionStatusResponse.Status);

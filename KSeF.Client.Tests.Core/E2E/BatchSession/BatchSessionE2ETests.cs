@@ -3,6 +3,8 @@ using KSeF.Client.Tests.Utils;
 using KSeF.Client.Tests.Utils.Upo;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Interfaces.Services;
+using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models.Sessions.BatchSession;
 
 namespace KSeF.Client.Tests.Core.E2E.BatchSession;
 
@@ -20,14 +22,14 @@ public partial class BatchSessionE2ETests : TestBase
     private string? batchSessionReferenceNumber;
     private string? ksefNumber;
     private string? upoReferenceNumber;
-    private Client.Core.Models.Sessions.BatchSession.OpenBatchSessionResponse? openBatchSessionResponse;
-    private List<Client.Core.Models.Sessions.BatchSession.BatchPartSendingInfo>? encryptedParts;
+    private OpenBatchSessionResponse? openBatchSessionResponse;
+    private List<BatchPartSendingInfo>? encryptedParts;
 
     public BatchSessionE2ETests()
     {
         // Autoryzacja do testów – jednorazowa, dane zapisane w readonly properties
         string nip = MiscellaneousUtils.GetRandomNip();
-        Client.Core.Models.Authorization.AuthOperationStatusResponse authInfo = AuthenticationUtils
+        AuthenticationOperationStatusResponse authInfo = AuthenticationUtils
             .AuthenticateAsync(KsefClient, SignatureService, nip)
             .GetAwaiter().GetResult();
 
@@ -116,7 +118,7 @@ public partial class BatchSessionE2ETests : TestBase
         upoReferenceNumber = statusResponse.Upo.Pages.First().ReferenceNumber;
 
         // 5. Dokumenty sesji
-        Client.Core.Models.Sessions.SessionInvoicesResponse documents = await GetBatchSessionInvoicesAsync(batchSessionReferenceNumber!, accessToken, 0, TotalInvoices);
+        SessionInvoicesResponse documents = await GetBatchSessionInvoicesAsync(batchSessionReferenceNumber!, accessToken, 0, TotalInvoices);
 
         Assert.NotNull(documents);
         Assert.NotEmpty(documents.Invoices);
@@ -161,23 +163,23 @@ public partial class BatchSessionE2ETests : TestBase
         string invoiceTemplatePath,
         string accessToken)
     {
-        Client.Core.Models.Sessions.EncryptionData encryptionData = cryptographyService.GetEncryptionData();
+        EncryptionData encryptionData = cryptographyService.GetEncryptionData();
 
         List<(string FileName, byte[] Content)> invoices = BatchUtils.GenerateInvoicesInMemory(
             count: invoiceCount,
             nip: sellerNip,
             templatePath: invoiceTemplatePath);
 
-        (byte[] zipBytes, Client.Core.Models.Sessions.FileMetadata zipMeta) =
+        (byte[] zipBytes, FileMetadata zipMeta) =
             BatchUtils.BuildZip(invoices, cryptographyService);
 
-        List<Client.Core.Models.Sessions.BatchSession.BatchPartSendingInfo> encryptedParts =
+        List<BatchPartSendingInfo> encryptedParts =
             BatchUtils.EncryptAndSplit(zipBytes, encryptionData, cryptographyService, partQuantity);
 
-        Client.Core.Models.Sessions.BatchSession.OpenBatchSessionRequest openBatchRequest =
+        OpenBatchSessionRequest openBatchRequest =
             BatchUtils.BuildOpenBatchRequest(zipMeta, encryptionData, encryptedParts, systemCode);
 
-        Client.Core.Models.Sessions.BatchSession.OpenBatchSessionResponse openBatchSessionResponse =
+        OpenBatchSessionResponse openBatchSessionResponse =
             await BatchUtils.OpenBatchAsync(KsefClient, openBatchRequest, accessToken);
 
         return new OpenBatchSessionResult(
@@ -191,8 +193,8 @@ public partial class BatchSessionE2ETests : TestBase
     /// Wysyła wszystkie zaszyfrowane części paczki dla wcześniej otwartej sesji wsadowej.
     /// </summary>
     private async Task SendAllBatchPartsAsync(
-        Client.Core.Models.Sessions.BatchSession.OpenBatchSessionResponse openBatchSessionResponse,
-        List<Client.Core.Models.Sessions.BatchSession.BatchPartSendingInfo> encryptedParts)
+        OpenBatchSessionResponse openBatchSessionResponse,
+        List<BatchPartSendingInfo> encryptedParts)
     {
         await KsefClient.SendBatchPartsAsync(openBatchSessionResponse, encryptedParts);
     }
@@ -218,7 +220,7 @@ public partial class BatchSessionE2ETests : TestBase
     /// <summary>
     /// Pobiera dokumenty (faktury) sesji wsadowej z obsługą parametrów stronicowania.
     /// </summary>
-    private async Task<Client.Core.Models.Sessions.SessionInvoicesResponse> GetBatchSessionInvoicesAsync(
+    private async Task<SessionInvoicesResponse> GetBatchSessionInvoicesAsync(
         string sessionReferenceNumber,
         string accessToken,
         int offset,

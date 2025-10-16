@@ -8,51 +8,94 @@ public static class MiscellaneousUtils
 {
     private static readonly Random Random = new();
 
+    // Wagi dla pozycji 1..9
+    private static readonly int[] Weights = { 6, 5, 7, 2, 3, 4, 5, 6, 7 };
+
     /// <summary>
     /// Generuje losowy poprawny NIP (10 cyfr).
-    /// Wyrażenie regularne używane do walidacji:
-    /// [1-9]((\d[1-9])|([1-9]\d))\d{7}
+    /// Walidacja: [1-9]((\d[1-9])|([1-9]\d))\d{7} + poprawna suma kontrolna.
+    /// prefixTwoNumbers: "" | "X" | "XY"
     /// </summary>
     public static string GetRandomNip(string prefixTwoNumbers = "")
     {
-        int first;
-        int second;
+        Random rng = Random.Shared;
 
-        if (prefixTwoNumbers.Length == 1)
+        while (true) // losuj aż checksum != 10 i regex-constraint spełniony
         {
-            first = int.Parse(prefixTwoNumbers[0].ToString());
-            if (first == 0)
+            int first, second;
+
+            if (prefixTwoNumbers.Length == 1)
             {
-                throw new ArgumentException("Wartość musi być większa od 0");
+                first = ParseDigit(prefixTwoNumbers[0]);
+                if (first == 0) throw new ArgumentException("Wartość musi być większa od 0");
+                second = rng.Next(0, 10);
             }
-            second = Random.Next(0, 10);
-        }
-        else if (prefixTwoNumbers.Length == 2)
-        {
-            first = int.Parse(prefixTwoNumbers[0].ToString());
-            second = int.Parse(prefixTwoNumbers[1].ToString());
-        }
-        else if (prefixTwoNumbers.Length == 0)
-        {
-            first = Random.Next(1, 10);
-            second = Random.Next(0, 10);
-        }
-        else
-        {
-            throw new ArgumentException("Prefiks musi mieć długość 0, 1 lub 2 cyfr.");
-        }
+            else if (prefixTwoNumbers.Length == 2)
+            {
+                first = ParseDigit(prefixTwoNumbers[0]);
+                second = ParseDigit(prefixTwoNumbers[1]);
+                if (first == 0) throw new ArgumentException("Pierwsza cyfra musi być > 0");
+            }
+            else if (prefixTwoNumbers.Length == 0)
+            {
+                first = rng.Next(1, 10);   // [1-9]
+                second = rng.Next(0, 10);  // [0-9]
+            }
+            else
+            {
+                throw new ArgumentException("Prefiks musi mieć długość 0, 1 lub 2 cyfr.");
+            }
 
-        int third = Random.Next(0, 10);
+            int third = rng.Next(0, 10);
+            // regex wymaga, żeby para (druga, trzecia) nie była "00"
+            if (second == 0 && third == 0) third = rng.Next(1, 10);
 
-        // regex wymaga, aby druga/trzecia cyfra nie tworzyły pary "00"
-        if (second == 0 && third == 0)
-        {
-            third = Random.Next(1, 10);
+            // zbuduj pierwsze 9 cyfr (po 3-cyfrowym prefiksie jeszcze 6 losowych)
+            int[] digits = new int[10];
+            digits[0] = first;
+            digits[1] = second;
+            digits[2] = third;
+
+            for (int i = 3; i < 9; i++)
+                digits[i] = rng.Next(0, 10);
+
+            // policz cyfrę kontrolną
+            int sum = 0;
+            for (int i = 0; i < 9; i++)
+                sum += digits[i] * Weights[i];
+
+            int check = sum % 11;
+
+            // jeśli 10 => niepoprawny NIP (według specyfikacji), losuj ponownie
+            // inaczej dopisz jako 10. cyfrę i zwróć wynik
+            if (check != 10)
+            {
+                digits[9] = check;
+                return string.Concat(digits.Select(d => d.ToString()));
+            }            
         }
+    }
 
-        string prefix = $"{first}{second}{third}";
-        string rest = Random.Next(1000000, 9999999).ToString("D7");
-        return prefix + rest;
+    /// <summary>Walidacja NIP (10 cyfr + checksum mod 11).</summary>
+    public static bool IsValidNip(string nip)
+    {
+        if (string.IsNullOrWhiteSpace(nip)) return false;
+        string digitsOnly = new string(nip.Where(char.IsDigit).ToArray());
+        if (digitsOnly.Length != 10) return false;
+
+        int[] digits = digitsOnly.Select(ch => ch - '0').ToArray();
+        int sum = 0;
+        for (int i = 0; i < 9; i++)
+            sum += digits[i] * Weights[i];
+
+        int check = sum % 11;
+        return check != 10 && check == digits[9];
+    }
+
+    private static int ParseDigit(char c)
+    {
+        if (c < '0' || c > '9') throw new ArgumentException("Prefiks musi zawierać cyfry 0-9.");
+        return c - '0';
     }
 
     /// <summary>
@@ -286,7 +329,7 @@ public static class MiscellaneousUtils
 
         static string RandomDigits(int len)
         {
-            var sb = new StringBuilder(len);
+            StringBuilder sb = new StringBuilder(len);
             Span<byte> buf = stackalloc byte[1];
             for (int i = 0; i < len; i++)
             {
@@ -299,7 +342,7 @@ public static class MiscellaneousUtils
 
         static string LettersToDigits(string s)
         {
-            var sb = new StringBuilder(s.Length * 2);
+            StringBuilder sb = new StringBuilder(s.Length * 2);
             foreach (char ch in s.ToUpperInvariant())
             {
                 int val = ch - 'A' + 10; // A=10 ... Z=35

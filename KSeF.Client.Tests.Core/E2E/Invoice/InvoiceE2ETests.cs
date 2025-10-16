@@ -1,3 +1,5 @@
+using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
@@ -24,7 +26,7 @@ public class InvoiceE2ETests : TestBase
     {
         _sellerNip = MiscellaneousUtils.GetRandomNip();
 
-        Client.Core.Models.Authorization.AuthOperationStatusResponse authOperationStatusResponse =
+        AuthenticationOperationStatusResponse authOperationStatusResponse =
             AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, _sellerNip).GetAwaiter().GetResult();
         _accessToken = authOperationStatusResponse.AccessToken.Token;
     }
@@ -157,17 +159,17 @@ public class InvoiceE2ETests : TestBase
             Filters = query
         };
 
-        ExportInvoicesResponse invoicesForSellerResponse = await KsefClient.ExportInvoicesAsync(
+        OperationResponse invoicesForSellerResponse = await KsefClient.ExportInvoicesAsync(
             invoiceExportRequest,
             _accessToken,
             CancellationToken);
 
-        Assert.NotNull(invoicesForSellerResponse?.OperationReferenceNumber);
+        Assert.NotNull(invoicesForSellerResponse?.ReferenceNumber);
 
         // 11. Czekaj na zakończenie eksportu (status 200)
         InvoiceExportStatusResponse exportStatus = await AsyncPollingUtils.PollAsync(
             async () => await KsefClient.GetInvoiceExportStatusAsync(
-                invoicesForSellerResponse.OperationReferenceNumber,
+                invoicesForSellerResponse.ReferenceNumber,
                 _accessToken,
                 CancellationToken),
             result => result?.Status?.Code == SuccessStatusCode,

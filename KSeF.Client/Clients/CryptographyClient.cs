@@ -1,5 +1,5 @@
-﻿using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Rest;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Http;
 

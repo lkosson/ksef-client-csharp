@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.IndirectEntityPermissions;
-using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Models;
 
 namespace KSeF.DemoWebApp.Controllers;
 
@@ -13,7 +13,7 @@ public class IndirectPermissionsEntityController(IKSeFClient ksefClient) : Contr
     [HttpPost("grant-indirect-permissions-for-entity")]
     public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, GrantPermissionsIndirectEntityRequest grantPermissionsRequest, CancellationToken cancellationToken)
     {
-        var request = GrantIndirectEntityPermissionsRequestBuilder
+        GrantPermissionsIndirectEntityRequest request = GrantIndirectEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(grantPermissionsRequest.SubjectIdentifier)
             .WithContext(grantPermissionsRequest.TargetIdentifier)

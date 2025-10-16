@@ -7,7 +7,7 @@ public static class GrantEUEntityPermissionsRequestBuilder
 
     public interface ISubjectStep
     {
-        ISubjectNameStep WithSubject(SubjectIdentifier subject);
+        ISubjectNameStep WithSubject(EUEntitySubjectIdentifier subject);
     }
 
     public interface ISubjectNameStep
@@ -17,7 +17,7 @@ public static class GrantEUEntityPermissionsRequestBuilder
 
     public interface IPermissionsStep
     {
-        IDescriptionStep WithContext(ContextIdentifier subject);
+        IDescriptionStep WithContext(EUEntityContextIdentifier subject);
     }
 
     public interface IDescriptionStep
@@ -27,7 +27,7 @@ public static class GrantEUEntityPermissionsRequestBuilder
 
     public interface IBuildStep
     {
-        GrantPermissionsRequest Build();
+        GrantPermissionsEUEntityRequest Build();
     }
 
     private sealed class GrantPermissionsRequestBuilderImpl :
@@ -37,8 +37,8 @@ public static class GrantEUEntityPermissionsRequestBuilder
         IDescriptionStep,
         IBuildStep
     {
-        private SubjectIdentifier _subject;
-        private ContextIdentifier _context;
+        private EUEntitySubjectIdentifier _subject;
+        private EUEntityContextIdentifier _context;
         private string _description;
         private string _subjectName;
 
@@ -46,7 +46,7 @@ public static class GrantEUEntityPermissionsRequestBuilder
 
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
-        public ISubjectNameStep WithSubject(SubjectIdentifier subject)
+        public ISubjectNameStep WithSubject(EUEntitySubjectIdentifier subject)
         {
             _subject = subject ?? throw new ArgumentNullException(nameof(subject));
             return this;
@@ -60,7 +60,7 @@ public static class GrantEUEntityPermissionsRequestBuilder
             return this;
         }
 
-        public IDescriptionStep WithContext(ContextIdentifier context)
+        public IDescriptionStep WithContext(EUEntityContextIdentifier context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             return this;
@@ -72,7 +72,7 @@ public static class GrantEUEntityPermissionsRequestBuilder
             return this;
         }
 
-        public GrantPermissionsRequest Build()
+        public GrantPermissionsEUEntityRequest Build()
         {
             if (_subject is null)
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
@@ -81,7 +81,7 @@ public static class GrantEUEntityPermissionsRequestBuilder
             if (_description is null)
                 throw new InvalidOperationException("Metoda WithDescription(...) musi zostać wywołana po ustawieniu uprawnień.");
 
-            return new GrantPermissionsRequest
+            return new GrantPermissionsEUEntityRequest
             {
                 SubjectIdentifier = _subject,
                 ContextIdentifier = _context,

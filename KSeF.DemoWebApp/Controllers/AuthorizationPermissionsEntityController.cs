@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.AuthorizationPermissions;
-using KSeF.Client.Core.Models.Permissions;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models.Permissions.Authorizations;
+using KSeF.Client.Core.Models;
 
 namespace KSeF.DemoWebApp.Controllers;
 
@@ -11,9 +11,9 @@ namespace KSeF.DemoWebApp.Controllers;
 public class AuthorizationPermissionsEntityController(IKSeFClient ksefClient) : ControllerBase
 {
     [HttpPost("grant-authorization-permissions-for-entity")]
-    public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, SubjectIdentifier subjectIdentifier, CancellationToken cancellationToken)
+    public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, AuthorizationSubjectIdentifier subjectIdentifier, CancellationToken cancellationToken)
     {
-        var request = GrantAuthorizationPermissionsRequestBuilder
+        GrantPermissionsAuthorizationRequest request = GrantAuthorizationPermissionsRequestBuilder
             .Create()
             .WithSubject(subjectIdentifier)
             .WithPermission(AuthorizationPermissionType.TaxRepresentative)

@@ -17,7 +17,7 @@ namespace KSeF.Client.Core.Interfaces.Services
         /// </summary>
         string BuildCertificateVerificationUrl(
             string sellerNip,
-            ContextIdentifierType contextIdentifierType,
+            QRCodeContextIdentifierType contextIdentifierType,
             string contextIdentifierValue,
             string certificateSerial,
             string invoiceHash,

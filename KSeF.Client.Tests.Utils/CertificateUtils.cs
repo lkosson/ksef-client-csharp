@@ -13,7 +13,7 @@ public static class CertificateUtils
 {
     public static async Task<(string csrBase64Encoded, string privateKeyBase64Encoded)> GenerateCsrAndPrivateKeyWithRsaAsync(IKSeFClient ksefClient, string accessToken, ICryptographyService cryptographyService, RSASignaturePadding padding = null)
     {
-        var enrollmentData = await ksefClient
+        CertificateEnrollmentsInfoResponse enrollmentData = await ksefClient
             .GetCertificateEnrollmentDataAsync(accessToken);
 
         return cryptographyService.GenerateCsrWithRsa(enrollmentData, padding);
@@ -21,7 +21,7 @@ public static class CertificateUtils
 
     public static async Task<(string csrBase64Encoded, string privateKeyBase64Encoded)> GenerateCsrAndPrivateKeyWithEcdsaAsync(IKSeFClient ksefClient, string accessToken, ICryptographyService cryptographyService)
     {
-        var enrollmentData = await ksefClient
+        CertificateEnrollmentsInfoResponse enrollmentData = await ksefClient
             .GetCertificateEnrollmentDataAsync(accessToken);
 
         return cryptographyService.GenerateCsrWithEcdsa(enrollmentData);
@@ -29,21 +29,21 @@ public static class CertificateUtils
 
     public static async Task<CertificateEnrollmentResponse> SendCertificateEnrollmentAsync(IKSeFClient ksefClient, string accessToken, string csrBase64Encoded, CertificateType certificateType = CertificateType.Authentication)
     {
-        var request = SendCertificateEnrollmentRequestBuilder.Create()
+        SendCertificateEnrollmentRequest request = SendCertificateEnrollmentRequestBuilder.Create()
                    .WithCertificateName("Test Certificate")
                    .WithCertificateType(certificateType)
                    .WithCsr(csrBase64Encoded)
                    .WithValidFrom(DateTimeOffset.UtcNow)
                    .Build();
 
-        var certificateEnrollmentResponse = await ksefClient.SendCertificateEnrollmentAsync(request, accessToken);
+        CertificateEnrollmentResponse certificateEnrollmentResponse = await ksefClient.SendCertificateEnrollmentAsync(request, accessToken);
 
         return certificateEnrollmentResponse;
     }
 
     public static async Task RevokeCertificateAsync(IKSeFClient ksefClient, string accessToken, string certificateSerialNumber)
     {
-        var request = RevokeCertificateRequestBuilder.Create()
+        CertificateRevokeRequest request = RevokeCertificateRequestBuilder.Create()
             .Build();
 
         await ksefClient.RevokeCertificateAsync(request, certificateSerialNumber, accessToken);
@@ -52,7 +52,7 @@ public static class CertificateUtils
     public static X509Certificate2 CreateCertificateWithPrivateKey(CertificateResponse response, string privateKeyBase64Encoded)
     {
         byte[] certBytes = Convert.FromBase64String(response.Certificate);
-        var certificate = new X509Certificate2(certBytes);
+        X509Certificate2 certificate = new X509Certificate2(certBytes);
 
         using RSA rsa = RSA.Create();
         rsa.ImportRSAPrivateKey(Convert.FromBase64String(privateKeyBase64Encoded), out _);

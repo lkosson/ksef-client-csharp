@@ -1,12 +1,12 @@
 using KSeF.Client.Api.Builders.AuthorizationPermissions;
+using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Authorizations;
 using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Tests.Utils;
-using AuthorizationPermissionType = KSeF.Client.Core.Models.Permissions.Authorizations.AuthorizationPermissionType;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.AuthorizationPermission;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.AuthorizationPermissions;
 
 [Collection("AuthorizationPermissionsScenarioE2ECollection")]
 public class AuthorizationPermissionsE2ETests : TestBase
@@ -19,7 +19,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
     public AuthorizationPermissionsE2ETests(AuthorizationPermissionsScenarioE2EFixture fixture)
     {
         _fixture = fixture;
-        AuthOperationStatusResponse authOperationStatusResponse =
+        AuthenticationOperationStatusResponse authOperationStatusResponse =
             AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService).GetAwaiter().GetResult();
         accessToken = authOperationStatusResponse.AccessToken.Token;
         _fixture.SubjectIdentifier.Value = MiscellaneousUtils.GetRandomNip();
@@ -39,7 +39,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
 
         // Assert
         Assert.NotNull(_fixture.GrantResponse);
-        Assert.True(!string.IsNullOrEmpty(_fixture.GrantResponse.OperationReferenceNumber));
+        Assert.True(!string.IsNullOrEmpty(_fixture.GrantResponse.ReferenceNumber));
         #endregion
 
         #region Wyszukaj — powinny się pojawić (polling)
@@ -93,7 +93,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
     /// <returns>Numer referencyjny operacji</returns>
     private async Task<OperationResponse> GrantPermissionsAsync()
     {
-        GrantAuthorizationPermissionsRequest grantPermissionAuthorizationRequest =
+        GrantPermissionsAuthorizationRequest grantPermissionAuthorizationRequest =
             GrantAuthorizationPermissionsRequestBuilder
             .Create()
             .WithSubject(_fixture.SubjectIdentifier)
@@ -132,21 +132,21 @@ public class AuthorizationPermissionsE2ETests : TestBase
     /// </summary>
     private async Task RevokePermissionsAsync()
     {
-        List<OperationResponse> revokeResponses = new List<Client.Core.Models.Permissions.OperationResponse>();
+        List<OperationResponse> revokeResponses = new List<OperationResponse>();
 
         // Uruchomienie operacji cofania
-        foreach (Client.Core.Models.Permissions.AuthorizationGrant permission in _fixture.SearchResponse.AuthorizationGrants)
+        foreach (AuthorizationGrant permission in _fixture.SearchResponse.AuthorizationGrants)
         {
-            Client.Core.Models.Permissions.OperationResponse resp = await KsefClient.RevokeAuthorizationsPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            OperationResponse resp = await KsefClient.RevokeAuthorizationsPermissionAsync(permission.Id, accessToken, CancellationToken.None);
             revokeResponses.Add(resp);
         }
 
         // Sprawdzenie statusów wszystkich operacji (polling do 200)
-        foreach (Client.Core.Models.Permissions.OperationResponse revokeResponse in revokeResponses)
+        foreach (OperationResponse revokeResponse in revokeResponses)
         {
-            Client.Core.Models.Permissions.PermissionsOperationStatusResponse status =
+            PermissionsOperationStatusResponse status =
                 await AsyncPollingUtils.PollAsync(
-                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.OperationReferenceNumber, accessToken),
+                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken),
                     result => result.Status.Code == OperationSuccessfulStatusCode,
                     delay: TimeSpan.FromMilliseconds(SleepTime),
                     maxAttempts: 30,

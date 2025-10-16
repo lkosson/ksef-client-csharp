@@ -35,16 +35,16 @@ namespace KSeF.Client.Core.Interfaces
         /// Czy weryfikować łańcuch certyfikatu podczas uwierzytelniania.
         /// </param>
         /// <returns>
-        /// Obiekt <see cref="AuthOperationStatusResponse"/> zawierający dane access/refresh tokenów 
+        /// Obiekt <see cref="AuthenticationOperationStatusResponse"/> zawierający dane access/refresh tokenów 
         /// oraz informacje o statusie operacji uwierzytelniania.
         /// </returns>
-        Task<AuthOperationStatusResponse> AuthAsync(
-            ContextIdentifierType contextIdentifierType,
+        Task<AuthenticationOperationStatusResponse> AuthAsync(
+            AuthenticationTokenContextIdentifierType contextIdentifierType,
             string contextIdentifierValue,
-            SubjectIdentifierTypeEnum identifierType,
+            AuthenticationTokenSubjectIdentifierTypeEnum identifierType,
             Func<string, Task<string>> xmlSigner,
-            AuthorizationPolicy authorizationPolicy = default,
-            CancellationToken ct = default,
+            AuthenticationTokenAuthorizationPolicy authorizationPolicy = default,
+            CancellationToken cancellationToken = default,
             bool verifyCertificateChain = false);
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace KSeF.Client.Core.Interfaces
         /// </returns>
         Task<TokenInfo> RefreshAccessTokenAsync(
             string refreshToken,
-            CancellationToken ct = default);
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Rozpoczyna proces uwierzytelniania w KSeF przy użyciu tokena KSeF.
@@ -77,16 +77,16 @@ namespace KSeF.Client.Core.Interfaces
         /// <param name="authorizationPolicy">Polityka walidacji autoryzacji (opcjonalna).</param>
         /// <param name="ct">Token anulowania.</param>
         /// <returns>
-        /// Obiekt <see cref="AuthOperationStatusResponse"/> zawierający dane access/refresh tokenów 
+        /// Obiekt <see cref="AuthenticationOperationStatusResponse"/> zawierający dane access/refresh tokenów 
         /// oraz status operacji.
         /// </returns>
-        Task<AuthOperationStatusResponse> AuthKsefTokenAsync(
-            ContextIdentifierType contextIdentifierType,
+        Task<AuthenticationOperationStatusResponse> AuthKsefTokenAsync(
+            AuthenticationTokenContextIdentifierType contextIdentifierType,
             string contextIdentifierValue,
             string tokenKsef,
             ICryptographyService cryptographyService,
             EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.ECDsa,
-            AuthorizationPolicy authorizationPolicy = default,
-            CancellationToken ct = default);
+            AuthenticationTokenAuthorizationPolicy authorizationPolicy = default,
+            CancellationToken cancellationToken = default);
     }
 }

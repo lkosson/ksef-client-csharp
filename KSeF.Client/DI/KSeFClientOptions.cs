@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using KSeF.Client.Core.Configuration;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 
 namespace KSeF.Client.DI;
@@ -13,4 +14,6 @@ public class KSeFClientOptions
     public string BaseUrl { get; set; } = "";
     public Dictionary<string, string> CustomHeaders { get; set; }
     public IWebProxy WebProxy { get; set; } = null;
+
+    public ApiConfiguration ApiConfiguration { get; set; } = new ApiConfiguration();
 }

@@ -6,8 +6,8 @@ namespace KSeF.Client.Core.Models.Invoices
     {
         [EnumMember(Value = "FA (2)")] FA2,
         [EnumMember(Value = "FA (3)")] FA3,
-        [EnumMember(Value = "FA_PEF (3)")] FAPEF,
-        [EnumMember(Value = "FA_KOR_PEF (3)")] FAKORPEF
+        [EnumMember(Value = "PEF (3)")] PEF,
+        [EnumMember(Value = "PEF_KOR (3)")] PEFKOR
     }
 
     public static class SystemCodeHelper
@@ -20,10 +20,10 @@ namespace KSeF.Client.Core.Models.Invoices
                     return "FA (2)";
                 case SystemCodeEnum.FA3:
                     return "FA (3)";
-                case SystemCodeEnum.FAPEF:
-                    return "FA_PEF (3)";
-                case SystemCodeEnum.FAKORPEF:
-                    return "FA_KOR_PEF (3)";
+                case SystemCodeEnum.PEF:
+                    return "PEF (3)";
+                case SystemCodeEnum.PEFKOR:
+                    return "PEF_KOR (3)";
                 default:
                     return code.ToString();
             }
@@ -37,10 +37,10 @@ namespace KSeF.Client.Core.Models.Invoices
                     return "FA";
                 case SystemCodeEnum.FA3:
                     return "FA";
-                case SystemCodeEnum.FAPEF:
-                    return "FA_PEF";
-                case SystemCodeEnum.FAKORPEF:
-                    return "FA_PEF";
+                case SystemCodeEnum.PEF:
+                    return "PEF";
+                case SystemCodeEnum.PEFKOR:
+                    return "PEF";
                 default:
                     return code.ToString();
             }
@@ -54,9 +54,9 @@ namespace KSeF.Client.Core.Models.Invoices
                     return "1-0E";
                 case SystemCodeEnum.FA3:
                     return "1-0E";
-                case SystemCodeEnum.FAPEF:
+                case SystemCodeEnum.PEF:
                     return "2-1";
-                case SystemCodeEnum.FAKORPEF:
+                case SystemCodeEnum.PEFKOR:
                     return "2-1";
                 default:
                     return code.ToString();

@@ -72,58 +72,83 @@ public class CryptographyService : ICryptographyService
     /// <inheritdoc />
     public byte[] EncryptBytesWithAES256(byte[] content, byte[] key, byte[] iv)
     {
-        Aes aes = Aes.Create();
-        aes.KeySize = 256;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-        aes.BlockSize = 16 * 8;
-        aes.Key = key;
-        aes.IV = iv;
-
-        ICryptoTransform encryptor = aes.CreateEncryptor();
-
+        using Aes aes = CreateConfiguredAes(key, iv);
+        using ICryptoTransform encryptor = aes.CreateEncryptor();
         using Stream input = BinaryData.FromBytes(content).ToStream();
         using MemoryStream output = new();
         using CryptoStream cryptoWriter = new(output, encryptor, CryptoStreamMode.Write);
+        
         input.CopyTo(cryptoWriter);
         cryptoWriter.FlushFinalBlock();
-
         output.Position = 0;
+        
         return BinaryData.FromStream(output).ToArray();
     }
 
     public void EncryptStreamWithAES256(Stream input, Stream output, byte[] key, byte[] iv)
     {
-        using Aes aes = Aes.Create();
-        aes.KeySize = 256;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-        aes.BlockSize = 16 * 8;
-        aes.Key = key;
-        aes.IV = iv;
-
+        using Aes aes = CreateConfiguredAes(key, iv);
         using ICryptoTransform encryptor = aes.CreateEncryptor();
         using CryptoStream cryptoStream = new(output, encryptor, CryptoStreamMode.Write, leaveOpen: true);
+        
         input.CopyTo(cryptoStream);
         cryptoStream.FlushFinalBlock();
-        output.Position = 0;
+        
+        if (output.CanSeek)
+            output.Position = 0;
     }
 
     /// <inheritdoc />
-    public async Task EncryptStreamWithAES256Async(Stream input, Stream output, byte[] key, byte[] iv, CancellationToken ct = default)
+    public async Task EncryptStreamWithAES256Async(Stream input, Stream output, byte[] key, byte[] iv, CancellationToken cancellationToken = default)
     {
-        using Aes aes = Aes.Create();
-        aes.KeySize = 256;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-        aes.BlockSize = 16 * 8;
-        aes.Key = key;
-        aes.IV = iv;
-
+        using Aes aes = CreateConfiguredAes(key, iv);
         using ICryptoTransform encryptor = aes.CreateEncryptor();
         using CryptoStream cryptoStream = new(output, encryptor, CryptoStreamMode.Write, leaveOpen: true);
-        await input.CopyToAsync(cryptoStream, 81920, ct).ConfigureAwait(false);
-        await cryptoStream.FlushFinalBlockAsync(ct).ConfigureAwait(false);
+        
+        await input.CopyToAsync(cryptoStream, 81920, cancellationToken).ConfigureAwait(false);
+        await cryptoStream.FlushFinalBlockAsync(cancellationToken).ConfigureAwait(false);
+        
+        if (output.CanSeek)
+            output.Position = 0;
+    }
+
+    /// <inheritdoc />
+    public byte[] DecryptBytesWithAES256(byte[] content, byte[] key, byte[] iv)
+    {
+        using Aes aes = CreateConfiguredAes(key, iv);
+        using ICryptoTransform decryptor = aes.CreateDecryptor();
+        using Stream input = BinaryData.FromBytes(content).ToStream();
+        using MemoryStream output = new();
+        using CryptoStream cryptoReader = new(input, decryptor, CryptoStreamMode.Read);
+        
+        cryptoReader.CopyTo(output);
+        output.Position = 0;
+        
+        return BinaryData.FromStream(output).ToArray();
+    }
+
+    /// <inheritdoc />
+    public void DecryptStreamWithAES256(Stream input, Stream output, byte[] key, byte[] iv)
+    {
+        using Aes aes = CreateConfiguredAes(key, iv);
+        using ICryptoTransform decryptor = aes.CreateDecryptor();
+        using CryptoStream cryptoStream = new(input, decryptor, CryptoStreamMode.Read);
+        
+        cryptoStream.CopyTo(output);
+        
+        if (output.CanSeek)
+            output.Position = 0;
+    }
+
+    /// <inheritdoc />
+    public async Task DecryptStreamWithAES256Async(Stream input, Stream output, byte[] key, byte[] iv, CancellationToken cancellationToken = default)
+    {
+        using Aes aes = CreateConfiguredAes(key, iv);
+        using ICryptoTransform decryptor = aes.CreateDecryptor();
+        using CryptoStream cryptoStream = new(input, decryptor, CryptoStreamMode.Read);
+        
+        await cryptoStream.CopyToAsync(output, 81920, cancellationToken).ConfigureAwait(false);
+        
         if (output.CanSeek)
             output.Position = 0;
     }
@@ -134,14 +159,14 @@ public class CryptographyService : ICryptographyService
         if(padding == null)
             padding = RSASignaturePadding.Pss;
 
-        using var rsa = RSA.Create(2048);
-        var privateKey = rsa.ExportRSAPrivateKey();
+        using RSA rsa = RSA.Create(2048);
+        byte[] privateKey = rsa.ExportRSAPrivateKey();
 
         X500DistinguishedName subject = CreateSubjectDistinguishedName(certificateInfo);
 
-        var request = new CertificateRequest(subject, rsa, HashAlgorithmName.SHA256, padding);
+        CertificateRequest request = new CertificateRequest(subject, rsa, HashAlgorithmName.SHA256, padding);
 
-        var csrDer = request.CreateSigningRequest();
+        byte[] csrDer = request.CreateSigningRequest();
         return (Convert.ToBase64String(csrDer), Convert.ToBase64String(privateKey));
     }
 
@@ -149,7 +174,7 @@ public class CryptographyService : ICryptographyService
     public FileMetadata GetMetaData(byte[] file)
     {
         string base64Hash = "";
-        using (var sha256 = SHA256.Create())
+        using (SHA256 sha256 = SHA256.Create())
         {
             byte[] hash = sha256.ComputeHash(file);
             base64Hash = Convert.ToBase64String(hash);
@@ -185,8 +210,8 @@ public class CryptographyService : ICryptographyService
             fileSize = 0; 
         }
 
-        using var sha256 = SHA256.Create();
-        var buffer = new byte[81920];
+        using SHA256 sha256 = SHA256.Create();
+        byte[] buffer = new byte[81920];
         int read;
         while ((read = fileStream.Read(buffer, 0, buffer.Length)) > 0)
         {
@@ -228,7 +253,7 @@ public class CryptographyService : ICryptographyService
             fileSize = 0;
         }
 
-        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        using IncrementalHash hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         byte[] buffer = new byte[81920];
         int read;
         while ((read = await fileStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
@@ -254,7 +279,7 @@ public class CryptographyService : ICryptographyService
     public byte[] EncryptWithRSAUsingPublicKey(byte[] content, RSAEncryptionPadding padding)
     {
         RSA rsa = RSA.Create();
-        var publicKey = GetRSAPublicPem(SymmetricKeyEncryptionPem);
+        string publicKey = GetRSAPublicPem(SymmetricKeyEncryptionPem);
         rsa.ImportFromPem(publicKey);
         return rsa.Encrypt(content, padding);
     }
@@ -276,7 +301,7 @@ public class CryptographyService : ICryptographyService
         ecdhReceiver.ImportFromPem(publicKey);
 
         using ECDiffieHellman ecdhEphemeral = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
-        var sharedSecret = ecdhEphemeral.DeriveKeyMaterial(ecdhReceiver.PublicKey);
+        byte[] sharedSecret = ecdhEphemeral.DeriveKeyMaterial(ecdhReceiver.PublicKey);
 
         using AesGcm aes = new(sharedSecret, AesGcm.TagByteSizes.MaxSize);
         byte[] nonce = new byte[AesGcm.NonceByteSizes.MaxSize];
@@ -291,6 +316,18 @@ public class CryptographyService : ICryptographyService
             .Concat(tag)
             .Concat(cipherText)
             .ToArray();
+    }
+
+    private static Aes CreateConfiguredAes(byte[] key, byte[] iv)
+    {
+        Aes aes = Aes.Create();
+        aes.KeySize = 256;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+        aes.BlockSize = 16 * 8;
+        aes.Key = key;
+        aes.IV = iv;
+        return aes;
     }
 
     private byte[] GenerateRandom256BitsKey()
@@ -313,9 +350,9 @@ public class CryptographyService : ICryptographyService
 
     private string GetRSAPublicPem(string certificatePem)
     {
-        var cert = X509Certificate2.CreateFromPem(certificatePem);
+        X509Certificate2 cert = X509Certificate2.CreateFromPem(certificatePem);
 
-        var rsa = cert.GetRSAPublicKey();
+        RSA rsa = cert.GetRSAPublicKey();
         if (rsa != null)
         {
             string pubKeyPem = ExportPublicKeyToPem(rsa);
@@ -329,9 +366,9 @@ public class CryptographyService : ICryptographyService
 
     private string GetECDSAPublicPem(string certificatePem)
     {
-        var cert = X509Certificate2.CreateFromPem(certificatePem);
+        X509Certificate2 cert = X509Certificate2.CreateFromPem(certificatePem);
 
-        var ecdsa = cert.GetECDsaPublicKey();
+        ECDsa ecdsa = cert.GetECDsaPublicKey();
         if (ecdsa != null)
         {
             string pubKeyPem = ExportEcdsaPublicKeyToPem(ecdsa);
@@ -345,13 +382,13 @@ public class CryptographyService : ICryptographyService
 
     private string ExportEcdsaPublicKeyToPem(ECDsa ecdsa)
     {
-        var pubKeyBytes = ecdsa.ExportSubjectPublicKeyInfo();
+        byte[] pubKeyBytes = ecdsa.ExportSubjectPublicKeyInfo();
         return new string(PemEncoding.Write("PUBLIC KEY", pubKeyBytes));
     }
 
     private string ExportPublicKeyToPem(RSA rsa)
     {
-        var pubKeyBytes = rsa.ExportSubjectPublicKeyInfo();
+        byte[] pubKeyBytes = rsa.ExportSubjectPublicKeyInfo();
         return new string(PemEncoding.Write("PUBLIC KEY", pubKeyBytes));
     }
 
@@ -367,16 +404,16 @@ public class CryptographyService : ICryptographyService
         try
         {
             if (isInitialized) return;
-            var list = await _fetcher(cancellationToken);
-            var m = BuildMaterials(list);
+            ICollection<PemCertificateInfo> list = await _fetcher(cancellationToken);
+            CertificateMaterials certificateMaterials = BuildMaterials(list);
 
             // atomowa podmiana referencji wystarcza (właściwości tylko czytają)
-            Volatile.Write(ref _materials, m);
+            Volatile.Write(ref _materials, certificateMaterials);
         }
         catch
         {
             // Jeżeli mamy stare materiały i nadal mieszczą się w okresie łaski – zostawiamy je.
-            var current = Volatile.Read(ref _materials);
+            CertificateMaterials current = Volatile.Read(ref _materials);
             if (current is null || DateTimeOffset.UtcNow > current.ExpiresAt + _staleGrace)
                 throw; // nie mamy nic albo już po grace – przekaż wyjątek
         }
@@ -388,8 +425,8 @@ public class CryptographyService : ICryptographyService
 
     private void ScheduleNextRefresh()
     {
-        var m = Volatile.Read(ref _materials)!;
-        var due = m.RefreshAt - DateTimeOffset.UtcNow;
+        CertificateMaterials certificateMaterials = Volatile.Read(ref _materials)!;
+        TimeSpan due = certificateMaterials.RefreshAt - DateTimeOffset.UtcNow;
         if (due < TimeSpan.FromSeconds(5)) due = TimeSpan.FromSeconds(5);
 
         // pojedynczy strzał; po odświeżeniu harmonogramujemy na nowo
@@ -413,25 +450,25 @@ public class CryptographyService : ICryptographyService
         if (certs.Count == 0)
             throw new InvalidOperationException("Brak certyfikatów.");
 
-        var symmetricDto = certs.FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.SymmetricKeyEncryption))
+        PemCertificateInfo symmetricDto = certs.FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.SymmetricKeyEncryption))
             ?? throw new InvalidOperationException("Brak certyfikatu SymmetricKeyEncryption.");
-        var tokenDto = certs.OrderBy(c => c.ValidFrom)
+        PemCertificateInfo tokenDto = certs.OrderBy(c => c.ValidFrom)
             .FirstOrDefault(c => c.Usage.Contains(PublicKeyCertificateUsage.KsefTokenEncryption))
             ?? throw new InvalidOperationException("Brak certyfikatu KsefTokenEncryption.");
 
-        var sym = new X509Certificate2(Convert.FromBase64String(symmetricDto.Certificate));
-        var tok = new X509Certificate2(Convert.FromBase64String(tokenDto.Certificate));
+        X509Certificate2 sym = new X509Certificate2(Convert.FromBase64String(symmetricDto.Certificate));
+        X509Certificate2 tok = new X509Certificate2(Convert.FromBase64String(tokenDto.Certificate));
 
-        var minNotAfterUtc = new[] { sym.NotAfter.ToUniversalTime(), tok.NotAfter.ToUniversalTime() }.Min();
-        var expiresAt = new DateTimeOffset(minNotAfterUtc, TimeSpan.Zero);
+        DateTime minNotAfterUtc = new[] { sym.NotAfter.ToUniversalTime(), tok.NotAfter.ToUniversalTime() }.Min();
+        DateTimeOffset expiresAt = new DateTimeOffset(minNotAfterUtc, TimeSpan.Zero);
 
         // odśwież przed wygaśnięciem lub najpóźniej za maxRevalidateInterval
-        var safetyMargin = TimeSpan.FromDays(1);
-        var maxRevalidateInterval = TimeSpan.FromHours(24);
+        TimeSpan safetyMargin = TimeSpan.FromDays(1);
+        TimeSpan maxRevalidateInterval = TimeSpan.FromHours(24);
 
-        var refreshCandidate = expiresAt - safetyMargin;
-        var capByMaxInterval = DateTimeOffset.UtcNow + maxRevalidateInterval;
-        var refreshAt = (refreshCandidate < capByMaxInterval) ? refreshCandidate : capByMaxInterval;
+        DateTimeOffset refreshCandidate = expiresAt - safetyMargin;
+        DateTimeOffset capByMaxInterval = DateTimeOffset.UtcNow + maxRevalidateInterval;
+        DateTimeOffset refreshAt = (refreshCandidate < capByMaxInterval) ? refreshCandidate : capByMaxInterval;
 
         // drobny jitter 0–5 min, by nie wstały wszystkie instancje naraz
         refreshAt -= TimeSpan.FromMinutes(Random.Shared.Next(0, 5));
@@ -446,13 +483,13 @@ public class CryptographyService : ICryptographyService
     /// <inheritdoc />
     public (string, string) GenerateCsrWithEcdsa(CertificateEnrollmentsInfoResponse certificateInfo)
     {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var privateKey = ecdsa.ExportECPrivateKey();
+        using ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        byte[] privateKey = ecdsa.ExportECPrivateKey();
 
         X500DistinguishedName subject = CreateSubjectDistinguishedName(certificateInfo);
 
         // Budowanie CSR
-        var request = new CertificateRequest(subject, ecdsa, HashAlgorithmName.SHA256);
+        CertificateRequest request = new CertificateRequest(subject, ecdsa, HashAlgorithmName.SHA256);
 
         // Eksport CSR do formatu DER (bajtów)
         byte[] csrDer = request.CreateSigningRequest();
@@ -461,15 +498,15 @@ public class CryptographyService : ICryptographyService
 
     private static X500DistinguishedName CreateSubjectDistinguishedName(CertificateEnrollmentsInfoResponse certificateInfo)
     {
-        var asnWriter = new AsnWriter(AsnEncodingRules.DER);
+        AsnWriter asnWriter = new AsnWriter(AsnEncodingRules.DER);
 
         void AddRdn(string oid, string value, UniversalTagNumber tag)
         {
             if (string.IsNullOrEmpty(value))
                 return;
 
-            using var set = asnWriter.PushSetOf();
-            using var seq = asnWriter.PushSequence();
+            using AsnWriter.Scope set = asnWriter.PushSetOf();
+            using AsnWriter.Scope seq = asnWriter.PushSequence();
             asnWriter.WriteObjectIdentifier(oid);
             asnWriter.WriteCharacterString(tag, value);
         }

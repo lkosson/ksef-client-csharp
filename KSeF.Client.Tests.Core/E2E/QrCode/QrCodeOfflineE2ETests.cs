@@ -3,6 +3,7 @@ using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Certificates;
+using KSeF.Client.Core.Models.QRCode;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.DI;
 using KSeF.Client.Extensions;
@@ -10,7 +11,6 @@ using KSeF.Client.Tests.Utils;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using ContextIdentifierType = KSeF.Client.Core.Models.QRCode.ContextIdentifierType;
 
 namespace KSeF.Client.Tests.Core.E2E.QrCode;
 
@@ -40,7 +40,7 @@ public class QrCodeOfflineE2ETests : TestBase
         Fixture = fixture;
         Fixture.Nip = MiscellaneousUtils.GetRandomNip();
 
-        AuthOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, Fixture.Nip).GetAwaiter().GetResult();
+        AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, Fixture.Nip).GetAwaiter().GetResult();
         Fixture.AccessToken = authInfo.AccessToken.Token;
 
         linkService = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnviromentsUris.TEST });
@@ -180,10 +180,10 @@ public class QrCodeOfflineE2ETests : TestBase
         X509Certificate2 certWithKey = testScenario.GetCertWithPrivateKey(cert, Fixture.PrivateKey);
 
         //Utworzenie kodu QR do weryfikacji certyfikatu (KOD II) dla trybu offline
-        var qrOfflineCertificate = qrCodeService.GenerateQrCode(
+        byte[] qrOfflineCertificate = qrCodeService.GenerateQrCode(
             linkService.BuildCertificateVerificationUrl(
                 Fixture.Nip,
-                ContextIdentifierType.Nip,
+                QRCodeContextIdentifierType.Nip,
                 Fixture.Nip,
                 Fixture.Certificate.CertificateSerialNumber,
                 Fixture.InvoiceHash,

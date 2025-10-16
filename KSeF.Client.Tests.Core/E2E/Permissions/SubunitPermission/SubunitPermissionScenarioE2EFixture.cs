@@ -1,32 +1,33 @@
+using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.SubunitPermission;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.SubunitPermissions;
 
 public class SubunitPermissionsScenarioE2EFixture
 {
-    public ContextIdentifier Unit { get; } = new ContextIdentifier
+    public SubUnitContextIdentifier Unit { get; } = new SubUnitContextIdentifier
     {
-        Type = ContextIdentifierType.Nip,
+        Type = SubUnitContextIdentifierType.Nip,
         Value = MiscellaneousUtils.GetRandomNip()
     };
 
     public string UnitNipInternal { get; set; }
 
-    public ContextIdentifier Subunit { get; } = new ContextIdentifier
+    public SubUnitContextIdentifier Subunit { get; } = new SubUnitContextIdentifier
     {
-        Type = ContextIdentifierType.Nip,
+        Type = SubUnitContextIdentifierType.Nip,
         Value = MiscellaneousUtils.GetRandomNip()
     };
 
-    public Client.Core.Models.Permissions.SubUnit.SubjectIdentifier SubjectIdentifier { get; } = new Client.Core.Models.Permissions.SubUnit.SubjectIdentifier
+    public SubUnitSubjectIdentifier SubjectIdentifier { get; } = new SubUnitSubjectIdentifier
     {
-        Type = SubjectIdentifierType.Nip,
+        Type = SubUnitSubjectIdentifierType.Nip,
         Value = MiscellaneousUtils.GetRandomNip()
     };
 
     public OperationResponse GrantResponse { get; set; }
     public List<PermissionsOperationStatusResponse> RevokeStatusResults { get; set; } = new();
-    public PagedPermissionsResponse<Client.Core.Models.Permissions.SubunitPermission> SearchResponse { get; internal set; }
+    public PagedPermissionsResponse<SubunitPermission> SearchResponse { get; internal set; }
 }

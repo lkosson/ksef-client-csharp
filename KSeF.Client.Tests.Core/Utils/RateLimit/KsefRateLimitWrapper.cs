@@ -1,0 +1,181 @@
+using System.Collections.Concurrent;
+
+using KSeF.Client.Core.Exceptions;
+
+namespace KSeF.Client.Tests.Core.Utils.RateLimit;
+
+/// <summary>
+/// Prosty wrapper do obsługi rate limiting dla KsefClient.
+/// Automatycznie obsługuje KsefRateLimitException z retry wykorzystując Retry-After header.
+/// </summary>
+public static class KsefRateLimitWrapper
+{
+    private const int DefaultMaxRetryAttempts = 5;
+
+    /// <summary>
+    /// Wykonuje wywołanie KSeF API z automatyczną obsługą rate limiting.
+    /// Automatycznie ponawiaj próby po HTTP 429 zgodnie z Retry-After header.
+    /// </summary>
+    /// <typeparam name="T">Typ zwracanej odpowiedzi</typeparam>
+    /// <param name="ksefApiCall">Funkcja wykonująca wywołanie KSeF API</param>
+    /// <param name="endpoint">Typ endpointu (używany do sprawdzenia limitów)</param>
+    /// <param name="maxRetryAttempts">Maksymalna liczba prób</param>
+    /// <param name="cancellationToken">Token anulowania</param>
+    /// <returns>Odpowiedź z KSeF API</returns>
+    public static async Task<T> ExecuteWithRetryAsync<T>(
+        Func<CancellationToken, Task<T>> ksefApiCall,
+        KsefApiEndpoint endpoint,
+        int maxRetryAttempts = DefaultMaxRetryAttempts,
+        CancellationToken cancellationToken = default)
+    {
+        // Odczyt profilu limitów dla danego endpointu (RPS/RPM/RPH)
+        var limits = KsefApiLimits.GetLimits(endpoint);
+
+        for (int attempt = 1; attempt <= maxRetryAttempts; attempt++)
+        {
+            try
+            {
+                // Lokalny ograniczenie przepustowości przed wywołaniem API – oczekiwanie na odnowienie limitów
+                await WaitForRateWindowAsync(endpoint, limits, cancellationToken).ConfigureAwait(false);
+
+                var result = await ksefApiCall(cancellationToken);           
+                return result;
+            }
+            catch (KsefRateLimitException rateLimitEx)
+            {
+                // Ostatnia próba - rzuć dalej wyjątek
+                if (attempt == maxRetryAttempts)
+                {
+                    throw; 
+                }
+                
+                // Czekaj zgodnie z Retry-After header lub użyj fallback
+                await Task.Delay(rateLimitEx.RecommendedDelay, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw; // Operacja anulowana przez użytkownika
+            }
+            catch (Exception)
+            {
+                throw; 
+            }
+        }
+        
+        throw new InvalidOperationException($"Nieoczekiwane zakończenie pętli powtórzeń dla {endpoint}");
+    }
+
+    private static readonly ConcurrentDictionary<KsefApiEndpoint, EndpointRateTracker> Trackers = new();
+
+    private static async Task WaitForRateWindowAsync(
+        KsefApiEndpoint endpoint,
+        ApiLimits limits,
+        CancellationToken cancellationToken)
+    {
+        if (limits is null)
+        {
+            return;
+        }
+
+        // Współdzielony licznik wywołań per endpoint (bez uderzania w serwer)
+        var tracker = Trackers.GetOrAdd(endpoint, _ => new EndpointRateTracker());
+
+        while (true)
+        {
+            TimeSpan requiredDelay;
+
+            await tracker.Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var now = DateTimeOffset.UtcNow;
+                tracker.Trim(now);
+                requiredDelay = tracker.CalculateDelay(now, limits);
+
+                if (requiredDelay <= TimeSpan.Zero)
+                {
+                    // Rejestrujemy wywołanie – dalsze zapytania muszą się do niego odnieść
+                    tracker.Register(now);
+                    return;
+                }
+            }
+            finally
+            {
+                tracker.Semaphore.Release();
+            }
+
+            if (requiredDelay > TimeSpan.Zero)
+            {
+                await Task.Delay(requiredDelay, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private sealed class EndpointRateTracker
+    {
+        public SemaphoreSlim Semaphore { get; } = new(1, 1);
+
+        public void Trim(DateTimeOffset now)
+        {
+            TrimWindow(_perSecond, now - TimeSpan.FromSeconds(1));
+            TrimWindow(_perMinute, now - TimeSpan.FromMinutes(1));
+            TrimWindow(_perHour, now - TimeSpan.FromHours(1));
+        }
+
+        private readonly Queue<DateTimeOffset> _perSecond = new();
+        private readonly Queue<DateTimeOffset> _perMinute = new();
+        private readonly Queue<DateTimeOffset> _perHour = new();
+
+        public TimeSpan CalculateDelay(DateTimeOffset now, ApiLimits limits)
+        {
+            // Zbieramy potrzebne opóźnienia dla każdego progu i wybieramy najdłuższe
+            var delays = new List<TimeSpan>(capacity: 3);
+
+            if (limits.RequestsPerSecond > 0 && _perSecond.Count >= limits.RequestsPerSecond)
+            {
+                var waitUntil = _perSecond.Peek().AddSeconds(1);
+                var delay = waitUntil - now;
+                if (delay > TimeSpan.Zero)
+                {
+                    delays.Add(delay);
+                }
+            }
+
+            if (limits.RequestsPerMinute > 0 && _perMinute.Count >= limits.RequestsPerMinute)
+            {
+                var waitUntil = _perMinute.Peek().AddMinutes(1);
+                var delay = waitUntil - now;
+                if (delay > TimeSpan.Zero)
+                {
+                    delays.Add(delay);
+                }
+            }
+
+            if (limits.RequestsPerHour > 0 && _perHour.Count >= limits.RequestsPerHour)
+            {
+                var waitUntil = _perHour.Peek().AddHours(1);
+                var delay = waitUntil - now;
+                if (delay > TimeSpan.Zero)
+                {
+                    delays.Add(delay);
+                }
+            }
+
+            return delays.Count == 0 ? TimeSpan.Zero : delays.Max();
+        }
+
+        public void Register(DateTimeOffset timestamp)
+        {
+            _perSecond.Enqueue(timestamp);
+            _perMinute.Enqueue(timestamp);
+            _perHour.Enqueue(timestamp);
+        }
+
+        private static void TrimWindow(Queue<DateTimeOffset> queue, DateTimeOffset threshold)
+        {
+            while (queue.Count > 0 && queue.Peek() <= threshold)
+            {
+                queue.Dequeue();
+            }
+        }
+    }
+}

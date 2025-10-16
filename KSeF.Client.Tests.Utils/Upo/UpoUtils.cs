@@ -13,8 +13,8 @@ public static class UpoUtils
     /// <exception cref="InvalidOperationException">Gdy deserializacja się nie powiedzie (np. niezgodność elementów/namespaces).</exception>
     public static T UpoParse<T>(string xml) where T : IUpoParsable
     {
-        var serializer = new XmlSerializer(typeof(T));
-        using var reader = new StringReader(xml);
+        XmlSerializer serializer = new XmlSerializer(typeof(T));
+        using StringReader reader = new StringReader(xml);
 
         return (T)serializer.Deserialize(reader)!;
     }

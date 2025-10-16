@@ -24,7 +24,7 @@ namespace KSeF.DemoWebApp.Controllers
             [FromHeader(Name = "Authorization")] string accessToken,
             CancellationToken cancellationToken)
         {
-            var result = await _client.GetAttachmentPermissionStatusAsync(accessToken, cancellationToken);
+            PermissionsAttachmentAllowedResponse result = await _client.GetAttachmentPermissionStatusAsync(accessToken, cancellationToken);
             return Ok(result);
         }
     }

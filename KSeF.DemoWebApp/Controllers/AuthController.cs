@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.Auth;
 using KSeF.Client.Api.Builders.X509Certificates;
-using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
+using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,26 +35,26 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("auth-by-coordinator-with-PZ")]
-    public async Task<ActionResult<AuthOperationStatusResponse>> AuthWithPZAsync(string contextIdentifier, CancellationToken cancellationToken)
+    public async Task<ActionResult<AuthenticationOperationStatusResponse>> AuthWithPZAsync(string contextIdentifier, CancellationToken cancellationToken)
     {
         // Inicjalizacja przykłdowego identyfikatora - w tym przypadku NIP.
 
         return await _authCoordinator.AuthAsync(
-                                                    ContextIdentifierType.Nip,
+                                                    AuthenticationTokenContextIdentifierType.Nip,
                                                     !string.IsNullOrWhiteSpace(contextIdentifier) ? contextIdentifier : _contextIdentifier,
-                                                    SubjectIdentifierTypeEnum.CertificateSubject,
+                                                    AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject,
                                                     xmlSigner: (xml) => { return XadeSDummy.SignWithPZ(xml, xMLDirectory); },
                                                     authorizationPolicy: null,
                                                     cancellationToken);
     }
 
     [HttpPost("auth-step-by-step")]
-    public async Task<ActionResult<AuthOperationStatusResponse>> AuthStepByStepAsync(string contextIdentifier, CancellationToken cancellationToken)
+    public async Task<ActionResult<AuthenticationOperationStatusResponse>> AuthStepByStepAsync(string contextIdentifier, CancellationToken cancellationToken)
     {
 
         return await _ksefClient
             .AuthSessionStepByStep(
-            SubjectIdentifierTypeEnum.CertificateSubject,
+            AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject,
             !string.IsNullOrWhiteSpace(contextIdentifier) ? contextIdentifier : _contextIdentifier,
             (xml) => { return XadeSDummy.SignWithPZ(xml, xMLDirectory); },
             authorizationPolicy: null,
@@ -70,40 +70,40 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("auth-with-ksef-certificate")]
-    public async Task<AuthOperationStatusResponse> AuthWithKsefCert(string certInBase64, string contextIdentifier, string privateKey, [FromServices] ISignatureService signatureService, CancellationToken cancellationToken)
+    public async Task<AuthenticationOperationStatusResponse> AuthWithKsefCert(string certInBase64, string contextIdentifier, string privateKey, [FromServices] ISignatureService signatureService, CancellationToken cancellationToken)
     {
-        var cert = Convert.FromBase64String(certInBase64);
-        var x509 = new X509Certificate2(cert);
-        var privateKeyBytes = Convert.FromBase64String(privateKey);
+        byte[] cert = Convert.FromBase64String(certInBase64);
+        X509Certificate2 x509 = new X509Certificate2(cert);
+        byte[] privateKeyBytes = Convert.FromBase64String(privateKey);
 
-        using var rsa = RSA.Create();
+        using RSA rsa = RSA.Create();
         rsa.ImportRSAPrivateKey(privateKeyBytes, out _);
 
-        var challengeResponse = await _ksefClient
+        AuthenticationChallengeResponse challengeResponse = await _ksefClient
            .GetAuthChallengeAsync(cancellationToken);
 
-        var challenge = challengeResponse.Challenge;
+        string challenge = challengeResponse.Challenge;
 
-        var authTokenRequest =
+        IAuthTokenRequestBuilderReady authTokenRequest =
             AuthTokenRequestBuilder
             .Create()
             .WithChallenge(challenge)
-            .WithContext(ContextIdentifierType.Nip, contextIdentifier)
-            .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject);
+            .WithContext(AuthenticationTokenContextIdentifierType.Nip, contextIdentifier)
+            .WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject);
 
 
-        AuthTokenRequest authorizeRequest = authTokenRequest.Build();
+        AuthenticationTokenRequest authorizeRequest = authTokenRequest.Build();
 
-        var unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authorizeRequest);
+        string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authorizeRequest);
 
-        var signedXml = signatureService.Sign(unsignedXml, x509.CopyWithPrivateKey(rsa));
+        string signedXml = signatureService.Sign(unsignedXml, x509.CopyWithPrivateKey(rsa));
 
-        var authSubmission = await _ksefClient
+        SignatureResponse authSubmission = await _ksefClient
            .SubmitXadesAuthRequestAsync(signedXml, false, cancellationToken);
 
         AuthStatus authStatus;
-        var startTime = DateTime.UtcNow;
-        var timeout = TimeSpan.FromMinutes(2);
+        DateTime startTime = DateTime.UtcNow;
+        TimeSpan timeout = TimeSpan.FromMinutes(2);
 
         do
         {
@@ -128,25 +128,25 @@ public class AuthController : ControllerBase
             Console.WriteLine("Timeout: Brak tokena po 2 minutach.");
             throw new Exception("Timeout Uwierzytelniania: Brak tokena po 2 minutach.");
         }
-        var accessTokenResponse = await _ksefClient.GetAccessTokenAsync(authSubmission.AuthenticationToken.Token, cancellationToken);
+        AuthenticationOperationStatusResponse accessTokenResponse = await _ksefClient.GetAccessTokenAsync(authSubmission.AuthenticationToken.Token, cancellationToken);
 
         // 7) Zwróć token            
         return accessTokenResponse;
     }
 
     [HttpPost("access-token")]
-    public async Task<AuthOperationStatusResponse> GetAuthOperationStatusAsync([FromBody] CertificateRequestModel certificateRequestModel)
+    public async Task<AuthenticationOperationStatusResponse> GetAuthOperationStatusAsync([FromBody] CertificateRequestModel certificateRequestModel)
     {
-        AuthChallengeResponse challengeResponse = await _ksefClient.GetAuthChallengeAsync();
+        AuthenticationChallengeResponse challengeResponse = await _ksefClient.GetAuthChallengeAsync();
 
-        AuthTokenRequest authTokenRequest = AuthTokenRequestBuilder
+        AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
             .Create()
             .WithChallenge(challengeResponse.Challenge)
-            .WithContext(ContextIdentifierType.Nip, certificateRequestModel.ContextIdentifier.Value)
-            .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
+            .WithContext(AuthenticationTokenContextIdentifierType.Nip, certificateRequestModel.ContextIdentifier.Value)
+            .WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
             .Build();
 
-        string unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
+        string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
 
         System.Security.Cryptography.X509Certificates.X509Certificate2 certificate = SelfSignedCertificateForSignatureBuilder
                 .Create()
@@ -183,7 +183,7 @@ public class AuthController : ControllerBase
             throw new Exception(msg);
         }
 
-        AuthOperationStatusResponse authResult = await _ksefClient.GetAccessTokenAsync(signatureResponse.AuthenticationToken.Token);
+        AuthenticationOperationStatusResponse authResult = await _ksefClient.GetAccessTokenAsync(signatureResponse.AuthenticationToken.Token);
         return authResult;
     }
 }
@@ -200,33 +200,33 @@ public class CertificateRequestModel
 
 public static class AuthSessionStepByStepHelper
 {
-    public static async Task<AuthOperationStatusResponse>
-        AuthSessionStepByStep(this IKSeFClient ksefClient, SubjectIdentifierTypeEnum authIdentifierType, string contextIdentifier, Func<string, Task<string>> xmlSigner, AuthorizationPolicy? authorizationPolicy = null, CancellationToken cancellationToken = default)
+    public static async Task<AuthenticationOperationStatusResponse>
+        AuthSessionStepByStep(this IKSeFClient ksefClient, AuthenticationTokenSubjectIdentifierTypeEnum authIdentifierType, string contextIdentifier, Func<string, Task<string>> xmlSigner, AuthenticationTokenAuthorizationPolicy? authorizationPolicy = null, CancellationToken cancellationToken = default)
     {
 
         // Wykonanie auth challenge.
-        var challengeResponse = await ksefClient
+        AuthenticationChallengeResponse challengeResponse = await ksefClient
             .GetAuthChallengeAsync();
 
         Console.WriteLine(challengeResponse.Challenge);
 
         // Wymagany jest podpis cyfrowy w formacie XAdES-BES.
-        var authTokenRequest =
+        AuthenticationTokenRequest authTokenRequest =
             AuthTokenRequestBuilder
             .Create()
             .WithChallenge(challengeResponse.Challenge)
-            .WithContext(ContextIdentifierType.Nip, contextIdentifier)
+            .WithContext(AuthenticationTokenContextIdentifierType.Nip, contextIdentifier)
             .WithIdentifierType(authIdentifierType)
-            .WithAuthorizationPolicy(authorizationPolicy ?? new AuthorizationPolicy { /* ... */ })      // optional
+            .WithAuthorizationPolicy(authorizationPolicy ?? new AuthenticationTokenAuthorizationPolicy { /* ... */ })      // optional
             .Build();
 
-        var unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
+        string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
 
         // TODO Trzeba podpisac XML przed wysłaniem
-        var signedXml = await xmlSigner.Invoke(unsignedXml);
+        string signedXml = await xmlSigner.Invoke(unsignedXml);
 
         // Przesłanie podpisanego XML do systemu KSeF
-        var authOperationInfo = await ksefClient.
+        SignatureResponse authOperationInfo = await ksefClient.
             SubmitXadesAuthRequestAsync(signedXml, false, cancellationToken);
 
         AuthStatus authorizationStatus;
@@ -250,7 +250,7 @@ public static class AuthSessionStepByStepHelper
         while (authorizationStatus.Status.Code != 200);
 
         // Uzyskanie accessToken w celu uwierzytelniania 
-        var accessTokenResult = await ksefClient
+        AuthenticationOperationStatusResponse accessTokenResult = await ksefClient
             .GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token, cancellationToken);
 
         return accessTokenResult;

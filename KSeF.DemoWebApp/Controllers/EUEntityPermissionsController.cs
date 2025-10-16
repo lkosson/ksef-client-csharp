@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.EUEntityPermissions;
-using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Models;
 
 namespace KSeF.DemoWebApp.Controllers;
 
@@ -11,9 +11,9 @@ namespace KSeF.DemoWebApp.Controllers;
 public class EUEntityPermissionsController(IKSeFClient ksefClient) : ControllerBase
 {
     [HttpPost("grant-eu-entity-permissions")]
-    public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, GrantPermissionsRequest grantPermissionsRequest, CancellationToken cancellationToken)
+    public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, GrantPermissionsEUEntityRequest grantPermissionsRequest, CancellationToken cancellationToken)
     {
-        var request = GrantEUEntityPermissionsRequestBuilder
+        GrantPermissionsEUEntityRequest request = GrantEUEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(grantPermissionsRequest.SubjectIdentifier)
             .WithSubjectName("Sample Subject Name")

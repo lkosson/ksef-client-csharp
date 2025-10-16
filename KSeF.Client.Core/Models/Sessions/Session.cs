@@ -6,7 +6,7 @@ namespace KSeF.Client.Core.Models.Sessions
     public class Session
     {
         public string ReferenceNumber { get; set; }
-        public Status Status { get; set; }
+        public StatusInfo Status { get; set; }
         public DateTimeOffset DateCreated { get; set; }
         public DateTimeOffset DateUpdated { get; set; }
         public DateTimeOffset ValidUntil { get; set; }

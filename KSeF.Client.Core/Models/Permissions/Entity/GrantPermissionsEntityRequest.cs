@@ -5,41 +5,41 @@ namespace KSeF.Client.Core.Models.Permissions.Entity
 {
     public class GrantPermissionsEntityRequest
     {
-        public SubjectIdentifier SubjectIdentifier { get; set; }
-        public ICollection<Permission> Permissions { get; set; }
+        public EntitySubjectIdentifier SubjectIdentifier { get; set; }
+        public ICollection<EntityPermission> Permissions { get; set; }
         public string Description { get; set; }
     }
 
-    public enum StandardPermissionType
+    public enum EntityStandardPermissionType
     {
         InvoiceRead,
         InvoiceWrite,
     }
 
-    public class Permission
+    public class EntityPermission
     {
-        public StandardPermissionType Type { get; set; }
+        public EntityStandardPermissionType Type { get; set; }
         public bool CanDelegate { get; set; }
 
-        public Permission(StandardPermissionType type, bool canDelegate)
+        public EntityPermission(EntityStandardPermissionType type, bool canDelegate)
         {
             Type = type;
             CanDelegate = canDelegate;
         }
 
-        public static Permission New(StandardPermissionType invoiceRead, bool canDelegate)
+        public static EntityPermission New(EntityStandardPermissionType invoiceRead, bool canDelegate)
         {
-            return new Permission(invoiceRead, canDelegate);
+            return new EntityPermission(invoiceRead, canDelegate);
         }
     }
 
-    public partial class SubjectIdentifier
+    public partial class EntitySubjectIdentifier
     {
-        public SubjectIdentifierType Type { get; set; }
+        public EntitySubjectIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public enum SubjectIdentifierType
+    public enum EntitySubjectIdentifierType
     {
         Nip,
         PeppolId

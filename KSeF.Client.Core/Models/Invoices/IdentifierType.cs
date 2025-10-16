@@ -6,6 +6,7 @@ namespace KSeF.Client.Core.Models.Invoices
         None,
         Other,
         Nip,
-        VatUe
+        VatUe, 
+        InternalId
     }
 }

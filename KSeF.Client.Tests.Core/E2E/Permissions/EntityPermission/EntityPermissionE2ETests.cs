@@ -2,8 +2,11 @@ using KSeF.Client.Api.Builders.EntityPermissions;
 using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Tests.Utils;
+using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models.Permissions.Person;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.EntityPermission;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.EntityPermissions;
 
 /// <summary>
 /// Testy E2E nadawania i cofania uprawnień dla podmiotów:
@@ -20,17 +23,17 @@ public partial class EntityPermissionE2ETests : TestBase
 
     // Zamiast fixture: prywatne readonly pola
     private string accessToken = string.Empty;
-    private KSeF.Client.Core.Models.Permissions.Entity.SubjectIdentifier Entity { get; } = new();
+    private EntitySubjectIdentifier Entity { get; } = new();
 
     public EntityPermissionE2ETests()
     {
-        Client.Core.Models.Authorization.AuthOperationStatusResponse authOperationStatusResponse = AuthenticationUtils
+        AuthenticationOperationStatusResponse authOperationStatusResponse = AuthenticationUtils
             .AuthenticateAsync(KsefClient, SignatureService)
             .GetAwaiter().GetResult();
 
         accessToken = authOperationStatusResponse.AccessToken.Token;
         Entity.Value = MiscellaneousUtils.GetRandomNip();
-        Entity.Type = SubjectIdentifierType.Nip;
+        Entity.Type = EntitySubjectIdentifierType.Nip;
     }
 
     [Fact]
@@ -39,10 +42,10 @@ public partial class EntityPermissionE2ETests : TestBase
         // 1) Nadaj uprawnienia dla podmiotu
         OperationResponse grantResponse = await GrantEntityPermissionsAsync(Entity, PermissionDescription, accessToken);
         Assert.NotNull(grantResponse);
-        Assert.False(string.IsNullOrEmpty(grantResponse.OperationReferenceNumber));
+        Assert.False(string.IsNullOrEmpty(grantResponse.ReferenceNumber));
 
         // 2) Wyszukaj nadane uprawnienia — poll aż będą widoczne i kompletne
-        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterGrant =
+        PagedPermissionsResponse<PersonPermission> searchAfterGrant =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchGrantedPersonPermissionsAsync(accessToken),
                 result =>
@@ -51,11 +54,11 @@ public partial class EntityPermissionE2ETests : TestBase
                     && result.Permissions.Any(x =>
                         x.Description == PermissionDescription &&
                         x.CanDelegate == true &&
-                        Enum.Parse<StandardPermissionType>(x.PermissionScope) == StandardPermissionType.InvoiceRead)
+                        Enum.Parse<EntityStandardPermissionType>(x.PermissionScope) == EntityStandardPermissionType.InvoiceRead)
                     && result.Permissions.Any(x =>
                         x.Description == PermissionDescription &&
                         x.CanDelegate == false &&
-                        Enum.Parse<StandardPermissionType>(x.PermissionScope) == StandardPermissionType.InvoiceWrite),
+                        Enum.Parse<EntityStandardPermissionType>(x.PermissionScope) == EntityStandardPermissionType.InvoiceWrite),
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 30,
                 cancellationToken: CancellationToken);
@@ -63,9 +66,15 @@ public partial class EntityPermissionE2ETests : TestBase
         Assert.NotNull(searchAfterGrant);
         Assert.NotEmpty(searchAfterGrant.Permissions);
         Assert.True(searchAfterGrant.Permissions.All(x => x.Description == PermissionDescription));
-        Assert.True(searchAfterGrant.Permissions.First(x => x.CanDelegate == true && Enum.Parse<StandardPermissionType>(x.PermissionScope) == StandardPermissionType.InvoiceRead) is not null);
-        Assert.True(searchAfterGrant.Permissions.First(x => x.CanDelegate == false && Enum.Parse<StandardPermissionType>(x.PermissionScope) == StandardPermissionType.InvoiceWrite) is not null);
+        Assert.True(searchAfterGrant.Permissions.First(x => x.CanDelegate == true && Enum.Parse<EntityStandardPermissionType>(x.PermissionScope) == EntityStandardPermissionType.InvoiceRead) is not null);
+        Assert.True(searchAfterGrant.Permissions.First(x => x.CanDelegate == false && Enum.Parse<EntityStandardPermissionType>(x.PermissionScope) == EntityStandardPermissionType.InvoiceWrite) is not null);
 
+
+        // 2a) Odczytaj listę ról podmiotu bieżącego kontekstu logowania
+        PagedRolesResponse<EntityRole> searchEntityInvoiceRoles = await KsefClient.SearchEntityInvoiceRolesAsync(accessToken);
+
+        Assert.NotNull(searchEntityInvoiceRoles);
+        
         // 3) Cofnij nadane uprawnienia (ze sprawdzeniem statusów przez polling)
         List<PermissionsOperationStatusResponse> revokeResult = await RevokePermissionsAsync(searchAfterGrant.Permissions, accessToken);
         Assert.NotNull(revokeResult);
@@ -77,7 +86,7 @@ public partial class EntityPermissionE2ETests : TestBase
         );
 
         // 4) Wyszukaj ponownie — poll aż lista będzie pusta
-        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterRevoke =
+        PagedPermissionsResponse<PersonPermission> searchAfterRevoke =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchGrantedPersonPermissionsAsync(accessToken),
                 result => result is not null && result.Permissions is { Count: 0 },
@@ -93,7 +102,7 @@ public partial class EntityPermissionE2ETests : TestBase
     /// Nadaje uprawnienia dla podmiotu i zwraca numer referencyjny operacji.
     /// </summary>
     private async Task<OperationResponse> GrantEntityPermissionsAsync(
-        KSeF.Client.Core.Models.Permissions.Entity.SubjectIdentifier subject,
+        EntitySubjectIdentifier subject,
         string description,
         string accessToken)
     {
@@ -101,8 +110,8 @@ public partial class EntityPermissionE2ETests : TestBase
             .Create()
             .WithSubject(subject)
             .WithPermissions(
-                Permission.New(StandardPermissionType.InvoiceRead, true),
-                Permission.New(StandardPermissionType.InvoiceWrite, false)
+                EntityPermission.New(EntityStandardPermissionType.InvoiceRead, true),
+                EntityPermission.New(EntityStandardPermissionType.InvoiceWrite, false)
             )
             .WithDescription(description)
             .Build();
@@ -114,38 +123,38 @@ public partial class EntityPermissionE2ETests : TestBase
     /// <summary>
     /// Wyszukuje nadane uprawnienia dla osób i zwraca wynik wyszukiwania.
     /// </summary>
-    private async Task<PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>>
+    private async Task<PagedPermissionsResponse<PersonPermission>>
         SearchGrantedPersonPermissionsAsync(string accessToken)
     {
-        Client.Core.Models.Permissions.Person.PersonPermissionsQueryRequest query = new Client.Core.Models.Permissions.Person.PersonPermissionsQueryRequest();
-        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> response = await KsefClient.SearchGrantedPersonPermissionsAsync(query, accessToken);
+        PersonPermissionsQueryRequest query = new PersonPermissionsQueryRequest();
+        PagedPermissionsResponse<PersonPermission> response = await KsefClient.SearchGrantedPersonPermissionsAsync(query, accessToken);
         return response;
     }
 
     /// <summary>
     /// Cofnięcie wszystkich przekazanych uprawnień i zwrócenie statusów operacji.
     /// </summary>
-    private async Task<List<Client.Core.Models.Permissions.PermissionsOperationStatusResponse>> RevokePermissionsAsync(
-        IEnumerable<Client.Core.Models.Permissions.PersonPermission> grantedPermissions,
+    private async Task<List<PermissionsOperationStatusResponse>> RevokePermissionsAsync(
+        IEnumerable<PersonPermission> grantedPermissions,
         string accessToken)
     {
-        List<Client.Core.Models.Permissions.OperationResponse> revokeResponses = new List<Client.Core.Models.Permissions.OperationResponse>();
+        List<OperationResponse> revokeResponses = new List<OperationResponse>();
 
         // Uruchomienie operacji cofania
-        foreach (Client.Core.Models.Permissions.PersonPermission permission in grantedPermissions)
+        foreach (PersonPermission permission in grantedPermissions)
         {
-            Client.Core.Models.Permissions.OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
             revokeResponses.Add(response);
         }
 
         // Sprawdzenie statusów wszystkich operacji — polling do 200
-        List<Client.Core.Models.Permissions.PermissionsOperationStatusResponse> statuses = new List<Client.Core.Models.Permissions.PermissionsOperationStatusResponse>();
+        List<PermissionsOperationStatusResponse> statuses = new List<PermissionsOperationStatusResponse>();
 
-        foreach (Client.Core.Models.Permissions.OperationResponse revokeResponse in revokeResponses)
+        foreach (OperationResponse revokeResponse in revokeResponses)
         {
-            Client.Core.Models.Permissions.PermissionsOperationStatusResponse status =
+            PermissionsOperationStatusResponse status =
                 await AsyncPollingUtils.PollAsync(
-                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.OperationReferenceNumber, accessToken),
+                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken),
                     result => result.Status.Code == OperationSuccessfulStatusCode,
                     delay: TimeSpan.FromMilliseconds(SleepTime),
                     maxAttempts: 30,

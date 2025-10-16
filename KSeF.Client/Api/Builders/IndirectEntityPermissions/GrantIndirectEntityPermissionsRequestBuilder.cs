@@ -1,5 +1,4 @@
 using KSeF.Client.Core.Models.Permissions.IndirectEntity;
-using StandardPermissionType = KSeF.Client.Core.Models.Permissions.IndirectEntity.StandardPermissionType;
 
 namespace KSeF.Client.Api.Builders.IndirectEntityPermissions;
 
@@ -9,16 +8,16 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
 
     public interface ISubjectStep
     {
-        IContextStep WithSubject(SubjectIdentifier subject);
+        IContextStep WithSubject(IndirectEntitySubjectIdentifier subject);
     }
     public interface IContextStep
     {
-        IPermissionsStep WithContext(TargetIdentifier context);
+        IPermissionsStep WithContext(IndirectEntityTargetIdentifier context);
     }
 
     public interface IPermissionsStep
     {
-        IOptionalStep WithPermissions(params StandardPermissionType[] permissions);
+        IOptionalStep WithPermissions(params IndirectEntityStandardPermissionType[] permissions);
     }
 
     public interface IOptionalStep
@@ -33,22 +32,22 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
         IPermissionsStep,
         IOptionalStep
     {
-        private SubjectIdentifier _subject;
-        private ICollection<StandardPermissionType> _permissions;
+        private IndirectEntitySubjectIdentifier _subject;
+        private ICollection<IndirectEntityStandardPermissionType> _permissions;
         private string _description;
-        private TargetIdentifier _context;
+        private IndirectEntityTargetIdentifier _context;
 
         private GrantPermissionsRequestBuilderImpl() { }
 
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
-        public IContextStep WithSubject(SubjectIdentifier subject)
+        public IContextStep WithSubject(IndirectEntitySubjectIdentifier subject)
         {
             _subject = subject ?? throw new ArgumentNullException(nameof(subject));
             return this;
         }
 
-        public IOptionalStep WithPermissions(params StandardPermissionType[] permissions)
+        public IOptionalStep WithPermissions(params IndirectEntityStandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
                 throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));
@@ -81,7 +80,7 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
             };
         }
 
-        public IPermissionsStep WithContext(TargetIdentifier context)
+        public IPermissionsStep WithContext(IndirectEntityTargetIdentifier context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             return this;

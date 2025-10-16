@@ -6,7 +6,7 @@ namespace KSeF.Client.Core.Models.Permissions.SubUnit
     }
     public class EntityPermissionsSubordinateEntityIdentifier
     {
-        public ContextIdentifierType Type { get; set; }
+        public SubUnitContextIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 }

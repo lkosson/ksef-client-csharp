@@ -1,4 +1,5 @@
 using KSeF.Client.Core.Exceptions;
+using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Sessions.ActiveSessions;
 using KSeF.Client.Tests.Utils;
 
@@ -16,7 +17,7 @@ public class SessionE2ETests : TestBase
     {
         nip = MiscellaneousUtils.GetRandomNip();
 
-        Client.Core.Models.Authorization.AuthOperationStatusResponse auth = AuthenticationUtils
+        AuthenticationOperationStatusResponse auth = AuthenticationUtils
             .AuthenticateAsync(KsefClient, SignatureService, nip)
             .GetAwaiter()
             .GetResult();
@@ -80,7 +81,7 @@ public class SessionE2ETests : TestBase
     public async Task RevokeSessionAsync_RevokeByReferenceNumber_TargetRefreshFailsWith401()
     {
         // Arrange
-        Client.Core.Models.Authorization.AuthOperationStatusResponse secondAuth = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip);
+        AuthenticationOperationStatusResponse secondAuth = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip);
         string secondAccessToken = secondAuth.AccessToken.Token;
         string secondRefreshToken = secondAuth.RefreshToken.Token;
 
@@ -96,5 +97,28 @@ public class SessionE2ETests : TestBase
         KsefApiException ex = await Assert.ThrowsAsync<KsefApiException>(() =>
             KsefClient.RefreshAccessTokenAsync(secondRefreshToken, CancellationToken.None));
         Assert.Equal(ExpectedErrorMessage, ex.Message);
+    }
+
+    /// <summary>
+    /// Odświeża token dostępu przy użyciu refresh tokenu i weryfikuje,
+    /// że otrzymany access token różni się od początkowego.
+    /// </summary>
+    [Fact]
+    public async Task RefreshAccessTokenAsync_WithRefreshToken_ReturnsNewAccessToken()
+    {
+        // Arrange
+        AuthenticationOperationStatusResponse authenticationResposne = await AuthenticationUtils
+            .AuthenticateAsync(KsefClient, SignatureService);
+
+        string initialAccessToken = authenticationResposne.AccessToken.Token;
+        string initialRefreshToken = authenticationResposne.RefreshToken.Token;
+
+        // Act
+        RefreshTokenResponse refreshResult = await KsefClient.RefreshAccessTokenAsync(initialRefreshToken, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(refreshResult);
+        Assert.NotNull(refreshResult.AccessToken);
+        Assert.NotEqual(initialAccessToken, refreshResult.AccessToken.Token);
     }
 }

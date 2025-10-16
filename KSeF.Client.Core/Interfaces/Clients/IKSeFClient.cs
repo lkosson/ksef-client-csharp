@@ -64,9 +64,9 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// Inicjalizacja mechanizmu uwierzytelnienia i autoryzacji
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns><see cref="AuthChallengeResponse"/></returns>
+        /// <returns><see cref="AuthenticationChallengeResponse"/></returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 bad request)</exception>
-        Task<AuthChallengeResponse> GetAuthChallengeAsync(CancellationToken cancellationToken = default);
+        Task<AuthenticationChallengeResponse> GetAuthChallengeAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Rozpoczyna operację uwierzytelniania za pomocą dokumentu XML podpisanego podpisem elektroniczny XAdES.
@@ -84,10 +84,10 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// <summary>
         /// Rozpoczyna operację uwierzytelniania z wykorzystaniem wcześniej wygenerowanego tokena KSeF.
         /// </summary>
-        /// <param name="requestPayload"><see cref="AuthKsefTokenRequest"/></param>
+        /// <param name="requestPayload"><see cref="AuthenticationKsefTokenRequest"/></param>
         /// <returns><see cref="SignatureResponse"/></returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
-        Task<SignatureResponse> SubmitKsefTokenAuthRequestAsync(AuthKsefTokenRequest requestPayload, CancellationToken cancellationToken = default);
+        Task<SignatureResponse> SubmitKsefTokenAuthRequestAsync(AuthenticationKsefTokenRequest requestPayload, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sprawdza bieżący status operacji uwierzytelniania dla podanego tokena.
@@ -108,10 +108,10 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// </remarks>
         /// <param name="authenticationToken">Tymczasowy token otrzymany w wyniku inicjalizacji uwierzytelnienia.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns><see cref="AuthOperationStatusResponse"/></returns>
+        /// <returns><see cref="AuthenticationOperationStatusResponse"/></returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
         /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-        Task<AuthOperationStatusResponse> GetAccessTokenAsync(string authenticationToken, CancellationToken cancellationToken = default);
+        Task<AuthenticationOperationStatusResponse> GetAccessTokenAsync(string authenticationToken, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Odświeżanie tokenu dostępu
@@ -263,10 +263,10 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// <param name="pageSize">Rozmiar strony wyników.</param>
         /// <param name="continuationToken">Token kontynuacji, jeśli jest dostępny.</param>
         /// <param name="cancellationToken">Cancellation token./param>
-        /// <returns><see cref="SessionFailedInvoicesResponse"/></returns>
+        /// <returns><see cref="SessionInvoicesResponse"/></returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
         /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-        Task<SessionFailedInvoicesResponse> GetSessionFailedInvoicesAsync(string sessionReferenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
+        Task<SessionInvoicesResponse> GetSessionFailedInvoicesAsync(string sessionReferenceNumber, string accessToken, int? pageSize, string continuationToken, CancellationToken cancellationToken = default);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -503,13 +503,13 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// <summary>
         /// Rozpoczyna asynchroniczną operację nadawania uprawnień podmiotowych.
         /// </summary>
-        /// <param name="requestPayload"><see cref="GrantAuthorizationPermissionsRequest"/></param>
+        /// <param name="requestPayload"><see cref="GrantPermissionsAuthorizationRequest"/></param>
         /// <param name="accessToken">Access token</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns><see cref="OperationResponse"/></returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
         /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-        Task<OperationResponse> GrantsAuthorizationPermissionAsync(GrantAuthorizationPermissionsRequest requestPayload, string accessToken, CancellationToken cancellationToken = default);
+        Task<OperationResponse> GrantsAuthorizationPermissionAsync(GrantPermissionsAuthorizationRequest requestPayload, string accessToken, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Nadanie uprawnień w sposób pośredni
@@ -537,13 +537,13 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// <summary>
         /// Nadanie uprawnień administratora podmiotu unijnego
         /// </summary>
-        /// <param name="requestPayload"><see cref="GrantPermissionsRequest"/></param>
+        /// <param name="requestPayload"><see cref="GrantPermissionsEUEntityRequest"/></param>
         /// <param name="accessToken">Access token</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns><see cref="OperationResponse"/></returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
         /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-        Task<OperationResponse> GrantsPermissionEUEntityAsync( GrantPermissionsRequest requestPayload, string accessToken, CancellationToken cancellationToken = default);
+        Task<OperationResponse> GrantsPermissionEUEntityAsync( GrantPermissionsEUEntityRequest requestPayload, string accessToken, CancellationToken cancellationToken = default);
 
 
         /// <summary>
@@ -729,25 +729,26 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// <param name="requestPayload">Żądanie eksportu faktur (filtry + szyfrowanie).</param>
         /// <param name="accessToken">Access token.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns><see cref="ExportInvoicesResponse"/> zawierający numer referencyjny operacji.</returns>
+        /// <returns><see cref="OperationResponse"/> zawierający numer referencyjny operacji.</returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
         /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-        Task<ExportInvoicesResponse> ExportInvoicesAsync(
+        Task<OperationResponse> ExportInvoicesAsync(
             InvoiceExportRequest requestPayload,
             string accessToken,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            bool includeMetadata = true);
 
         /// <summary>
         /// Pobiera status operacji eksportu paczki faktur.
         /// </summary>
-        /// <param name="operationReferenceNumber">Numer referencyjny operacji eksportu.</param>
+        /// <param name="referenceNumber">Numer referencyjny operacji eksportu.</param>
         /// <param name="accessToken">Access token.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns><see cref="InvoiceExportStatusResponse"/> zawierający status oraz paczkę faktur (jeśli dostępna).</returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
         /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
         Task<InvoiceExportStatusResponse> GetInvoiceExportStatusAsync(
-            string operationReferenceNumber,
+            string referenceNumber,
             string accessToken,
             CancellationToken cancellationToken = default);
 

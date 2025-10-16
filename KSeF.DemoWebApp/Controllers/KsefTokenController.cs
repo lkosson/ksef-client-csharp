@@ -17,7 +17,7 @@ public class KsefTokenController : ControllerBase
     [HttpGet("get-new-token")]
     public async Task<ActionResult<KsefTokenResponse>> GetNewTokenAsync(string accessToken, CancellationToken cancellationToken)
     {
-        var tokenRequest = new KsefTokenRequest
+        KsefTokenRequest tokenRequest = new KsefTokenRequest
         {
             Permissions = [
                 KsefTokenPermissionType.InvoiceRead,
@@ -32,14 +32,14 @@ public class KsefTokenController : ControllerBase
     [HttpGet("query-tokens")]
     public async Task<ActionResult<AuthenticationKsefToken>> QueryTokensAsync(string accessToken, CancellationToken cancellationToken)
     {
-        var result = new List<AuthenticationKsefToken>();
+        List<AuthenticationKsefToken> result = new List<AuthenticationKsefToken>();
         const int pageSize = 20;
-        var status = AuthenticationKsefTokenStatus.Active;
-        var continuationToken = string.Empty;
+        AuthenticationKsefTokenStatus status = AuthenticationKsefTokenStatus.Active;
+        string continuationToken = string.Empty;
 
         do
         {
-            var tokens = await ksefClient.QueryKsefTokensAsync(accessToken, [status], continuationToken, pageSize : pageSize, cancellationToken: cancellationToken);
+            QueryKsefTokensResponse tokens = await ksefClient.QueryKsefTokensAsync(accessToken, [status], continuationToken, pageSize : pageSize, cancellationToken: cancellationToken);
             result.AddRange(tokens.Tokens);
             continuationToken = tokens.ContinuationToken;
         } while (!string.IsNullOrEmpty(continuationToken));

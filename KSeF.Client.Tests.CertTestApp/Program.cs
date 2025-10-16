@@ -15,7 +15,7 @@ Console.WriteLine("KSeF.Client.Tests.CertTestApp – demonstracja procesu uwierz
 Console.WriteLine($"Tryb wyjścia: {outputMode}");
 
 // 0) DI i konfiguracja klienta
-var services = new ServiceCollection();
+ServiceCollection services = new ServiceCollection();
 services.AddKSeFClient(options =>
 {
     options.BaseUrl = KsefEnviromentsUris.TEST;
@@ -26,41 +26,41 @@ services.AddCryptographyClient(options =>
     options.WarmupOnStart = WarmupMode.NonBlocking;
 });
 
-var provider = services.BuildServiceProvider();
+ServiceProvider provider = services.BuildServiceProvider();
 
-var ksefClient = provider.GetRequiredService<IKSeFClient>();
-var signatureService = provider.GetRequiredService<ISignatureService>();
+IKSeFClient ksefClient = provider.GetRequiredService<IKSeFClient>();
+ISignatureService signatureService = provider.GetRequiredService<ISignatureService>();
 
 try
 {
     // 1) NIP (z parametru lub losowy)
     Console.WriteLine("[1] Przygotowanie NIP...");
-    var nipArg = ParseNip(args);
+    string? nipArg = ParseNip(args);
     string nip = string.IsNullOrWhiteSpace(nipArg) ? MiscellaneousUtils.GetRandomNip() : nipArg.Trim();
     Console.WriteLine($"    NIP: {nip} {(string.IsNullOrWhiteSpace(nipArg) ? "(losowy)" : "(z parametru)")}");
 
     // 2) Challenge
     Console.WriteLine("[2] Pobieranie wyzwania (challenge) z KSeF...");
-    AuthChallengeResponse challengeResponse = await ksefClient.GetAuthChallengeAsync();
+    AuthenticationChallengeResponse challengeResponse = await ksefClient.GetAuthChallengeAsync();
     Console.WriteLine($"    Challenge: {challengeResponse.Challenge}");
 
     // 3) Budowa AuthTokenRequest
     Console.WriteLine("[3] Budowanie AuthTokenRequest (builder)...");
-    AuthTokenRequest authTokenRequest = AuthTokenRequestBuilder
+    AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
         .Create()
         .WithChallenge(challengeResponse.Challenge)
-        .WithContext(ContextIdentifierType.Nip, nip)
-        .WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
+        .WithContext(AuthenticationTokenContextIdentifierType.Nip, nip)
+        .WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
         .Build();
 
     // 4) Serializacja do XML
     Console.WriteLine("[4] Serializacja żądania do XML (unsigned)...");
-    string unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
+    string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
     PrintXmlToConsole(unsignedXml, "XML przed podpisem");
 
     // 5) Samopodpisany certyfikat do podpisu XAdES
     Console.WriteLine("[5] Generowanie samopodpisanego certyfikatu testowego (Utils)...");
-    var certificate = CertificateUtils.GetPersonalCertificate("A", "R", "TINPL", nip, "A R");
+    System.Security.Cryptography.X509Certificates.X509Certificate2 certificate = CertificateUtils.GetPersonalCertificate("A", "R", "TINPL", nip, "A R");
     Console.WriteLine($"    Certyfikat: {certificate.Subject}");
 
     // (5a) Zapis certyfikatu gdy tryb file
@@ -129,7 +129,7 @@ try
 
     // 9) Pobranie access token
     Console.WriteLine("[9] Pobieranie access token...");
-    AuthOperationStatusResponse tokenResponse = await ksefClient.GetAccessTokenAsync(submission.AuthenticationToken.Token);
+    AuthenticationOperationStatusResponse tokenResponse = await ksefClient.GetAccessTokenAsync(submission.AuthenticationToken.Token);
 
     string accessToken = tokenResponse.AccessToken?.Token ?? string.Empty;
     string refreshToken = tokenResponse.RefreshToken?.Token ?? string.Empty;
@@ -159,7 +159,7 @@ static string ParseOutputMode(string[] args)
     {
         if (string.Equals(args[i], "--output", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
         {
-            var val = args[i + 1].Trim();
+            string val = args[i + 1].Trim();
             if (val.Equals("file", StringComparison.OrdinalIgnoreCase)) return "file";
             return "screen";
         }

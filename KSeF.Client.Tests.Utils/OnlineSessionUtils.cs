@@ -145,14 +145,14 @@ public static class OnlineSessionUtils
         {
             if (string.IsNullOrEmpty(ibanValue)) return ibanValue;
             // zostaw prefix kraju i 2 cyfry kontrolne, resztę zamaskuj, końcówka 4 cyfry jawne
-            var head = ibanValue.Length >= 4 ? ibanValue.Substring(0, 4) : ibanValue;
-            var tail = ibanValue.Length >= 4 ? ibanValue.Substring(ibanValue.Length - 4) : string.Empty;
-            var midLen = Math.Max(0, ibanValue.Length - head.Length - tail.Length);
+            string head = ibanValue.Length >= 4 ? ibanValue.Substring(0, 4) : ibanValue;
+            string tail = ibanValue.Length >= 4 ? ibanValue.Substring(ibanValue.Length - 4) : string.Empty;
+            int midLen = Math.Max(0, ibanValue.Length - head.Length - tail.Length);
             return head + new string('*', midLen) + tail;
         }
 
         // podmiany — tylko na podstawie danych wejściowych
-        var replacements = new (string token, string value)[]
+        (string token, string value)[] replacements = new (string token, string value)[]
         {
         ("#nip#", supplierNip ?? string.Empty),
         ("#supplier_nip#", supplierNip ?? string.Empty),   // alias
@@ -166,7 +166,7 @@ public static class OnlineSessionUtils
         ("#due_date#", dueDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
         };
 
-        foreach (var (token, value) in replacements)
+        foreach ((string token, string value) in replacements)
             if (xml.Contains(token, StringComparison.Ordinal))
                 xml = xml.Replace(token, value);
 
@@ -176,7 +176,7 @@ public static class OnlineSessionUtils
         "#nip#", "#supplier_nip#", "#invoice_number#", "#buyer_nip#", "#buyer_reference#",
         "#iban#", "#iban_plain#", "#iban_masked#", "#issue_date#", "#due_date#"
     };
-        var leftovers = known.Where(t => xml.Contains(t, StringComparison.Ordinal)).ToArray();
+        string[] leftovers = known.Where(t => xml.Contains(t, StringComparison.Ordinal)).ToArray();
         if (leftovers.Length > 0)
             throw new ArgumentException($"Template contains unreplaced token(s): {string.Join(", ", leftovers)}.");
 
@@ -186,7 +186,7 @@ public static class OnlineSessionUtils
 
     private static async Task<SendInvoiceResponse> SendInvoice(IKSeFClient ksefClient, string sessionReferenceNumber, string accessToken, EncryptionData encryptionData, ICryptographyService cryptographyService, string xml)
     {
-        using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+        using MemoryStream memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
         byte[] invoice = memoryStream.ToArray();
 
         byte[] encryptedInvoice = cryptographyService.EncryptBytesWithAES256(invoice, encryptionData.CipherKey, encryptionData.CipherIv);

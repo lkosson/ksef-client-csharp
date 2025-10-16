@@ -1,5 +1,4 @@
 using KSeF.Client.Core.Models.Permissions.Person;
-using StandardPermissionType = KSeF.Client.Core.Models.Permissions.Person.StandardPermissionType;
 
 namespace KSeF.Client.Api.Builders.PersonPermissions;
 
@@ -9,12 +8,12 @@ public static class GrantPersonPermissionsRequestBuilder
 
     public interface ISubjectStep
     {
-        IPermissionsStep WithSubject(SubjectIdentifier subject);
+        IPermissionsStep WithSubject(PersonSubjectIdentifier subject);
     }
 
     public interface IPermissionsStep
     {
-        IDescriptionStep WithPermissions(params StandardPermissionType[] permissions);
+        IDescriptionStep WithPermissions(params PersonStandardPermissionType[] permissions);
     }
 
     public interface IDescriptionStep
@@ -34,21 +33,21 @@ public static class GrantPersonPermissionsRequestBuilder
         IDescriptionStep,
         IBuildStep
     {
-        private SubjectIdentifier _subject;
-        private ICollection<StandardPermissionType> _permissions;
+        private PersonSubjectIdentifier _subject;
+        private ICollection<PersonStandardPermissionType> _permissions;
         private string _description;
 
         private GrantPermissionsRequestBuilderImpl() { }
 
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
-        public IPermissionsStep WithSubject(SubjectIdentifier subject)
+        public IPermissionsStep WithSubject(PersonSubjectIdentifier subject)
         {
             _subject = subject ?? throw new ArgumentNullException(nameof(subject));
             return this;
         }
 
-        public IDescriptionStep WithPermissions(params StandardPermissionType[] permissions)
+        public IDescriptionStep WithPermissions(params PersonStandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
                 throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));

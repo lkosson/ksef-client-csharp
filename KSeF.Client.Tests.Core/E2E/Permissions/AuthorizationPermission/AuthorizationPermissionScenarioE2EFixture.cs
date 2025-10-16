@@ -1,15 +1,16 @@
+using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Authorizations;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.AuthorizationPermission;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.AuthorizationPermissions;
 
 public class AuthorizationPermissionsScenarioE2EFixture
 {
-    public SubjectIdentifier SubjectIdentifier { get; } =
-        new Client.Core.Models.Permissions.Authorizations.SubjectIdentifier
+    public AuthorizationSubjectIdentifier SubjectIdentifier { get; } =
+        new AuthorizationSubjectIdentifier
         {
-            Type = SubjectIdentifierType.Nip,
+            Type = AuthorizationSubjectIdentifierType.Nip,
             Value = MiscellaneousUtils.GetRandomNip()
         };
 

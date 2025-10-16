@@ -4,38 +4,38 @@ namespace KSeF.Client.Core.Models.Permissions.IndirectEntity
 {
     public class GrantPermissionsIndirectEntityRequest
     {
-        public SubjectIdentifier SubjectIdentifier { get; set; }
-        public TargetIdentifier TargetIdentifier { get; set; }
-        public ICollection<StandardPermissionType> Permissions { get; set; }
+        public IndirectEntitySubjectIdentifier SubjectIdentifier { get; set; }
+        public IndirectEntityTargetIdentifier TargetIdentifier { get; set; }
+        public ICollection<IndirectEntityStandardPermissionType> Permissions { get; set; }
         public string Description { get; set; }
     }
 
-    public enum StandardPermissionType
+    public enum IndirectEntityStandardPermissionType
     {
         InvoiceRead,
         InvoiceWrite,
     }
 
-    public partial class SubjectIdentifier
+    public partial class IndirectEntitySubjectIdentifier
     {
-        public SubjectIdentifierType Type { get; set; }
+        public IndirectEntitySubjectIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public partial class TargetIdentifier
+    public partial class IndirectEntityTargetIdentifier
     {
-        public TargetIdentifierType Type { get; set; }
+        public IndirectEntityTargetIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public enum SubjectIdentifierType
+    public enum IndirectEntitySubjectIdentifierType
     {
         Nip,
         Pesel,
         Fingerprint
     }
 
-    public enum TargetIdentifierType
+    public enum IndirectEntityTargetIdentifierType
     {
         Nip,
         AllPartners,

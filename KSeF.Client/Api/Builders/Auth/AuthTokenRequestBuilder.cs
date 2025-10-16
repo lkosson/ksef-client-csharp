@@ -1,6 +1,4 @@
 using KSeF.Client.Core.Models.Authorization;
-using AuthTokenRequest = KSeF.Client.Core.Models.Authorization.AuthTokenRequest;
-
 
 namespace KSeF.Client.Api.Builders.Auth;
 
@@ -18,17 +16,17 @@ public interface IAuthTokenRequestBuilder
 
 public interface IAuthTokenRequestBuilderWithChallenge
 {
-    IAuthTokenRequestBuilderWithContext WithContext(ContextIdentifierType type, string value);
+    IAuthTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifierType type, string value);
 }
 public interface IAuthTokenRequestBuilderWithContext
 {
-    IAuthTokenRequestBuilderReady WithIdentifierType(SubjectIdentifierTypeEnum type);
+    IAuthTokenRequestBuilderReady WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum type);
 }
 
 public interface IAuthTokenRequestBuilderReady
 {
-    IAuthTokenRequestBuilderReady WithAuthorizationPolicy(AuthorizationPolicy authorizationPolicy);
-    AuthTokenRequest Build();
+    IAuthTokenRequestBuilderReady WithAuthorizationPolicy(AuthenticationTokenAuthorizationPolicy authorizationPolicy);
+    AuthenticationTokenRequest Build();
 }
 
 internal sealed class AuthTokenRequestBuilderImpl :
@@ -38,9 +36,9 @@ internal sealed class AuthTokenRequestBuilderImpl :
     IAuthTokenRequestBuilderWithContext
 {
     private string _challenge;
-    private AuthContextIdentifier  _context;
-    private AuthorizationPolicy _authorizationPolicy;
-    private SubjectIdentifierTypeEnum _authIdentifierType;
+    private AuthenticationTokenContextIdentifier  _context;
+    private AuthenticationTokenAuthorizationPolicy _authorizationPolicy;
+    private AuthenticationTokenSubjectIdentifierTypeEnum _authIdentifierType;
 
     private AuthTokenRequestBuilderImpl() { }
 
@@ -53,36 +51,36 @@ internal sealed class AuthTokenRequestBuilderImpl :
         return this;
     }
 
-    public IAuthTokenRequestBuilderWithContext WithContext(ContextIdentifierType type, string value)
+    public IAuthTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifierType type, string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             throw new ArgumentException(nameof(value));
 
-        _context = new AuthContextIdentifier  {  Type = type, Value = value };
+        _context = new AuthenticationTokenContextIdentifier  {  Type = type, Value = value };
         return this;
     }
 
-    public IAuthTokenRequestBuilderReady WithIdentifierType(SubjectIdentifierTypeEnum type)
+    public IAuthTokenRequestBuilderReady WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum type)
     {
         _authIdentifierType = type;
         return this;
     }
 
-    public IAuthTokenRequestBuilderReady WithAuthorizationPolicy(AuthorizationPolicy authorizationPolicy)
+    public IAuthTokenRequestBuilderReady WithAuthorizationPolicy(AuthenticationTokenAuthorizationPolicy authorizationPolicy)
     {
         if (authorizationPolicy is null) return this;
         _authorizationPolicy = authorizationPolicy ?? throw new ArgumentNullException(nameof(authorizationPolicy));
         return this;
     }
 
-    public AuthTokenRequest Build()
+    public AuthenticationTokenRequest Build()
     {
         if (_challenge is null)
             throw new InvalidOperationException();
         if (_context is null)
             throw new InvalidOperationException();
 
-        return new AuthTokenRequest
+        return new AuthenticationTokenRequest
         {
             Challenge = _challenge,
             ContextIdentifier = _context,

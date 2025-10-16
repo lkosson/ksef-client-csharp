@@ -4,24 +4,24 @@ namespace KSeF.Client.Core.Models.Permissions.EUEntityRepresentative
 {
     public class GrantPermissionsEUEntitRepresentativeRequest
     {
-        public SubjectIdentifier SubjectIdentifier { get; set; }
-        public ICollection<StandardPermissionType> Permissions { get; set; }
+        public EUEntitRepresentativeSubjectIdentifier SubjectIdentifier { get; set; }
+        public ICollection<EUEntitRepresentativeStandardPermissionType> Permissions { get; set; }
         public string Description { get; set; }
     }
 
-    public enum StandardPermissionType
+    public enum EUEntitRepresentativeStandardPermissionType
     {
         InvoiceRead,
         InvoiceWrite,
     }
 
-    public partial class SubjectIdentifier
+    public partial class EUEntitRepresentativeSubjectIdentifier
     {
-        public SubjectIdentifierType Type { get; set; }
+        public EUEntitRepresentativeSubjectIdentifierType Type { get; set; }
         public string Value { get; set; }
     }
 
-    public enum SubjectIdentifierType
+    public enum EUEntitRepresentativeSubjectIdentifierType
     {
         Fingerprint,
     }

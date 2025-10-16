@@ -14,7 +14,7 @@ namespace KSeF.Client.Core.Interfaces.Services
     public interface ICryptographyService
     {
         /// <summary>
-        /// Zwraca dane szyfrowania, w tym klucz szyfrowania, wektor IV i zaszyfrowany klucz.
+        /// Zwraca dane szyfrowania, w tym klucz szyfrowania, wektor inicjalizujący (IV) i zaszyfrowany klucz.
         /// </summary>
         /// <returns><see cref="EncryptionData"/></returns>
         EncryptionData GetEncryptionData();
@@ -22,10 +22,10 @@ namespace KSeF.Client.Core.Interfaces.Services
         /// <summary>
         /// Szyfrowanie danych przy użyciu AES-256 w trybie CBC z PKCS7.
         /// </summary>
-        /// <param name="content">Plik w formie byte array.</param>
+        /// <param name="content">Plik w formie tablicy bajtów.</param>
         /// <param name="key">Klucz symetryczny.</param>
-        /// <param name="iv">Wektor IV klucza symetrycznego.</param>
-        /// <returns>Zaszyfrowany plik w formie byte array.</returns>
+        /// <param name="iv">Wektor inicjalizujący (IV) klucza symetrycznego.</param>
+        /// <returns>Zaszyfrowany plik w formie tablicy bajtów.</returns>
         byte[] EncryptBytesWithAES256(byte[] content, byte[] key, byte[] iv);
 
         /// <summary>
@@ -44,9 +44,37 @@ namespace KSeF.Client.Core.Interfaces.Services
         /// <param name="input">Input stream - niezaszyfrowany.</param>
         /// <param name="output">Output stream - zaszyfrowany.</param>
         /// <param name="key">Klucz symetryczny.</param>
-        /// <param name="iv">Wektor IV klucza symetrycznego.</param>
+        /// <param name="iv">Wektor inicjalizujący (IV) klucza symetrycznego.</param>
         /// <param name="cancellationToken">Token anulowania.</param>
         Task EncryptStreamWithAES256Async(Stream input, Stream output, byte[] key, byte[] iv, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deszyfrowanie danych przy użyciu AES-256 w trybie CBC z PKCS7.
+        /// </summary>
+        /// <param name="content">Zaszyfrowany plik w formie tablicy bajtów.</param>
+        /// <param name="key">Klucz symetryczny.</param>
+        /// <param name="iv">Wektor inicjalizujący (IV) klucza symetrycznego.</param>
+        /// <returns>Odszyfrowany plik w formie tablicy bajtów.</returns>
+        byte[] DecryptBytesWithAES256(byte[] content, byte[] key, byte[] iv);
+
+        /// <summary>
+        /// Deszyfrowanie danych przy użyciu AES-256 w trybie CBC z PKCS7.
+        /// </summary>
+        /// <param name="input">Input stream - zaszyfrowany.</param>
+        /// <param name="output">Output stream - odszyfrowany.</param>
+        /// <param name="key">Klucz symetryczny.</param>
+        /// <param name="iv">Wektor inicjalizujący (IV) klucza symetrycznego.</param>
+        void DecryptStreamWithAES256(Stream input, Stream output, byte[] key, byte[] iv);
+
+        /// <summary>
+        /// Asynchroniczne deszyfrowanie danych przy użyciu AES-256 w trybie CBC z PKCS7.
+        /// </summary>
+        /// <param name="input">Input stream - zaszyfrowany.</param>
+        /// <param name="output">Output stream - odszyfrowany.</param>
+        /// <param name="key">Klucz symetryczny.</param>
+        /// <param name="iv">Wektor inicjalizujący (IV) klucza symetrycznego.</param>
+        /// <param name="cancellationToken">Token anulowania.</param>
+        Task DecryptStreamWithAES256Async(Stream input, Stream output, byte[] key, byte[] iv, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Generuje żądanie podpisania certyfikatu (CSR) z użyciem RSA na podstawie przekazanych informacji o certyfikacie.
@@ -66,7 +94,7 @@ namespace KSeF.Client.Core.Interfaces.Services
         /// <summary>
         /// Zwraca metadane plik: rozmiar i hash SHA256.
         /// </summary>
-        /// <param name="file">Plik w formie byte array</param>
+        /// <param name="file">Plik w formie tablicy bajtów</param>
         /// <returns><see cref="FileMetadata"/></returns>
         FileMetadata GetMetaData(byte[] file);
 
@@ -85,40 +113,40 @@ namespace KSeF.Client.Core.Interfaces.Services
         Task<FileMetadata> GetMetaDataAsync(Stream fileStream, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Zwraca zaszyfrowany plik formie byte array przy użyciu algorytmu RSA.
+        /// Zwraca zaszyfrowany plik w formie tablicy bajtów przy użyciu algorytmu RSA.
         /// </summary>
-        /// <param name="content"></param>
-        /// <param name="padding"></param>
+        /// <param name="content">Niezaszyfrowany plik w formacie tablicy bajtów</param>
+        /// <param name="padding">Wypełnienie</param>
         /// <returns></returns>
         byte[] EncryptWithRSAUsingPublicKey(byte[] content, RSAEncryptionPadding padding);
 
         /// <summary>
         /// Zwraca zaszyfrowany token KSeF przy użyciu algorytmu RSA z publicznym kluczem.
         /// </summary>
-        /// <param name="content"></param>
+        /// <param name="content">Niezaszyfrowany plik w formacie tablicy bajtów</param>
         /// <returns></returns>
         byte[] EncryptKsefTokenWithRSAUsingPublicKey(byte[] content);
 
         /// <summary>
         /// Zwraca zaszyfrowany token KSeF przy użyciu algorytmu ECIes z publicznym kluczem.
         /// </summary>
-        /// <param name="content"></param>
+        /// <param name="content">Niezaszyfrowany plik w formacie tablicy bajtów</param>
         /// <returns></returns>
         byte[] EncryptWithECDSAUsingPublicKey(byte[] content);
 
         /// <summary>
         /// Jednorazowe, asynchroniczne wstępne załadowanie certyfikatów i kluczy do pamięci podręcznej.
         /// </summary>
-        /// <param name="ct"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task WarmupAsync(CancellationToken ct = default);
+        Task WarmupAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Wymusza odświeżenie certyfikatów i kluczy w pamięci podręcznej.
         /// </summary>
-        /// <param name="ct"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task ForceRefreshAsync(CancellationToken ct = default);
+        Task ForceRefreshAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Certyfikat używany do szyfrowania symetrycznego klucza AES.

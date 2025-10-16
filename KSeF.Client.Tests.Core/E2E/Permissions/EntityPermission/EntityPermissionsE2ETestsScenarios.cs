@@ -1,4 +1,5 @@
 using KSeF.Client.Api.Builders.EntityPermissions;
+using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Entity;
@@ -6,7 +7,7 @@ using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Tests.Utils;
 using System.Security.Cryptography.X509Certificates;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.EntityPermission;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.EntityPermissions;
 
 
 public class EntityPermissionsE2ETestsScenarios : TestBase
@@ -22,26 +23,26 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         string contextNip = MiscellaneousUtils.GetRandomNip();
         string subjectNip = MiscellaneousUtils.GetRandomNip();
 
-        Client.Core.Models.Permissions.Entity.SubjectIdentifier BR_subject =
-            new Client.Core.Models.Permissions.Entity.SubjectIdentifier
+        EntitySubjectIdentifier BR_subject =
+            new EntitySubjectIdentifier
             {
-                Type = Client.Core.Models.Permissions.Entity.SubjectIdentifierType.Nip,
+                Type = EntitySubjectIdentifierType.Nip,
                 Value = subjectNip
             };
 
         // Auth
-        Client.Core.Models.Authorization.AuthOperationStatusResponse authorizationInfo =
+        AuthenticationOperationStatusResponse authorizationInfo =
             await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, contextNip);
 
-        Client.Core.Models.Permissions.Entity.GrantPermissionsEntityRequest grantsPermissionsRequest =
+        GrantPermissionsEntityRequest grantsPermissionsRequest =
             GrantEntityPermissionsRequestBuilder
                 .Create()
                 .WithSubject(BR_subject)
                 .WithPermissions(
-                    Client.Core.Models.Permissions.Entity.Permission.New(
-                        Client.Core.Models.Permissions.Entity.StandardPermissionType.InvoiceRead, true),
-                    Client.Core.Models.Permissions.Entity.Permission.New(
-                        Client.Core.Models.Permissions.Entity.StandardPermissionType.InvoiceWrite, false)
+                    EntityPermission.New(
+                        EntityStandardPermissionType.InvoiceRead, true),
+                    EntityPermission.New(
+                        EntityStandardPermissionType.InvoiceWrite, false)
                 )
                 .WithDescription("Read and Write permissions")
                 .Build();
@@ -54,13 +55,13 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
 
         Assert.NotNull(grantsPermissionsResponse);
 
-        Client.Core.Models.Permissions.Person.PersonPermissionsQueryRequest queryForAllPermissions =
-            new Client.Core.Models.Permissions.Person.PersonPermissionsQueryRequest
+        PersonPermissionsQueryRequest queryForAllPermissions =
+            new PersonPermissionsQueryRequest
             {
-                QueryType = Client.Core.Models.Permissions.Person.QueryTypeEnum.PermissionsGrantedInCurrentContext
+                QueryType = PersonQueryType.PermissionsGrantedInCurrentContext
             };
 
-        Client.Core.Models.Permissions.PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>
+        PagedPermissionsResponse<PersonPermission>
             queryForAllPermissionsResponse =
             await AsyncPollingUtils.PollAsync(
                 action: () => KsefClient.SearchGrantedPersonPermissionsAsync(
@@ -87,23 +88,23 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         string contextNip = MiscellaneousUtils.GetRandomNip();
         string subjectNip = MiscellaneousUtils.GetRandomNip();
 
-        Client.Core.Models.Permissions.Entity.SubjectIdentifier subject =
-            new Client.Core.Models.Permissions.Entity.SubjectIdentifier
+        EntitySubjectIdentifier subject =
+            new EntitySubjectIdentifier
             {
-                Type = Client.Core.Models.Permissions.Entity.SubjectIdentifierType.Nip,
+                Type = EntitySubjectIdentifierType.Nip,
                 Value = subjectNip
             };
 
-        AuthOperationStatusResponse authorizationInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, contextNip);
+        AuthenticationOperationStatusResponse authorizationInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, contextNip);
 
         GrantPermissionsEntityRequest grantPermissionsEntityRequest = GrantEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(subject)
             .WithPermissions(
-                Client.Core.Models.Permissions.Entity.Permission.New(
-                    Client.Core.Models.Permissions.Entity.StandardPermissionType.InvoiceRead, true),
-                Client.Core.Models.Permissions.Entity.Permission.New(
-                    Client.Core.Models.Permissions.Entity.StandardPermissionType.InvoiceWrite, false)
+                EntityPermission.New(
+                    EntityStandardPermissionType.InvoiceRead, true),
+                EntityPermission.New(
+                    EntityStandardPermissionType.InvoiceWrite, false)
             )
             .WithDescription("Grant read and write permissions")
             .Build();
@@ -113,7 +114,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         Assert.NotNull(grantPermissionsEntityResponse);
 
         // Auth: Entity we własnym kontekście
-        AuthOperationStatusResponse entityAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, subjectNip);
+        AuthenticationOperationStatusResponse entityAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, subjectNip);
 
         PersonalPermissionsQueryRequest queryForAllPermissions = new PersonalPermissionsQueryRequest();
         PagedPermissionsResponse<PersonalPermission> queryForAllPermissionsResponse =
@@ -147,31 +148,31 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         string brNip = MiscellaneousUtils.GetRandomNip(); // biuro rachunkowe
         string kdpNip = MiscellaneousUtils.GetRandomNip(); // kancelaria doradztwa podatkowego
 
-        Client.Core.Models.Permissions.Entity.SubjectIdentifier brSubject =
-            new Client.Core.Models.Permissions.Entity.SubjectIdentifier
+        EntitySubjectIdentifier brSubject =
+            new EntitySubjectIdentifier
             {
-                Type = Client.Core.Models.Permissions.Entity.SubjectIdentifierType.Nip,
+                Type = EntitySubjectIdentifierType.Nip,
                 Value = brNip
             };
 
-        Client.Core.Models.Permissions.Entity.SubjectIdentifier kdpSubject =
-            new Client.Core.Models.Permissions.Entity.SubjectIdentifier
+        EntitySubjectIdentifier kdpSubject =
+            new EntitySubjectIdentifier
             {
-                Type = Client.Core.Models.Permissions.Entity.SubjectIdentifierType.Nip,
+                Type = EntitySubjectIdentifierType.Nip,
                 Value = kdpNip
             };
 
-        Permission[] permissions = new Permission[]
+        EntityPermission[] permissions = new EntityPermission[]
         {
-            Client.Core.Models.Permissions.Entity.Permission.New(
-                Client.Core.Models.Permissions.Entity.StandardPermissionType.InvoiceRead, true),
-            Client.Core.Models.Permissions.Entity.Permission.New(
-                Client.Core.Models.Permissions.Entity.StandardPermissionType.InvoiceWrite, false)
+            EntityPermission.New(
+                EntityStandardPermissionType.InvoiceRead, true),
+            EntityPermission.New(
+                EntityStandardPermissionType.InvoiceWrite, false)
         };
 
         // Act
         // uwierzytelnienie jdg we własnym kontekście
-        AuthOperationStatusResponse authorizationInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, jdgNip);
+        AuthenticationOperationStatusResponse authorizationInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, jdgNip);
         // nadanie uprawnień biuru rachunkowemu
         OperationResponse brGrantInJdg = await GrantPermissionsAsync(brSubject, authorizationInfo, permissions);
         Assert.NotNull(brGrantInJdg);
@@ -180,7 +181,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         Assert.NotNull(kdpGrantInJdg);
 
         // uwierzytelnienie otherJdg we własnym kontekście
-        AuthOperationStatusResponse otherJdgAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, otherJdgNip);
+        AuthenticationOperationStatusResponse otherJdgAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, otherJdgNip);
         // nadanie uprawnień biuru rachunkowemu
         OperationResponse brGrantInOtherJdg = await GrantPermissionsAsync(brSubject, otherJdgAuthorizationInfo, permissions);
         Assert.NotNull(brGrantInOtherJdg);
@@ -201,18 +202,18 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
             serialNumber: brNip,
             commonName: "Jan Kowalski Certificate");
 
-        AuthOperationStatusResponse entityAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(
+        AuthenticationOperationStatusResponse entityAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(
             KsefClient,
             SignatureService,
             jdgNip,
-            Client.Core.Models.Authorization.ContextIdentifierType.Nip,
+            AuthenticationTokenContextIdentifierType.Nip,
             personalCertificate);
 
-        Client.Core.Models.Permissions.Person.PersonalPermissionsQueryRequest queryForContextPermissions =
-            new Client.Core.Models.Permissions.Person.PersonalPermissionsQueryRequest();
+        PersonalPermissionsQueryRequest queryForContextPermissions =
+            new PersonalPermissionsQueryRequest();
 
         // uprawnienia biura rachunkowego w kontekście jdg
-        Client.Core.Models.Permissions.PagedPermissionsResponse<Client.Core.Models.Permissions.PersonalPermission>
+        PagedPermissionsResponse<PersonalPermission>
             queryForContextPermissionsResponse =
             await AsyncPollingUtils.PollAsync(
                 action: () => KsefClient.SearchGrantedPersonalPermissionsAsync(
@@ -228,9 +229,9 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
     }
 
     private async Task<OperationResponse> GrantPermissionsAsync(
-            Client.Core.Models.Permissions.Entity.SubjectIdentifier subject,
-            AuthOperationStatusResponse authorizationInfo,
-            Permission[] permissions)
+            EntitySubjectIdentifier subject,
+            AuthenticationOperationStatusResponse authorizationInfo,
+            EntityPermission[] permissions)
     {
         GrantPermissionsEntityRequest grantEntityPermissionsRequest = GrantEntityPermissionsRequestBuilder
                     .Create()

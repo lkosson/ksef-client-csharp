@@ -55,9 +55,9 @@ internal class SelfSignedCertificateForSealBuilderImpl
     {
         _subjectParts.Add("2.5.4.6=PL");
 
-        var subjectName = string.Join(", ", _subjectParts);
+        string subjectName = string.Join(", ", _subjectParts);
 
-        var certificate = new CertificateRequest(subjectName, RSA.Create(2048), HashAlgorithmName.SHA256, RSASignaturePadding.Pss)
+        X509Certificate2 certificate = new CertificateRequest(subjectName, RSA.Create(2048), HashAlgorithmName.SHA256, RSASignaturePadding.Pss)
             .CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-61), DateTimeOffset.Now.AddYears(2));
 
         return certificate;

@@ -58,7 +58,7 @@ public static class JsonUtil
     {
         try
         {
-            var result = await JsonSerializer.DeserializeAsync<T>(input, _settings);
+            T result = await JsonSerializer.DeserializeAsync<T>(input, _settings);
             if (result == null)
             {
                 throw new InvalidOperationException($"[DeserializeAsync] Zdeserializowana wartość jest pusta (null) dla typu {typeof(T).Name}.");
@@ -74,7 +74,7 @@ public static class JsonUtil
                 if (input.CanSeek)
                 {
                     input.Seek(0, SeekOrigin.Begin);
-                    using var reader = new StreamReader(input, leaveOpen: true);
+                    using StreamReader reader = new StreamReader(input, leaveOpen: true);
                     jsonFragment = await reader.ReadToEndAsync();
                 }
             }

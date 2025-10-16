@@ -28,7 +28,7 @@ internal static class CertificateUtils
     /// <exception cref="Exception">Wyjątki mogą pochodzić z warstwy API lub kryptograficznej.</exception>
     internal static async Task<(string csrBase64Encoded, string privateKeyBase64Encoded)> GenerateCsrAndPrivateKeyAsync(IKSeFClient ksefClient, string accessToken, ICryptographyService cryptographyService, RSASignaturePadding padding)
     {
-        var enrollmentData = await ksefClient
+        CertificateEnrollmentsInfoResponse enrollmentData = await ksefClient
             .GetCertificateEnrollmentDataAsync(accessToken)
             .ConfigureAwait(false);
 
@@ -45,14 +45,14 @@ internal static class CertificateUtils
     /// <returns>Odpowiedź z numerem referencyjnym i znacznikiem czasu.</returns>
     internal static async Task<CertificateEnrollmentResponse> SendCertificateEnrollmentAsync(IKSeFClient ksefClient, string accessToken, string csrBase64Encoded, CertificateType certificateType = CertificateType.Authentication)
     {
-        var request = SendCertificateEnrollmentRequestBuilder.Create()
+        SendCertificateEnrollmentRequest request = SendCertificateEnrollmentRequestBuilder.Create()
                    .WithCertificateName("Test Certificate")
                    .WithCertificateType(certificateType)
                    .WithCsr(csrBase64Encoded)
                    .WithValidFrom(DateTimeOffset.UtcNow)
                    .Build();
 
-        var certificateEnrollmentResponse = await ksefClient.SendCertificateEnrollmentAsync(request, accessToken)
+        CertificateEnrollmentResponse certificateEnrollmentResponse = await ksefClient.SendCertificateEnrollmentAsync(request, accessToken)
             .ConfigureAwait(false);
 
         return certificateEnrollmentResponse;
@@ -66,7 +66,7 @@ internal static class CertificateUtils
     /// <param name="certificateSerialNumber">Numer seryjny certyfikatu do unieważnienia.</param>
     internal static async Task RevokeCertificateAsync(IKSeFClient ksefClient, string accessToken, string certificateSerialNumber)
     {
-        var request = RevokeCertificateRequestBuilder.Create()
+        CertificateRevokeRequest request = RevokeCertificateRequestBuilder.Create()
             .Build();
 
         await ksefClient.RevokeCertificateAsync(request, certificateSerialNumber, accessToken)
@@ -85,7 +85,7 @@ internal static class CertificateUtils
     internal static X509Certificate2 CreateCertificateWithPrivateKey(CertificateResponse response, string privateKeyBase64Encoded)
     {
         byte[] certBytes = Convert.FromBase64String(response.Certificate);
-        var certificate = new X509Certificate2(certBytes);
+        X509Certificate2 certificate = new X509Certificate2(certBytes);
 
         using RSA rsa = RSA.Create();
         rsa.ImportRSAPrivateKey(Convert.FromBase64String(privateKeyBase64Encoded), out _);

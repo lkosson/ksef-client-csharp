@@ -1,4 +1,5 @@
 using KSeF.Client.Core.Interfaces.Services;
+using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
@@ -24,7 +25,7 @@ public class OnlineSessionE2ETests : TestBase
     public OnlineSessionE2ETests()
     {
         Nip = MiscellaneousUtils.GetRandomNip();
-        Client.Core.Models.Authorization.AuthOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, Nip)
+        AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, Nip)
                                           .GetAwaiter()
                                           .GetResult();
         accessToken = authInfo.AccessToken.Token;
@@ -39,13 +40,13 @@ public class OnlineSessionE2ETests : TestBase
         EncryptionData encryptionData = CryptographyService.GetEncryptionData();
 
         // 1) Otwarcie sesji
-        Client.Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse openSessionResponse = await OpenOnlineSessionAsync(encryptionData, systemCode);
+        OpenOnlineSessionResponse openSessionResponse = await OpenOnlineSessionAsync(encryptionData, systemCode);
         Assert.NotNull(openSessionResponse);
         Assert.False(string.IsNullOrWhiteSpace(openSessionResponse.ReferenceNumber));
         await Task.Delay(SleepTime);
 
         // 2) Wysłanie faktury
-        Client.Core.Models.Sessions.OnlineSession.SendInvoiceResponse sendInvoiceResponse = await SendEncryptedInvoiceAsync(openSessionResponse.ReferenceNumber, encryptionData, CryptographyService, invoiceTemplatePath, Nip);
+        SendInvoiceResponse sendInvoiceResponse = await SendEncryptedInvoiceAsync(openSessionResponse.ReferenceNumber, encryptionData, CryptographyService, invoiceTemplatePath, Nip);
         Assert.NotNull(sendInvoiceResponse);
         Assert.False(string.IsNullOrWhiteSpace(sendInvoiceResponse.ReferenceNumber));
         await Task.Delay(SleepTime);
@@ -94,7 +95,7 @@ public class OnlineSessionE2ETests : TestBase
     /// Buduje i wysyła żądanie otwarcia sesji interaktywnej na podstawie danych szyfrowania.
     /// Zwraca odpowiedź z numerem referencyjnym sesji.
     /// </summary>
-    private async Task<Client.Core.Models.Sessions.OnlineSession.OpenOnlineSessionResponse> OpenOnlineSessionAsync(EncryptionData encryptionData, SystemCodeEnum systemCode = DefaultSystemCode)
+    private async Task<OpenOnlineSessionResponse> OpenOnlineSessionAsync(EncryptionData encryptionData, SystemCodeEnum systemCode = DefaultSystemCode)
     {
         OpenOnlineSessionRequest openOnlineSessionRequest = OpenOnlineSessionRequestBuilder
             .Create()
@@ -112,7 +113,7 @@ public class OnlineSessionE2ETests : TestBase
     /// Przygotowuje fakturę z szablonu, szyfruje ją i wysyła w ramach sesji interaktywnej.
     /// Zwraca odpowiedź z numerem referencyjnym faktury.
     /// </summary>
-    private async Task<Client.Core.Models.Sessions.OnlineSession.SendInvoiceResponse> SendEncryptedInvoiceAsync(
+    private async Task<SendInvoiceResponse> SendEncryptedInvoiceAsync(
         string sessionReferenceNumber,
         EncryptionData encryptionData,
         ICryptographyService cryptographyService,

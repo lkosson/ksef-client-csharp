@@ -1,3 +1,4 @@
+using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Tests.Utils;
 
@@ -26,22 +27,22 @@ public partial class CredentialsRevokeTests : KsefIntegrationTestBase
         Assert.True(manageGranted);
 
         // ========== Act: SEARCH CredentialManage FOR DELEGATE ==========
-        IReadOnlyList<Core.Models.Permissions.PersonPermission> delegatePermissions = await CredentialsRevokeHelpers.SearchPersonPermissionsAsync(KsefClient, ownerToken, PermissionState.Active);
-        Core.Models.Permissions.PersonPermission delegatePermission = Assert.Single(delegatePermissions);
+        IReadOnlyList<PersonPermission> delegatePermissions = await CredentialsRevokeHelpers.SearchPersonPermissionsAsync(KsefClient, ownerToken, PersonPermissionState.Active);
+        PersonPermission delegatePermission = Assert.Single(delegatePermissions);
 
         // ========== Act: GRANT AS DELEGATE InvoiceWrite FOR PESEL ==========
         bool invoiceWriteGranted = await CredentialsRevokeHelpers.GrantInvoiceWriteToPeselAsManagerAsync(KsefClient, delegateToken, nipOwner, pesel);
         Assert.True(invoiceWriteGranted);
 
-        IReadOnlyList<Core.Models.Permissions.PersonPermission> peselPermissionsAfterGrant = await CredentialsRevokeHelpers.SearchPersonPermissionsAsync(KsefClient, delegateToken, PermissionState.Inactive);
-        Core.Models.Permissions.PersonPermission grantedPermission = Assert.Single(peselPermissionsAfterGrant);
+        IReadOnlyList<PersonPermission> peselPermissionsAfterGrant = await CredentialsRevokeHelpers.SearchPersonPermissionsAsync(KsefClient, delegateToken, PersonPermissionState.Inactive);
+        PersonPermission grantedPermission = Assert.Single(peselPermissionsAfterGrant);
 
         // ========== Act: REVOKE AS DELEGATE InvoiceWrite FOR PESEL ==========
         bool revokeSuccessful = await CredentialsRevokeHelpers.RevokePersonPermissionAsync(KsefClient, delegateToken, grantedPermission.Id);
         Assert.True(revokeSuccessful);
 
         // Assert
-        IReadOnlyList<Core.Models.Permissions.PersonPermission> activePermissionsAfterRevoke = await CredentialsRevokeHelpers.SearchPersonPermissionsAsync(KsefClient, delegateToken, PermissionState.Active);
+        IReadOnlyList<PersonPermission> activePermissionsAfterRevoke = await CredentialsRevokeHelpers.SearchPersonPermissionsAsync(KsefClient, delegateToken, PersonPermissionState.Active);
         Assert.Empty(activePermissionsAfterRevoke);
     }
 }

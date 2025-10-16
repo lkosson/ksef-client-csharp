@@ -1,4 +1,5 @@
 using KSeF.Client.Api.Services;
+using KSeF.Client.Core.Models.QRCode;
 using KSeF.Client.DI;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -28,31 +29,31 @@ public class QrCodeTests
         X509Certificate2 publicCert;
         if (keyType == "RSA")
         {
-            using var rsa = RSA.Create(2048);
-            var req = new CertificateRequest($"CN={subjectName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-            var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(1));
+            using RSA rsa = RSA.Create(2048);
+            CertificateRequest req = new CertificateRequest($"CN={subjectName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            X509Certificate2 cert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(1));
             publicCert = new X509Certificate2(cert.Export(X509ContentType.Cert));
         }
         else
         {
-            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-            var req = new CertificateRequest($"CN={subjectName}", ecdsa, HashAlgorithmName.SHA256);
-            var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(1));
+            using ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            CertificateRequest req = new CertificateRequest($"CN={subjectName}", ecdsa, HashAlgorithmName.SHA256);
+            X509Certificate2 cert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(1));
             publicCert = new X509Certificate2(cert.Export(X509ContentType.Cert));
         }
 
-        var nip = "0000000000";
-        var xml = "<x/>";
-        var serial = Guid.NewGuid().ToString();
+        string nip = "0000000000";
+        string xml = "<x/>";
+        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
-        using (var sha256 = SHA256.Create())
+        using (SHA256 sha256 = SHA256.Create())
             invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
             _linkSvc.BuildCertificateVerificationUrl(
                 nip,
-                Core.Models.QRCode.ContextIdentifierType.Nip,
+                QRCodeContextIdentifierType.Nip,
                 nip,
                 serial,
                 invoiceHash,

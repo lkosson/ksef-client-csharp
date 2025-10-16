@@ -59,7 +59,7 @@ internal class SelfSignedCertificateForSignatureBuilderImpl
 
     public ISelfSignedCertificateForSignatureBuilderWithName WithGivenNames(string[] names)
     {
-        foreach (var name in names.Where(x => !string.IsNullOrWhiteSpace(x)))
+        foreach (string name in names.Where(x => !string.IsNullOrWhiteSpace(x)))
         {
             _subjectParts.Add($"2.5.4.42={name}");
         }

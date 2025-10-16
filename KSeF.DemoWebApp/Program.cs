@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
 
 builder.Services.AddKSeFClient(options =>
 {
@@ -29,14 +29,14 @@ builder.Services.AddCryptographyClient(options =>
 },
 async (serviceProvider, cancellationToken) =>
 {
-    var cryptographyClient = serviceProvider.GetRequiredService<ICryptographyClient>();
+    ICryptographyClient cryptographyClient = serviceProvider.GetRequiredService<ICryptographyClient>();
     return await cryptographyClient.GetPublicCertificatesAsync(cancellationToken);
 });
 
 builder.Services.AddHostedService(provider =>
 {
-    var cryptographyService = provider.GetRequiredService<ICryptographyService>();
-    var options = provider.GetRequiredService<IOptions<CryptographyClientOptions>>();
+    ICryptographyService cryptographyService = provider.GetRequiredService<ICryptographyService>();
+    IOptions<CryptographyClientOptions> options = provider.GetRequiredService<IOptions<CryptographyClientOptions>>();
     return new CryptographyWarmupHostedService(cryptographyService, options);
 });
 
@@ -70,7 +70,7 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-var app = builder.Build();
+Microsoft.AspNetCore.Builder.WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -1,8 +1,8 @@
 using KSeF.Client.Api.Builders.EntityPermissions;
-using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Entity;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Models;
 
 namespace KSeF.DemoWebApp.Controllers;
 
@@ -11,14 +11,14 @@ namespace KSeF.DemoWebApp.Controllers;
 public class EntityPermissionsController(IKSeFClient ksefClient) : ControllerBase
 {
     [HttpPost("grant-permissions-for-Entity")]
-    public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, Client.Core.Models.Permissions.Entity.SubjectIdentifier subjectIdentifier, CancellationToken cancellationToken)
+    public async Task<ActionResult<OperationResponse>> GrantPermissionsEntity(string accessToken, EntitySubjectIdentifier subjectIdentifier, CancellationToken cancellationToken)
     {
-        var request = GrantEntityPermissionsRequestBuilder
+        GrantPermissionsEntityRequest request = GrantEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(subjectIdentifier)
             .WithPermissions(
-                Permission.New(StandardPermissionType.InvoiceRead, true),
-                Permission.New(StandardPermissionType.InvoiceRead, false)
+                EntityPermission.New(EntityStandardPermissionType.InvoiceRead, true),
+                EntityPermission.New(EntityStandardPermissionType.InvoiceRead, false)
                 )
             .WithDescription("Access for quarterly review")
             .Build();

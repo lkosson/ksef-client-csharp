@@ -15,11 +15,11 @@ namespace KSeF.Client.Core.Models.Authorization
         /// <summary>
         /// Identyfikator osoby która wygenerowała token.
         /// </summary>
-        public SubjectIdentifier AuthorIdentifier { get; set; }
+        public AuthenticationKsefTokenSubjectIdentifier AuthorIdentifier { get; set; }
         /// <summary>
         /// Identyfikator kontekstu, w którym został wygenerowany token i do którego daje dostęp.
         /// </summary>
-        public AuthContextIdentifier ContextIdentifier { get; set; }
+        public AuthenticationTokenContextIdentifier ContextIdentifier { get; set; }
 
         /// <summary>
         /// Opis tokena.

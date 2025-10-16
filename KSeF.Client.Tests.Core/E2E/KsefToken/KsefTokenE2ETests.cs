@@ -16,7 +16,7 @@ public class KsefTokenE2ETests : TestBase
     public KsefTokenE2ETests()
     {
         Nip = MiscellaneousUtils.GetRandomNip();
-        AuthOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, Nip)
+        AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, Nip)
                                           .GetAwaiter()
                                           .GetResult();
         AccessToken = authInfo.AccessToken.Token;
@@ -56,7 +56,7 @@ public class KsefTokenE2ETests : TestBase
         Assert.Equal(AuthenticationKsefTokenStatus.Active, activeToken.Status);
 
         // 3) Uwierzytelnij w KSeF przy użyciu tokena KSeF (polling statusu 200 w AuthenticateWithKsefTokenAsync)
-        AuthOperationStatusResponse authResult = await AuthenticateWithKsefTokenAsync(tokenResponse.Token, Nip);
+        AuthenticationOperationStatusResponse authResult = await AuthenticateWithKsefTokenAsync(tokenResponse.Token, Nip);
         Assert.NotNull(authResult);
         Assert.False(string.IsNullOrWhiteSpace(authResult.AccessToken?.Token));
         Assert.False(string.IsNullOrWhiteSpace(authResult.RefreshToken?.Token));
@@ -105,11 +105,11 @@ public class KsefTokenE2ETests : TestBase
     /// </remarks>
     /// <param name="ksefToken">Wygenerowany token KSeF w postaci jawnej (string).</param>
     /// <param name="nip">Identyfikator kontekstu (NIP) dla uwierzytelnienia.</param>
-    /// <returns><see cref="AuthOperationStatusResponse"/> zawierająca access oraz refresh token.</returns>
-    private async Task<AuthOperationStatusResponse> AuthenticateWithKsefTokenAsync(string ksefToken, string nip)
+    /// <returns><see cref="AuthenticationOperationStatusResponse"/> zawierająca access oraz refresh token.</returns>
+    private async Task<AuthenticationOperationStatusResponse> AuthenticateWithKsefTokenAsync(string ksefToken, string nip)
     {
         // 1) Pobierz challenge i timestamp
-        AuthChallengeResponse challenge = await KsefClient.GetAuthChallengeAsync(CancellationToken);
+        AuthenticationChallengeResponse challenge = await KsefClient.GetAuthChallengeAsync(CancellationToken);
         long timestampMs = challenge.Timestamp.ToUnixTimeMilliseconds();
 
         // 2) Przygotuj "token|timestamp" i zaszyfruj RSA-OAEP SHA-256 zgodnie z wymaganiem API
@@ -119,12 +119,12 @@ public class KsefTokenE2ETests : TestBase
         string encryptedTokenB64 = Convert.ToBase64String(encrypted);
 
         // 3) Wyślij żądanie uwierzytelnienia tokenem KSeF
-        AuthKsefTokenRequest request = new AuthKsefTokenRequest
+        AuthenticationKsefTokenRequest request = new AuthenticationKsefTokenRequest
         {
             Challenge = challenge.Challenge,
-            ContextIdentifier = new AuthContextIdentifier
+            ContextIdentifier = new AuthenticationTokenContextIdentifier
             {
-                Type = ContextIdentifierType.Nip,
+                Type = AuthenticationTokenContextIdentifierType.Nip,
                 Value = nip
             },
             EncryptedToken = encryptedTokenB64,
@@ -149,7 +149,7 @@ public class KsefTokenE2ETests : TestBase
         Assert.Equal(SuccessfulAuthStatusCode, status.Status.Code);
 
         // 5) Pobierz access/refresh tokeny
-        AuthOperationStatusResponse tokens = await KsefClient.GetAccessTokenAsync(signature.AuthenticationToken.Token, CancellationToken);
+        AuthenticationOperationStatusResponse tokens = await KsefClient.GetAccessTokenAsync(signature.AuthenticationToken.Token, CancellationToken);
         return tokens;
     }
 

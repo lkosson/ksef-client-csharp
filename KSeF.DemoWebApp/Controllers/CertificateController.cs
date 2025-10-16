@@ -38,8 +38,8 @@ public class CertificateController : ControllerBase
         [FromQuery] CertificateType certificateType = CertificateType.Authentication,
         CancellationToken cancellationToken = default)
     {
-        (var csrBase64encoded, var privateKeyBase64Encoded) = cryptographyService.GenerateCsrWithRsa(requestPayload);
-        var enrollmentRequest = SendCertificateEnrollmentRequestBuilder.Create()
+        (string? csrBase64encoded, string? privateKeyBase64Encoded) = cryptographyService.GenerateCsrWithRsa(requestPayload);
+        SendCertificateEnrollmentRequest enrollmentRequest = SendCertificateEnrollmentRequestBuilder.Create()
             .WithCertificateName("Testowy certyfikat")
             .WithCertificateType(certificateType)
             .WithCsr(csrBase64encoded)
@@ -67,7 +67,7 @@ public class CertificateController : ControllerBase
     [HttpPost("revoke")]
     public async Task<IActionResult> RevokeCertificateAsync(string serialNumber, string accessToken, CancellationToken cancellationToken)
     {
-        var request = RevokeCertificateRequestBuilder.Create()
+        CertificateRevokeRequest request = RevokeCertificateRequestBuilder.Create()
             .WithRevocationReason(CertificateRevocationReason.KeyCompromise) // optional
             .Build();
         await kSeFClient.RevokeCertificateAsync(request, serialNumber, accessToken, cancellationToken)
@@ -78,12 +78,12 @@ public class CertificateController : ControllerBase
     [HttpGet("certificate-list")]
     public async Task<ActionResult<CertificateMetadataListResponse>> GetCertificateMetadataListAsync(string accessToken, string serialNumber, string name,  CancellationToken cancellationToken)
     {
-        var request = GetCertificateMetadataListRequestBuilder
+        CertificateMetadataListRequest request = GetCertificateMetadataListRequestBuilder
             .Create()
             .WithCertificateSerialNumber(serialNumber)
             .WithName(name)
             .Build();
-        var metadataList = await kSeFClient.GetCertificateMetadataListAsync(accessToken, request, 20, 0, cancellationToken);
+        CertificateMetadataListResponse metadataList = await kSeFClient.GetCertificateMetadataListAsync(accessToken, request, 20, 0, cancellationToken);
         return metadataList;
     }
 }
