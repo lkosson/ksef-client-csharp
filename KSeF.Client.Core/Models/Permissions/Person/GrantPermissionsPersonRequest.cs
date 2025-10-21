@@ -42,7 +42,7 @@ namespace KSeF.Client.Core.Models.Permissions.Person
     {
         Nip,
         Pesel,
-        Fingerprint
+        Fingerprint,
     }
 
     public enum PersonAuthorizedIdentifierType

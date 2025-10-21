@@ -336,7 +336,7 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// <returns><see cref="PagedInvoiceResponse"/></returns>
         /// <exception cref="ApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
         /// <exception cref="ApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-        Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceQueryFilters requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default);
+        Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceQueryFilters requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, SortOrder sortOrder = SortOrder.Asc, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Pobranie statusu operacji - uprawnienia

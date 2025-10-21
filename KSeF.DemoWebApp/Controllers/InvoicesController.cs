@@ -35,7 +35,7 @@ public class InvoicesController : ControllerBase
         [FromQuery] int? pageSize,
         CancellationToken cancellationToken)
     {
-        return await ksefClient.QueryInvoiceMetadataAsync(body, accessToken, pageOffset, pageSize, cancellationToken);
+        return await ksefClient.QueryInvoiceMetadataAsync(body, accessToken, pageOffset, pageSize, SortOrder.Asc, cancellationToken);
     }
 
     /// <summary>

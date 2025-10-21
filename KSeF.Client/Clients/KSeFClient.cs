@@ -453,14 +453,14 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceQueryFilters requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, CancellationToken cancellationToken = default)
+    public async Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceQueryFilters requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, SortOrder sortOrder = SortOrder.Asc, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(requestPayload);
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
 
-        StringBuilder urlBuilder = new StringBuilder("/api/v2/invoices/query/metadata");
+        StringBuilder urlBuilder = new StringBuilder($"/api/v2/invoices/query/metadata?sortOrder={sortOrder}");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        Pagination(pageOffset, pageSize, urlBuilder, true);
 
         return await restClient.SendAsync<PagedInvoiceResponse, InvoiceQueryFilters>(HttpMethod.Post,
                                                                     urlBuilder.ToString(),
@@ -1162,9 +1162,8 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
         }
     }
 
-    private static void Pagination(int? pageOffset, int? pageSize, StringBuilder urlBuilder)
+    private static void Pagination(int? pageOffset, int? pageSize, StringBuilder urlBuilder,bool hasQuery = false)
     {
-        bool hasQuery = false;
         if (pageSize.HasValue && pageSize > 0)
         {
             urlBuilder.Append(hasQuery ? "&" : "?");

@@ -29,7 +29,7 @@ public static class KsefRateLimitWrapper
         CancellationToken cancellationToken = default)
     {
         // Odczyt profilu limitów dla danego endpointu (RPS/RPM/RPH)
-        var limits = KsefApiLimits.GetLimits(endpoint);
+        ApiLimits limits = KsefApiLimits.GetLimits(endpoint);
 
         for (int attempt = 1; attempt <= maxRetryAttempts; attempt++)
         {
@@ -38,7 +38,7 @@ public static class KsefRateLimitWrapper
                 // Lokalny ograniczenie przepustowości przed wywołaniem API – oczekiwanie na odnowienie limitów
                 await WaitForRateWindowAsync(endpoint, limits, cancellationToken).ConfigureAwait(false);
 
-                var result = await ksefApiCall(cancellationToken);           
+                T? result = await ksefApiCall(cancellationToken);           
                 return result;
             }
             catch (KsefRateLimitException rateLimitEx)
@@ -78,7 +78,7 @@ public static class KsefRateLimitWrapper
         }
 
         // Współdzielony licznik wywołań per endpoint (bez uderzania w serwer)
-        var tracker = Trackers.GetOrAdd(endpoint, _ => new EndpointRateTracker());
+        EndpointRateTracker tracker = Trackers.GetOrAdd(endpoint, _ => new EndpointRateTracker());
 
         while (true)
         {
@@ -87,7 +87,7 @@ public static class KsefRateLimitWrapper
             await tracker.Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var now = DateTimeOffset.UtcNow;
+                DateTimeOffset now = DateTimeOffset.UtcNow;
                 tracker.Trim(now);
                 requiredDelay = tracker.CalculateDelay(now, limits);
 
@@ -132,8 +132,8 @@ public static class KsefRateLimitWrapper
 
             if (limits.RequestsPerSecond > 0 && _perSecond.Count >= limits.RequestsPerSecond)
             {
-                var waitUntil = _perSecond.Peek().AddSeconds(1);
-                var delay = waitUntil - now;
+                DateTimeOffset waitUntil = _perSecond.Peek().AddSeconds(1);
+                TimeSpan delay = waitUntil - now;
                 if (delay > TimeSpan.Zero)
                 {
                     delays.Add(delay);
@@ -142,8 +142,8 @@ public static class KsefRateLimitWrapper
 
             if (limits.RequestsPerMinute > 0 && _perMinute.Count >= limits.RequestsPerMinute)
             {
-                var waitUntil = _perMinute.Peek().AddMinutes(1);
-                var delay = waitUntil - now;
+                DateTimeOffset waitUntil = _perMinute.Peek().AddMinutes(1);
+                TimeSpan delay = waitUntil - now;
                 if (delay > TimeSpan.Zero)
                 {
                     delays.Add(delay);
@@ -152,8 +152,8 @@ public static class KsefRateLimitWrapper
 
             if (limits.RequestsPerHour > 0 && _perHour.Count >= limits.RequestsPerHour)
             {
-                var waitUntil = _perHour.Peek().AddHours(1);
-                var delay = waitUntil - now;
+                DateTimeOffset waitUntil = _perHour.Peek().AddHours(1);
+                TimeSpan delay = waitUntil - now;
                 if (delay > TimeSpan.Zero)
                 {
                     delays.Add(delay);

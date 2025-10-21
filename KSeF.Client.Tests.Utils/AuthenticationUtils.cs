@@ -12,12 +12,12 @@ public static class AuthenticationUtils
     private const int AuthSuccessCode = 200;
 
     /// <summary>
-    /// Przeprowadza pełny proces uwierzytelnienia w KSeF z wykorzystaniem podpisu XAdES dla wskazanego NIP.
+    /// Przeprowadza pełny proces uwierzytelnienia w KSeF z wykorzystaniem podpisu XAdES dla wskazanego identyfikatora.
     /// </summary>
     public static async Task<AuthenticationOperationStatusResponse> AuthenticateAsync(
         IKSeFClient ksefClient,
         ISignatureService signatureService,
-        string nip,
+        string identifierValue,
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip,
         EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.Rsa)
     {
@@ -27,12 +27,12 @@ public static class AuthenticationUtils
         AuthenticationTokenRequest authTokenRequest = GetAuthorizationTokenRequest(
             challengeResponse.Challenge,
             contextIdentifierType,
-            nip,
+            identifierValue,
             AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject);
 
         string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
 
-        X509Certificate2 certificate = CertificateUtils.GetPersonalCertificate("A", "R", "TINPL", nip, "A R");
+        X509Certificate2 certificate = CertificateUtils.GetPersonalCertificate("A", "R", identifierValue.Length == 11 ? "PNOPL" : "TINPL", identifierValue, "A R");
 
         string signedXml = signatureService.Sign(unsignedXml, certificate);
 
@@ -48,13 +48,13 @@ public static class AuthenticationUtils
     }
 
     /// <summary>
-    /// Przeprowadza pełny proces uwierzytelnienia w KSeF z wykorzystaniem podpisu XAdES dla wskazanego numeru NIP w kontekście innego NIP.
+    /// Przeprowadza pełny proces uwierzytelnienia w KSeF z wykorzystaniem podpisu XAdES dla wskazanego numeru identyfikatora w kontekście innego podmiotu.
     /// </summary>
     public static async Task<AuthenticationOperationStatusResponse> AuthenticateAsync(
         IKSeFClient ksefClient,
         ISignatureService signatureService,
-        string nip,
-        string contextNip,
+        string identifierValue,
+        string contextIdentifierValue,
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip)
     {
         AuthenticationChallengeResponse challengeResponse = await ksefClient
@@ -63,13 +63,13 @@ public static class AuthenticationUtils
         AuthenticationTokenRequest authTokenRequest = GetAuthorizationTokenRequest(
             challengeResponse.Challenge,
             contextIdentifierType,
-            contextNip,
+            contextIdentifierValue,
             AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject);
 
         string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
 
         X509Certificate2 certificate =
-            CertificateUtils.GetPersonalCertificate("A", "R", "TINPL", nip, "A R");
+            CertificateUtils.GetPersonalCertificate("A", "R", identifierValue.Length == 11 ? "PNOPL" : "TINPL", identifierValue, "A R");
 
         string signedXml = signatureService.Sign(unsignedXml, certificate);
 

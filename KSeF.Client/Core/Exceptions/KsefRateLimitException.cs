@@ -70,7 +70,7 @@ public class KsefRateLimitException : KsefApiException
                 retryAfterSeconds = seconds;
             }
             // Próba parsowania jako data HTTP
-            else if (DateTimeOffset.TryParse(retryAfterHeaderValue, out var date))
+            else if (DateTimeOffset.TryParse(retryAfterHeaderValue, out DateTimeOffset date))
             {
                 retryAfterDate = date;
             }
@@ -94,7 +94,7 @@ public class KsefRateLimitException : KsefApiException
         // Jeśli dostępna jest data z Retry-After, obliczenie delty
         if (RetryAfterDate.HasValue)
         {
-            var delta = RetryAfterDate.Value - DateTimeOffset.UtcNow;
+            TimeSpan delta = RetryAfterDate.Value - DateTimeOffset.UtcNow;
             return delta > TimeSpan.Zero ? delta : TimeSpan.FromSeconds(1);
         }
 

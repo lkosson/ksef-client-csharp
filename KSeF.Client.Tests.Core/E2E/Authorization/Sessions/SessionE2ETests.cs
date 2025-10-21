@@ -12,7 +12,7 @@ public class SessionE2ETests : TestBase
     private readonly string refreshToken;
     private readonly string nip;
 
-    private const string ExpectedErrorMessage = "21304: Brak uwierzytelnienia. - Nieprawidłowy token.";
+    private const string ExpectedErrorMessage = "HTTP 400: Bad Request, AdditionalInfo: 21304: Brak uwierzytelnienia. - Nieprawidłowy token.";
     public SessionE2ETests()
     {
         nip = MiscellaneousUtils.GetRandomNip();

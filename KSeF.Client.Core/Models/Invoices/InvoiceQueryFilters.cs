@@ -34,4 +34,9 @@ namespace KSeF.Client.Core.Models.Invoices
         Nip,
         VatUe,
     }
+    public enum SortOrder
+    {
+        Asc,
+        Desc
+    }
 }

@@ -31,7 +31,7 @@ public static class KsefApiLimits
     /// </summary>
     public static ApiLimits GetLimits(KsefApiEndpoint endpoint)
     {
-        return _limits.TryGetValue(endpoint, out var limits) ? limits : _limits[KsefApiEndpoint.Other];
+        return _limits.TryGetValue(endpoint, out ApiLimits? limits) ? limits : _limits[KsefApiEndpoint.Other];
     }
     
     /// <summary>

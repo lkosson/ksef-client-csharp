@@ -20,6 +20,7 @@ public static class BatchUtils
     private const int DefaultMaxAttempts = 60;
     private const int DefaultPageOffset = 0;
     private const int DefaultPageSize = 10;
+    private const long MaxPartSizeBytes = 100L * 1000 * 1000; // 100MB
 
     /// <summary>
     /// Pobiera metadane faktur przesłanych w ramach sesji wsadowej.
@@ -118,6 +119,24 @@ public static class BatchUtils
     }
 
     /// <summary>
+    /// Oblicza optymalną liczbę części paczki na podstawie rozmiaru ZIP, 
+    /// tak aby każda część nie przekraczała 100MB.
+    /// </summary>
+    /// <param name="zipSizeBytes">Rozmiar paczki ZIP w bajtach</param>
+    /// <returns>Liczba części (minimum 1)</returns>
+    public static int CalculateBatchPartQuantity(long zipSizeBytes)
+    {
+        if (zipSizeBytes <= MaxPartSizeBytes)
+        {
+            return 1;
+        }
+
+        int partCount = (int)Math.Ceiling((double)zipSizeBytes / MaxPartSizeBytes);
+
+        return partCount;
+    }
+
+    /// <summary>
     /// Dzieli bufor na określoną liczbę części o zbliżonym rozmiarze.
     /// </summary>
     /// <param name="input">Bufor wejściowy.</param>
@@ -146,26 +165,31 @@ public static class BatchUtils
     }
 
     /// <summary>
-    /// Szyfruje i pakuje do struktur partów (1..N). Gdy <paramref name="partCount"/> == 1, nie dzieli <paramref name="zipBytes"/> na części.
+    /// Szyfruje i pakuje do struktur partów (1..N). 
+    /// Gdy <paramref name="partCount"/> == null, automatycznie wylicza optymalną liczbę części na podstawie rozmiaru ZIP (max 100MB na część).
+    /// Gdy <paramref name="partCount"/> == 1, nie dzieli <paramref name="zipBytes"/> na części.
     /// </summary>
     /// <param name="zipBytes">Bajty ZIP do podziału i zaszyfrowania.</param>
     /// <param name="encryption">Dane szyfrowania.</param>
     /// <param name="cryptographyService">Serwis kryptograficzny.</param>
-    /// <param name="partCount">Liczba części.</param>
+    /// <param name="partCount">Liczba części (opcjonalnie). Jeśli null, zostanie automatycznie wyliczona.</param>
     /// <returns>Lista zaszyfrowanych partów do wysyłki.</returns>
     public static List<BatchPartSendingInfo> EncryptAndSplit(
         byte[] zipBytes,
         EncryptionData encryption,
         ICryptographyService cryptographyService,
-        int partCount = 1)
+        int? partCount = null)
     {
         ArgumentNullException.ThrowIfNull(zipBytes);
         ArgumentNullException.ThrowIfNull(encryption);
         ArgumentNullException.ThrowIfNull(cryptographyService);
 
-        List<byte[]> rawParts = partCount <= 1
+        // Jeśli partCount nie jest podane, wylicz automatycznie
+        int actualPartCount = partCount ?? CalculateBatchPartQuantity(zipBytes.Length);
+
+        List<byte[]> rawParts = actualPartCount <= 1
             ? new List<byte[]> { zipBytes }
-            : Split(zipBytes, partCount);
+            : Split(zipBytes, actualPartCount);
 
         List<BatchPartSendingInfo> result = new List<BatchPartSendingInfo>(rawParts.Count);
 
@@ -369,7 +393,7 @@ public static class BatchUtils
 
         try
         {
-            foreach (var part in parts.OrderBy(p => p.OrdinalNumber))
+            foreach (InvoiceExportPackagePart? part in parts.OrderBy(p => p.OrdinalNumber))
             {
                 byte[] encryptedBytes = await DownloadPackagePartAsync(part, httpClientFactory, cancellationToken);
                 byte[] decryptedBytes = crypto.DecryptBytesWithAES256(encryptedBytes, encryptionData.CipherKey, encryptionData.CipherIv);

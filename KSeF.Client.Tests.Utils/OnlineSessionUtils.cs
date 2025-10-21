@@ -63,15 +63,54 @@ public static class OnlineSessionUtils
         EncryptionData encryptionData,
         ICryptographyService cryptographyService)
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "Templates", templatePath);
-        if (!File.Exists(path))
-            throw new FileNotFoundException($"Template not found at: {path}");
+        string invoiceFilePath = Path.Combine(AppContext.BaseDirectory, "Templates", templatePath);
+        if (!File.Exists(invoiceFilePath))
+            throw new FileNotFoundException($"Template not found at: {invoiceFilePath}");
 
-        string xml = File.ReadAllText(path, Encoding.UTF8);
+        string xml = GetXmlInvoiceFromPath(invoiceFilePath, nip);
+
+        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml);
+    }
+
+    /// <summary>
+    /// Wysyła fakturę w ramach otwartej sesji online. Faktura zawiera dodatkowo podmiot3 będący jednostką podrzędną podmiotu2. 
+    /// </summary>
+    /// <param name="ksefClient">Klient KSeF.</param>
+    /// <param name="sessionReferenceNumber">Numer referencyjny sesji.</param>
+    /// <param name="accessToken">Token dostępu.</param>
+    /// <param name="nip">NIP podmiotu.</param>
+    /// <param name="subject">identyfikator nabywcy.</param>
+    /// <param name="templatePath">Ścieżka do pliku szablonu XML.</param>
+    /// <param name="encryptionData">Dane szyfrowania.</param>
+    /// <param name="cryptographyService">Serwis kryptograficzny.</param>
+    /// <returns>Odpowiedź z informacjami o wysłanej fakturze.</returns>
+    public static async Task<SendInvoiceResponse> SendInvoiceAsync(IKSeFClient ksefClient,
+        string sessionReferenceNumber,
+        string accessToken,
+        string nip,string subject,
+        string templatePath,
+        EncryptionData encryptionData,
+        ICryptographyService cryptographyService)
+    {
+        string invoiceFilePath = Path.Combine(AppContext.BaseDirectory, "Templates", templatePath);
+        if (!File.Exists(invoiceFilePath))
+            throw new FileNotFoundException($"Template not found at: {invoiceFilePath}");
+
+        string xml = GetXmlInvoiceFromPath(invoiceFilePath, nip, subject);
+
+        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml);
+    }
+
+    private static string GetXmlInvoiceFromPath(string invoiceFilePath,string nip, string subject = null)
+    {
+        string xml = File.ReadAllText(invoiceFilePath, Encoding.UTF8);
         xml = xml.Replace("#nip#", nip);
         xml = xml.Replace("#invoice_number#", $"{Guid.NewGuid().ToString()}");
 
-        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml);
+        if (subject != null) 
+            xml = xml.Replace("#nipOdbiorca#", subject);
+
+        return xml;
     }
 
     /// <summary>

@@ -1,14 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+	<PropertyGroup>
+	  <TargetFramework>netstandard2.0</TargetFramework>
+	  <PackageId>KSeF.Client.Core</PackageId>
+	  <PackageVersion>1.0.0</PackageVersion>
+		
 	 <!-- Strong naming the assembly -->
-    <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>KSeF.Client.Core.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
+	  <SignAssembly>True</SignAssembly>
+	  <AssemblyOriginatorKeyFile>KSeF.Client.Core.snk</AssemblyOriginatorKeyFile>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="Models\Invoices\Query\" />
-  </ItemGroup>
-
+	<ItemGroup>
+	  <Folder Include="Models\Invoices\Query\" />
+	</ItemGroup>
+	
+	<PropertyGroup>
+		<Authors>Centrum Informatyki Resortu Finansów</Authors>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/CIRFMF/ksef-client-csharp</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/CIRFMF/ksef-client-csharp</PackageProjectUrl>
+		<PackageDescription>Core models for KSeF client</PackageDescription>
+		<PackageTags>ksef; e-invoicing; polish; dotnet; integration; invoices</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	</PropertyGroup>
 </Project>

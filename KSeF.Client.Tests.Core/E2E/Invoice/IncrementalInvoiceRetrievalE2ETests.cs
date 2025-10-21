@@ -23,7 +23,6 @@ namespace KSeF.Client.Tests.Core.E2E.Invoice;
 public class IncrementalInvoiceRetrievalE2ETests : TestBase
 {
     private const int InvoicesToCreate = 10;
-    private const int BatchPartQuantity = 2;
     private const int MaxExportStatusRetries = 60;
     private const int SuccessStatusCode = 200;
     private static readonly TimeSpan ExportPollingDelay = TimeSpan.FromSeconds(2);
@@ -50,9 +49,8 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
         _accessToken = authOperationStatusResponse.AccessToken.Token;
     }
 
-    //[Theory]
-    //[InlineData(SystemCodeEnum.FA3, "invoice-template-fa-3.xml")]
-    // TODO: check
+    [Theory]
+    [InlineData(SystemCodeEnum.FA3, "invoice-template-fa-3.xml")]
     public async Task IncrementalInvoiceRetrieval_E2E_WithDeduplication(SystemCodeEnum systemCode, string invoiceTemplatePath)
     {
         // 1. Generowanie faktur poprzez sesję wsadową w celu uzyskania danych do eksportu
@@ -63,11 +61,10 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
 
         // Kolekcje do deduplikacji oraz weryfikacji rezultatów
         Dictionary<string, InvoiceSummary> uniqueInvoices = new(StringComparer.OrdinalIgnoreCase);
-        HashSet<string> duplicateInvoices = new(StringComparer.OrdinalIgnoreCase);
-        HashSet<string> discoveredXmlFiles = new(StringComparer.OrdinalIgnoreCase);
+        bool hasDuplicates = false;
         int totalMetadataEntries = 0;
 
-        // Słownik do śledzenia continuation point dla każdego SubjectType
+        // Słownik do śledzenia punktu kontynuacji dla każdego SubjectType
         Dictionary<SubjectType, DateTime?> continuationPoints = new();
 
         // 2. Budowanie listy okien czasowych. Zachodzą na siebie celowo w celu wymuszenia konieczności deduplikacji.
@@ -80,7 +77,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
             .OrderBy(task => task.From)
             .ThenBy(task => task.SubjectType);
 
-        await Task.Delay(90000);
+        await Task.Delay(120000);
 
         foreach (ExportTask task in exportTasks)
         {
@@ -101,27 +98,12 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
             EncryptionData encryptionData = GetEncryptionDataForOperation(exportResponse.ReferenceNumber);
             PackageProcessingResult packageResult = await DownloadAndProcessPackageAsync(exportStatus.Package, encryptionData);
 
-            // Przetwarzanie metadanych
-            foreach (InvoiceSummary? summary in packageResult.MetadataSummaries)
-            {
-                if (summary == null || string.IsNullOrWhiteSpace(summary.KsefNumber))
-                {
-                    continue;
-                }
+            totalMetadataEntries += packageResult.MetadataSummaries.Count;
 
-                totalMetadataEntries++;
-
-                if (!uniqueInvoices.TryAdd(summary.KsefNumber, summary))
-                {
-                    duplicateInvoices.Add(summary.KsefNumber);
-                }
-            }
-
-            // Przetwarzanie plików XML - zbiorczo
-            if (packageResult.InvoiceXmlFiles.Count > 0)
-            {
-                discoveredXmlFiles.UnionWith(packageResult.InvoiceXmlFiles.Keys);
-            }
+            // Dodawanie unikalnych faktur i wykrywanie duplikatów
+            hasDuplicates = packageResult.MetadataSummaries
+                .DistinctBy(s => s.KsefNumber, StringComparer.OrdinalIgnoreCase)
+                .Any(summary => !uniqueInvoices.TryAdd(summary.KsefNumber, summary));
 
             // Obsługa flagi isTruncated - aktualizacja punktu kontynuacji, jeśli paczka została obcięta.
             // Zakres okna pozostaje bez zmian, aktualizowany jest tylko punkt kontynuacji
@@ -144,7 +126,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
             $"Metadane powinny zawierać co najmniej {uniqueInvoices.Count} wpisów, znaleziono: {totalMetadataEntries}");
         
         // Weryfikacja, że deduplikacja faktycznie była potrzebna (przez nakładające się okna czasowe)
-        Assert.NotEmpty(duplicateInvoices);
+        Assert.True(hasDuplicates, "Oczekiwano wykrycia duplikatów z powodu nakładających się okien czasowych");
     }
 
     private async Task<(string SessionReferenceNumber, HashSet<string> KsefNumbers)> CreateInvoicesViaBatchSessionAsync(
@@ -162,8 +144,9 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
 
         (byte[] zipBytes, FileMetadata zipMetadata) = BatchUtils.BuildZip(invoices, CryptographyService);
 
+        // wylicza optymalną liczbę części (max 100MB każda)
         List<BatchPartSendingInfo> encryptedParts =
-            BatchUtils.EncryptAndSplit(zipBytes, encryptionData, CryptographyService, BatchPartQuantity);
+            BatchUtils.EncryptAndSplit(zipBytes, encryptionData, CryptographyService);
 
         OpenBatchSessionRequest openRequest = BatchUtils.BuildOpenBatchRequest(zipMetadata, encryptionData, encryptedParts, systemCode);
 
@@ -205,7 +188,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
         HashSet<string> ksefNumbers = new(StringComparer.OrdinalIgnoreCase);
         if (sessionInvoices?.Invoices != null)
         {
-            foreach (var invoice in sessionInvoices.Invoices)
+            foreach (SessionInvoice? invoice in sessionInvoices.Invoices)
             {
                 if (!string.IsNullOrWhiteSpace(invoice.KsefNumber))
                 {
@@ -250,9 +233,9 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
             endpoint: KsefApiEndpoint.InvoiceExport,
             cancellationToken: CancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(response?.OperationReferenceNumber))
+        if (!string.IsNullOrWhiteSpace(response?.ReferenceNumber))
         {
-            _exportEncryptionByOperation[response.OperationReferenceNumber] = exportEncryption;
+            _exportEncryptionByOperation[response.ReferenceNumber] = exportEncryption;
         }
 
         return response;

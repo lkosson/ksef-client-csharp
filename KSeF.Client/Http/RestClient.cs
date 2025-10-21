@@ -4,7 +4,6 @@ using KSeF.Client.Core.Interfaces.Rest;
 using KSeF.Client.Http.Helpers;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
 
 namespace KSeF.Client.Http;
 
@@ -15,7 +14,7 @@ namespace KSeF.Client.Http;
 public sealed class RestClient : IRestClient
 {
     private readonly HttpClient httpClient;
-    
+
     public const string DefaultContentType = "application/json";
     public const string XmlContentType = "application/xml";
 
@@ -36,34 +35,40 @@ public sealed class RestClient : IRestClient
         CancellationToken cancellationToken = default,
         Dictionary<string, string> additionalHeaders = null)
     {
-        using HttpRequestMessage httpRequest = new HttpRequestMessage(method, url);
+        if (method is null) throw new ArgumentNullException(nameof(method));
+        if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
-        if (!Equals(requestBody, default(TRequest)) && method != HttpMethod.Get)
+        using HttpRequestMessage httpRequestMessage = new HttpRequestMessage(method, url);
+
+        bool shouldSendBody = method != HttpMethod.Get &&
+                              !EqualityComparer<TRequest>.Default.Equals(requestBody, default);
+
+        if (shouldSendBody)
         {
             string requestContent = RestContentTypeExtensions.IsDefaultType(contentType)
                 ? JsonUtil.Serialize(requestBody)
-                : requestBody != null ? requestBody.ToString() : null;
-            if (requestContent != null)
+                : requestBody?.ToString();
+
+            if (!string.IsNullOrEmpty(requestContent))
             {
-                httpRequest.Content = new StringContent(requestContent, Encoding.UTF8, contentType);
+                httpRequestMessage.Content = new StringContent(requestContent, Encoding.UTF8, contentType);
             }
         }
 
         if (!string.IsNullOrWhiteSpace(bearerToken))
         {
-            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+            httpRequestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
         }
 
-        if (additionalHeaders != null)
+        if (additionalHeaders is not null)
         {
             foreach (KeyValuePair<string, string> header in additionalHeaders)
             {
-                httpRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
         }
 
-        TResponse response = await SendCoreAsync<TResponse>(httpClient, httpRequest, cancellationToken).ConfigureAwait(false);
-        return response;
+        return await SendCoreAsync<TResponse>(httpRequestMessage, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -78,56 +83,67 @@ public sealed class RestClient : IRestClient
         IDictionary<string, string> additionalHeaders = null,
         CancellationToken cancellationToken = default)
     {
-        if (method == null) throw new ArgumentNullException(nameof(method));
+        if (method is null) throw new ArgumentNullException(nameof(method));
         if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
-        if (content == null) throw new ArgumentNullException(nameof(content));
+        if (content is null) throw new ArgumentNullException(nameof(content));
 
-        using var request = new HttpRequestMessage(method, url)
+        using HttpRequestMessage httpRequestMessage = new HttpRequestMessage(method, url)
         {
             Content = content
         };
 
-        if (additionalHeaders != null)
+        if (additionalHeaders is not null)
         {
-            foreach (var header in additionalHeaders)
+            foreach (KeyValuePair<string, string> header in additionalHeaders)
             {
-                request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
         }
 
-        _ = await SendCoreAsync<object>(httpClient, request, cancellationToken)
+        await SendCoreAsync<object>(httpRequestMessage, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task SendAsync<TRequest>(
+        HttpMethod method,
+        string url,
+        TRequest requestBody = default,
+        string token = null,
+        string contentType = RestContentTypeExtensions.DefaultContentType,
+        CancellationToken cancellationToken = default)
+    {
+        await SendAsync<object, TRequest>(method, url, requestBody, token, contentType, cancellationToken, additionalHeaders: null)
             .ConfigureAwait(false);
     }
 
-    public async Task SendAsync<TRequest>(HttpMethod method, string url, TRequest requestBody = default, string token = null, string contentType = RestContentTypeExtensions.DefaultContentType, CancellationToken cancellationToken = default)
+    public async Task SendAsync(
+        HttpMethod method,
+        string url,
+        string token = null,
+        string contentType = RestContentTypeExtensions.DefaultContentType,
+        CancellationToken cancellationToken = default)
     {
-        _ = await SendAsync<object, TRequest>(method, url, requestBody, token, contentType, cancellationToken, additionalHeaders: null).ConfigureAwait(false);
-    }
+        if (method is null) throw new ArgumentNullException(nameof(method));
+        if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
-    public async Task SendAsync(HttpMethod method, string url, string token = null, string contentType = RestContentTypeExtensions.DefaultContentType, CancellationToken cancellationToken = default)
-    {
-        using HttpRequestMessage request = new HttpRequestMessage(method, url);
+        using HttpRequestMessage httpRequestMessage = new HttpRequestMessage(method, url);
 
         if (!string.IsNullOrWhiteSpace(token))
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            httpRequestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
-        _ = contentType;
 
-        string responseText = await SendCoreAsync<string>(httpClient, request, cancellationToken).ConfigureAwait(false);
-        _ = responseText;
+        await SendCoreAsync<string>(httpRequestMessage, cancellationToken).ConfigureAwait(false);
     }
 
     // ================== RestRequest overloads ==================
     public async Task<TResponse> SendAsync<TResponse>(RestRequest request, CancellationToken cancellationToken = default)
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
-        using (HttpRequestMessage httpRequest = request.ToHttpRequestMessage(httpClient))
-        using (CancellationTokenSource CancelationTokenSource = CreateTimeoutCancelationTokenSource(request.Timeout, cancellationToken))
-        {
-            TResponse response = await SendCoreAsync<TResponse>(httpClient, httpRequest, CancelationTokenSource.Token).ConfigureAwait(false);
-            return response;
-        }
+
+        using HttpRequestMessage httpRequestMessage = request.ToHttpRequestMessage(httpClient);
+        using CancellationTokenSource cancellationTokenSource = CreateTimeoutCancellationTokenSource(request.Timeout, cancellationToken);
+
+        return await SendCoreAsync<TResponse>(httpRequestMessage, cancellationTokenSource.Token).ConfigureAwait(false);        
     }
 
     /// <summary>
@@ -147,153 +163,224 @@ public sealed class RestClient : IRestClient
 
     public async Task<TResponse> SendAsync<TResponse, TRequest>(RestRequest<TRequest> request, CancellationToken cancellationToken = default)
     {
-        if (request is null)
-        {
-            throw new ArgumentNullException(nameof(request));
-        }
+        if (request is null) throw new ArgumentNullException(nameof(request));
 
-        using HttpRequestMessage httpRequest = request.ToHttpRequestMessage(httpClient, DefaultContentType);
-        using CancellationTokenSource CancelationTokenSource = CreateTimeoutCancelationTokenSource(request.Timeout, cancellationToken);
-        TResponse response = await SendCoreAsync<TResponse>(httpClient, httpRequest, CancelationTokenSource.Token).ConfigureAwait(false);
-        return response;
+        using HttpRequestMessage httpRequestMessage = request.ToHttpRequestMessage(httpClient, DefaultContentType);
+        using CancellationTokenSource cancellationTokenSource = CreateTimeoutCancellationTokenSource(request.Timeout, cancellationToken);
+
+        return await SendCoreAsync<TResponse>(httpRequestMessage, cancellationTokenSource.Token).ConfigureAwait(false);        
     }
 
     public Task SendAsync<TRequest>(RestRequest<TRequest> request, CancellationToken cancellationToken = default)
         => SendAsync<object, TRequest>(request, cancellationToken);
 
     // ================== Core ==================
-    private static async Task<T> SendCoreAsync<T>(HttpClient httpClient, HttpRequestMessage httpRequest, CancellationToken cancellationToken)
+    private async Task<T> SendCoreAsync<T>(HttpRequestMessage httpRequestMessage, CancellationToken cancellationToken)
     {
-        using HttpResponseMessage response = await httpClient
-            .SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+        using HttpResponseMessage httpResponseMessage = await httpClient
+            .SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
 
-        bool hasContent = response.HasBody(httpRequest.Method);
+        bool hasContent = httpResponseMessage.HasBody(httpRequestMessage.Method);
 
-        if (response.IsSuccessStatusCode)
+        if (httpResponseMessage.IsSuccessStatusCode)
         {
-            if (!hasContent)
+            if (!hasContent || typeof(T) == typeof(object))
             {
-                return default(T);
-            }
-
-            if (typeof(T) == typeof(object))
-            {
-                return default(T);
+                return default!;
             }
 
             if (typeof(T) == typeof(string))
             {
-                string okText = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                return (T)(object)(okText ?? string.Empty);
+                string responseText = await httpResponseMessage.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                return (T)(object)(responseText ?? string.Empty);
             }
 
-            return await JsonUtil.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+            MediaTypeHeaderValue? contentTypeHeader = httpResponseMessage.Content?.Headers?.ContentType;
+            string? mediaType = contentTypeHeader?.MediaType;
+
+            if (!IsJsonMediaType(mediaType))
+            {
+                throw new KsefApiException($"Unexpected content type '{mediaType ?? "unknown"}' for {typeof(T).Name}.", httpResponseMessage.StatusCode);
+            }
+
+            using Stream responseStream = await httpResponseMessage.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            return await JsonUtil.DeserializeAsync<T>(responseStream).ConfigureAwait(false);
         }
-        else 
-        {
-            await HandleInvalidStatusCode(response, cancellationToken).ConfigureAwait(false);
-            throw new KsefApiException($"HTTP {(int)response.StatusCode}: {response.ReasonPhrase}", response.StatusCode);
-        }
+
+        await HandleInvalidStatusCode(httpResponseMessage, cancellationToken).ConfigureAwait(false);
+        throw new InvalidOperationException("HandleInvalidStatusCode must throw.");
     }
 
+    /// <summary>
+    /// Mapuje nie-2xx odpowiedzi na wyjątki.
+    /// Guard na Content-Type.
+    /// </summary>
     private static async Task HandleInvalidStatusCode(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        switch (response.StatusCode)
         {
-            throw new KsefApiException("Not found", response.StatusCode);
+            case System.Net.HttpStatusCode.NotFound:
+                throw new KsefApiException("Not found", response.StatusCode);
+
+            case System.Net.HttpStatusCode.TooManyRequests:
+                await HandleTooManyRequestsAsync(response, cancellationToken);
+                return;
+
+            default:
+                await HandleOtherErrorsAsync(response, cancellationToken);
+                return;
         }
 
-        // Obsługa HTTP 429 "Too Many Requests" z dedykowanym wyjątkiem
-        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        static bool TryExtractRetryAfterHeaderValue(HttpResponseMessage responseMessage, out string? retryAfterHeaderValue)
         {
-            string retryAfterHeader = null;
+            retryAfterHeaderValue = null;
 
-            // Próba pobrania "Retry-After" z różnych możliwych źródeł
-            if (response.Headers.RetryAfter?.Delta != null)
+            if (responseMessage.Headers.RetryAfter?.Delta is TimeSpan delta)
             {
-                retryAfterHeader = ((int)response.Headers.RetryAfter.Delta.Value.TotalSeconds).ToString();
+                retryAfterHeaderValue = ((int)delta.TotalSeconds).ToString();
+                return true;
             }
-            else if (response.Headers.RetryAfter?.Date != null)
+            if (responseMessage.Headers.RetryAfter?.Date is DateTimeOffset date)
             {
-                retryAfterHeader = response.Headers.RetryAfter.Date.Value.ToString("R");
+                retryAfterHeaderValue = date.ToString("R");
+                return true;
             }
-            else if (response.Headers.Contains("Retry-After"))
+            if (responseMessage.Headers.TryGetValues("Retry-After", out IEnumerable<string>? values))
             {
-                retryAfterHeader = response.Headers.GetValues("Retry-After").FirstOrDefault();
+                string? headerValue = values.FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(headerValue))
+                {
+                    retryAfterHeaderValue = headerValue;
+                    return true;
+                }
             }
+            return false;
+        }
 
-            var message = "Przekroczono limit częstotliwości (HTTP 429)";
+        static bool IsJsonMediaType(string? mediaType)
+        {
+            return !string.IsNullOrEmpty(mediaType) &&
+                   mediaType.IndexOf("json", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
 
+        static bool IsJsonContent(HttpResponseMessage responseMessage)
+        {
+            MediaTypeHeaderValue? contentTypeHeader = responseMessage.Content?.Headers?.ContentType;
+            return IsJsonMediaType(contentTypeHeader?.MediaType);
+        }
+
+        static string BuildErrorMessageFromDetails(ApiErrorResponse? apiErrorResponse)
+        {
+            if (apiErrorResponse?.Exception?.ExceptionDetailList is not { Count: > 0 })
+                return string.Empty;
+
+            IEnumerable<string> parts = apiErrorResponse.Exception.ExceptionDetailList.Select(detail =>
+            {
+                string detailsText = (detail.Details is { Count: > 0 }) ? string.Join("; ", detail.Details) : string.Empty;
+                return string.IsNullOrEmpty(detailsText)
+                    ? $"{detail.ExceptionCode}: {detail.ExceptionDescription}"
+                    : $"{detail.ExceptionCode}: {detail.ExceptionDescription} - {detailsText}";
+            });
+
+            return string.Join(" | ", parts);
+        }
+
+        static bool TryDeserializeJson<T>(string json, out T? result)
+        {
             try
             {
-                string responseText = response.Content != null
-                    ? await response.Content.ReadAsStringAsync(cancellationToken)
-                    : null;
+                result = JsonUtil.Deserialize<T>(json);
+                return true;
+            }
+            catch (Exception)
+            {
+                result = default;
+                return false;
+            }
+        }
 
-                if (!string.IsNullOrEmpty(responseText))
+        static async Task HandleTooManyRequestsAsync(HttpResponseMessage responseMessage, CancellationToken innerCancellationToken)
+        {
+            string rateLimitMessage = "Przekroczono limit ilości zapytań do API (HTTP 429)";
+
+            TryExtractRetryAfterHeaderValue(responseMessage, out string? retryAfterHeaderValue);
+
+            string? responseBody = responseMessage.Content is null
+                ? null
+                : await responseMessage.Content.ReadAsStringAsync(innerCancellationToken).ConfigureAwait(false);
+
+            if (!string.IsNullOrEmpty(responseBody) && IsJsonContent(responseMessage))
+            {
+                if (TryDeserializeJson<ApiErrorResponse>(responseBody, out ApiErrorResponse? apiErrorResponse) && apiErrorResponse is not null)
                 {
-                    var error = JsonUtil.Deserialize<ApiErrorResponse>(responseText);
-                    if (error?.Exception?.ExceptionDetailList?.Any() == true)
+                    string detailedMessage = BuildErrorMessageFromDetails(apiErrorResponse);
+                    if (!string.IsNullOrWhiteSpace(detailedMessage))
                     {
-                        var errorMessages = error
-                            .Exception
-                            .ExceptionDetailList
-                            .Select(detail =>
-                                $"{detail.ExceptionCode}: {detail.ExceptionDescription} - {string.Join("; ", detail.Details ?? new List<string>())}");
-                        message = string.Join(" | ", errorMessages);
+                        rateLimitMessage = detailedMessage;
                     }
 
                     throw KsefRateLimitException.FromRetryAfterHeader(
-                        message, retryAfterHeader, error?.Exception?.ServiceCode, error);
+                        rateLimitMessage,
+                        retryAfterHeaderValue,
+                        apiErrorResponse.Exception?.ServiceCode,
+                        apiErrorResponse);
                 }
             }
-            catch (JsonException)
-            {
-                // Wycofanie do domyślnej obsługi
-            }
 
-            throw KsefRateLimitException.FromRetryAfterHeader(message, retryAfterHeader);
+            throw KsefRateLimitException.FromRetryAfterHeader(rateLimitMessage, retryAfterHeaderValue);
         }
 
-        try
+        static async Task HandleOtherErrorsAsync(HttpResponseMessage responseMessage, CancellationToken innerCancellationToken)
         {
-            string responseText = response.Content != null
-                ? await response.Content.ReadAsStringAsync(cancellationToken)
-                : null;
+            string? responseBody = responseMessage.Content is null
+                ? null
+                : await responseMessage.Content.ReadAsStringAsync(innerCancellationToken).ConfigureAwait(false);
 
-            if (string.IsNullOrEmpty(responseText))
+            if (string.IsNullOrEmpty(responseBody))
             {
-                throw new KsefApiException($"HTTP {(int)response.StatusCode}: {response.ReasonPhrase}", response.StatusCode);
+                throw new KsefApiException(
+                    $"HTTP {(int)responseMessage.StatusCode}: {responseMessage.ReasonPhrase ?? "Unknown"}",
+                    responseMessage.StatusCode);
             }
-            var error = JsonUtil.Deserialize<ApiErrorResponse>(responseText);
-            string fullMessage = string.Empty;
-            if (error?.Exception?.ExceptionDetailList?.Any() == true)
+
+            if (!IsJsonContent(responseMessage))
             {
-                var errorMessages = error
-                    .Exception
-                    .ExceptionDetailList
-                    .Select(detail =>
-                        $"{detail.ExceptionCode}: {detail.ExceptionDescription} - {string.Join("; ", detail.Details ?? new List<string>())}");
-                fullMessage = string.Join(" | ", errorMessages);
+                throw new KsefApiException(
+                    $"HTTP {(int)responseMessage.StatusCode}: {responseMessage.ReasonPhrase ?? "Unknown"}",
+                    responseMessage.StatusCode);
             }
-            throw new KsefApiException(fullMessage, response.StatusCode, error?.Exception?.ServiceCode, error);
-        }
-        catch (JsonException e)
-        {
-            throw new KsefApiException($"HTTP {(int)response.StatusCode}: {response.ReasonPhrase}, AdditionalInfo: {e.Message}", response.StatusCode);
+
+            try
+            {
+                ApiErrorResponse apiErrorResponse = JsonUtil.Deserialize<ApiErrorResponse>(responseBody);
+                string fullMessage = BuildErrorMessageFromDetails(apiErrorResponse);
+                throw new KsefApiException(fullMessage, responseMessage.StatusCode, apiErrorResponse?.Exception?.ServiceCode, apiErrorResponse);
+            }
+            catch (Exception ex)
+            {
+                throw new KsefApiException(
+                    $"HTTP {(int)responseMessage.StatusCode}: {responseMessage.ReasonPhrase ?? "Unknown"}, AdditionalInfo: {ex.Message}",
+                    responseMessage.StatusCode);
+            }
         }
     }
 
-    private static CancellationTokenSource CreateTimeoutCancelationTokenSource(TimeSpan? perRequestTimeout, CancellationToken cancellationToken)
+    private static bool IsJsonMediaType(string? mediaType)
+    {
+        return !string.IsNullOrEmpty(mediaType) &&
+               mediaType.IndexOf("json", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static CancellationTokenSource CreateTimeoutCancellationTokenSource(TimeSpan? perRequestTimeout, CancellationToken cancellationToken)
     {
         if (perRequestTimeout is null)
         {
             return CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         }
 
-        CancellationTokenSource CancelationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        CancelationTokenSource.CancelAfter(perRequestTimeout.Value);
-        return CancelationTokenSource;
+        CancellationTokenSource cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cancellationTokenSource.CancelAfter(perRequestTimeout.Value);
+        return cancellationTokenSource;
     }
 }

@@ -1,0 +1,189 @@
+﻿using KSeF.Client.Api.Builders.SubUnitPermissions;
+using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models.Invoices;
+using KSeF.Client.Tests.Utils;
+using System.Linq;
+using ContextIdentifier = KSeF.Client.Core.Models.Permissions.SubUnit.SubUnitContextIdentifier;
+using ContextIdentifierType = KSeF.Client.Core.Models.Permissions.SubUnit.SubUnitContextIdentifierType;
+
+namespace KSeF.Client.Tests.Features;
+
+
+[CollectionDefinition("SubUnitPermissionsTests.feature")]
+[Trait("Category", "Features")]
+[Trait("Features", "SubUnitPermissionsTests.feature")]
+public class SubUnitPermissionsTests : KsefIntegrationTestBase
+{
+    [Fact]
+    [Trait("Scenario", "Nadanie uprawnień jednostce podrzędnej (przedszkolu) oraz dyrektorowi tej jednostki")]
+    public async Task Test_Subunit_Permissions_Workflow()
+    {
+        // Arrange
+        var encryptionData = CryptographyService.GetEncryptionData();
+        var invoiceCreatorNip = MiscellaneousUtils.GetRandomNip();
+        var municipalOfficeNip = MiscellaneousUtils.GetRandomNip();
+        var kindergartenId = $"{municipalOfficeNip}-12345";
+        var directorPesel = MiscellaneousUtils.GetRandomPesel();
+
+        // --- Etap 1: Wystawienie faktury przez wykonawcę dla przedszkola (jednostki podrzędnej) ---
+        var invoiceCreatorAuthToken = (await AuthenticationUtils.AuthenticateAsync(
+            KsefClient, SignatureService, invoiceCreatorNip)).AccessToken.Token;
+
+        var openSessionResponse = await OnlineSessionUtils.OpenOnlineSessionAsync(
+            KsefClient,
+            encryptionData,
+            invoiceCreatorAuthToken,
+            SystemCodeEnum.FA3);
+
+        Assert.NotNull(openSessionResponse?.ReferenceNumber);
+
+        var sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(
+            KsefClient,
+            openSessionResponse.ReferenceNumber,
+            invoiceCreatorAuthToken,
+            invoiceCreatorNip,
+            municipalOfficeNip,
+            "invoice-template-fa-3-with-custom-Subject2.xml",
+            encryptionData,
+            CryptographyService);
+
+        Assert.NotNull(sendInvoiceResponse);
+
+        var sessionStatus = await AsyncPollingUtils.PollAsync(
+            async () => await OnlineSessionUtils.GetOnlineSessionStatusAsync(
+                KsefClient,
+                openSessionResponse.ReferenceNumber,
+                invoiceCreatorAuthToken),
+            result => result is not null && result.InvoiceCount == result.SuccessfulInvoiceCount,
+            delay: TimeSpan.FromMilliseconds(2*SleepTime),
+            maxAttempts: 60);
+
+        Assert.NotNull(sessionStatus);
+        Assert.Equal(sessionStatus.InvoiceCount, sessionStatus.SuccessfulInvoiceCount);
+
+        var invoices = await KsefClient.GetSessionInvoicesAsync(
+            openSessionResponse.ReferenceNumber,
+            invoiceCreatorAuthToken,
+            pageSize: 10);
+
+        Assert.NotEmpty(invoices.Invoices);
+        await Task.Delay(10 * SleepTime);
+
+        // --- Etap 2: Gmina nadaje uprawnienia dyrektorowi przedszkola do zarządzania uprawnieniami w kontekście przedszkola---
+        var municipalOfficeAuthToken = (await AuthenticationUtils.AuthenticateAsync(
+            KsefClient, SignatureService, municipalOfficeNip)).AccessToken.Token;
+
+        var grantSubUnitRequest = GrantSubUnitPermissionsRequestBuilder
+            .Create()
+            .WithSubject(new Core.Models.Permissions.SubUnit.SubUnitSubjectIdentifier
+            {
+                Type = Core.Models.Permissions.SubUnit.SubUnitSubjectIdentifierType.Pesel,
+                Value = directorPesel
+            })
+            .WithContext(new ContextIdentifier
+            {
+                Type = ContextIdentifierType.InternalId,
+                Value = kindergartenId
+            })
+            .WithSubunitName("Przedszkole Testowe")
+            .WithDescription("Sub-unit permission grant")
+            .Build();
+
+        var grantOperation = await KsefClient.GrantsPermissionSubUnitAsync(
+            grantSubUnitRequest,
+            municipalOfficeAuthToken);
+
+        var grantOperationStatus = await PermissionsUtils.ConfirmOperationSuccessAsync(KsefClient,
+            grantOperation,
+            municipalOfficeAuthToken);
+
+        Assert.NotNull(grantOperationStatus);
+
+        // --- Etap 3: dyrektor w kontekście przedszkola nadaje sobie prawo do odczytu faktur ---
+        var kindergartenAuthResult = await AuthenticationUtils.AuthenticateAsync(
+            KsefClient,
+            SignatureService,
+            directorPesel,
+            kindergartenId,
+            Client.Core.Models.Authorization.AuthenticationTokenContextIdentifierType.InternalId);
+
+        var kindergartenAuthToken = kindergartenAuthResult
+            .AccessToken.Token;
+
+        var directorSubject = new Core.Models.Permissions.Person.PersonSubjectIdentifier
+        {
+            Type = Core.Models.Permissions.Person.PersonSubjectIdentifierType.Pesel,
+            Value = directorPesel
+        };
+
+        var grantPersonResponse = await PermissionsUtils.GrantPersonPermissionsAsync(
+            KsefClient,
+            kindergartenAuthToken,
+            directorSubject,
+            new[] { Core.Models.Permissions.Person.PersonStandardPermissionType.InvoiceRead },
+            "GrantPermissionToDirector");
+
+        var grantPersonStatus = await AsyncPollingUtils.PollAsync(
+                async () => await PermissionsUtils.GetPermissionsOperationStatusAsync(KsefClient,grantPersonResponse.OperationReferenceNumber, kindergartenAuthToken),
+                status => status is not null &&
+                         status.Status is not null &&
+                         status.Status.Code == 200,
+                delay: TimeSpan.FromSeconds(5),
+                maxAttempts: 60,
+                cancellationToken: CancellationToken.None);
+
+        Assert.NotNull(grantPersonStatus);
+        Assert.Equal((int)200, grantPersonStatus.Status.Code);
+
+        // --- Etap 4: Dyrektor przedszkola wyszukuje faktury ---
+        RefreshTokenResponse refreshedAccessTokenResponse = await KsefClient.RefreshAccessTokenAsync(kindergartenAuthResult.RefreshToken.Token);
+        kindergartenAuthToken = refreshedAccessTokenResponse.AccessToken.Token;
+        
+        var invoiceQuery = new InvoiceQueryFilters
+        {
+            SubjectType = SubjectType.Subject3,
+            DateRange = new DateRange
+            {
+                From = DateTime.UtcNow.AddMonths(-2),
+                To = DateTime.UtcNow.AddMonths(5),
+                DateType = DateType.Issue
+            }
+        };
+
+        await Task.Delay(20* SleepTime);
+
+        var invoiceQueryResponse = await KsefClient.QueryInvoiceMetadataAsync(
+            requestPayload: invoiceQuery,
+            accessToken: kindergartenAuthToken,
+            cancellationToken: CancellationToken.None,
+            pageOffset: 0,
+            pageSize: 30);
+
+        // Assert
+        Assert.True(invoiceQueryResponse.Invoices.Any(x => x.ThirdSubjects.Any(y=> y.Identifier.Value == kindergartenId)));
+
+        //Sprawdzanie dostępu z poziomu gminy
+        invoiceQuery = new InvoiceQueryFilters
+        {
+            SubjectType = SubjectType.Subject2,
+            DateRange = new DateRange
+            {
+                From = DateTime.UtcNow.AddMonths(-2),
+                To = DateTime.UtcNow.AddMonths(5),
+                DateType = DateType.Issue
+            }
+        };
+
+
+        invoiceQueryResponse = await KsefClient.QueryInvoiceMetadataAsync(
+            requestPayload: invoiceQuery,
+            accessToken: municipalOfficeAuthToken,
+            cancellationToken: CancellationToken.None,
+            pageOffset: 0,
+            pageSize: 30);
+
+        // Assert
+        Assert.True(invoiceQueryResponse.Invoices.Any(x=> x.Buyer.Identifier.Value == municipalOfficeNip));
+    }
+}
+

@@ -32,7 +32,7 @@ namespace KSeF.Client.Core.Models.Tests
     {
         /// <summary>Typ uprawnienia (np. odczyt/wystawianie/zarządzanie).</summary>
         public PermissionType PermissionType { get; set; }
-        public string description { get; set; }
+        public string Description { get; set; }
     }
 
     public enum PermissionType

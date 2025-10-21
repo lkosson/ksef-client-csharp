@@ -1,6 +1,21 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
 
 ---
+# Changelog zmian – ## Wersja 2.0.0 RC5.4.0
+---
+
+### Nowe
+-
+ - `QueryInvoiceMetadataAsync` - Dodano parametr `sortOrder`, umożliwiający określenie kierunku sortowania wyników.
+
+### Zmodyfikowane
+-
+ - Wyliczanie liczby części paczek na podstawie wielkości paczki oraz ustalonych limitów
+ - Dostosowanie nazewnictwa - zmiana z `OperationReferenceNumber` na `ReferenceNumber`
+ - Rozszerzone scenariusze testów uprawnień
+ - Rozszerzone scenariusze testów TestData
+
+---
 # Changelog zmian – ## Wersja 2.0.0 RC5.3.0
 ---
 
@@ -14,7 +29,7 @@
  - **REST / LimitsClient**
   - `ILimitsClient`, `LimitsClient` — obsługa API **Limits**: `GetLimitsForCurrentContext`, `GetLimitsForCurrentSubject`;
  - **Testy / TestClient**
-  - `ITestDataClient`, `TestDataClient` — klient udostępnia operacje:
+  - `ITestClient`, `TestClient` — klient udostępnia operacje:
     `CreatePersonAsync`, `RemovePersonAsync`, `CreateSubjectAsync`, `GrantTestDataPermissionsAsync`. ➕
 - **Testy / PEF**
   - Rozszerzone scenariusze E2E PEF (Peppol) – asercje statusów i uprawnień. ➕
