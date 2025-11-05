@@ -9,9 +9,9 @@ using KSeF.Client.DI;
 using Microsoft.Extensions.DependencyInjection;
 
 var sc = new ServiceCollection();
-sc.AddKSeFClient(opts => { opts.BaseUrl = KsefEnviromentsUris.TEST; opts.CustomHeaders = []; });
+sc.AddKSeFClient(opts => { opts.BaseUrl = KsefEnvironmentsUris.TEST; opts.CustomHeaders = []; });
 
-sc.AddCryptographyClient(options => { options.WarmupOnStart = WarmupMode.Blocking; });
+sc.AddCryptographyClient();
 
 using var sp = sc.BuildServiceProvider();
 var ksefClient = sp.GetRequiredService<IKSeFClient>();
@@ -23,8 +23,8 @@ async Task<(TokenInfo accessToken, TokenInfo refreshToken)> AuthenticateUsingSig
 	var authTokenRequest = AuthTokenRequestBuilder
 		.Create()
 		.WithChallenge(challenge.Challenge)
-		.WithContext(KSeF.Client.Core.Models.Authorization.ContextIdentifierType.Nip, nip)
-		.WithIdentifierType(SubjectIdentifierTypeEnum.CertificateSubject)
+		.WithContext(AuthenticationTokenContextIdentifierType.Nip, nip)
+		.WithIdentifierType(AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
 		.Build();
 	var certificate = SelfSignedCertificateForSignatureBuilder
 				.Create()
@@ -33,7 +33,7 @@ async Task<(TokenInfo accessToken, TokenInfo refreshToken)> AuthenticateUsingSig
 				.WithSerialNumber("TINPL-1111111111")
 				.WithCommonName("JK")
 				.Build();
-	var unsignedXml = AuthTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
+	var unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
 	var signedXml = signatureService.Sign(unsignedXml, certificate);
 	var authOperationInfo = await ksefClient.SubmitXadesAuthRequestAsync(signedXml, verifyCertificateChain: false);
 
@@ -60,12 +60,12 @@ async Task<(TokenInfo accessToken, TokenInfo refreshToken)> AuthenticateUsingTok
 	var plaintextRequestBytes = Encoding.UTF8.GetBytes(plaintextRequest);
 	var encryptedRequestBytes = cryptographyService.EncryptKsefTokenWithRSAUsingPublicKey(plaintextRequestBytes);
 	var encryptedRequest = Convert.ToBase64String(encryptedRequestBytes);
-	var request = new AuthKsefTokenRequest
+	var request = new AuthenticationKsefTokenRequest
 	{
 		Challenge = challenge.Challenge,
-		ContextIdentifier = new AuthContextIdentifier
+		ContextIdentifier = new AuthenticationTokenContextIdentifier
 		{
-			Type = KSeF.Client.Core.Models.Authorization.ContextIdentifierType.Nip,
+			Type = AuthenticationTokenContextIdentifierType.Nip,
 			Value = nip
 		},
 		EncryptedToken = encryptedRequest,
@@ -111,7 +111,7 @@ async Task GetInvoices(string accessToken)
 			To = DateTime.Now.Date.AddDays(1),
 			DateType = DateType.PermanentStorage
 		},
-		SubjectType = SubjectType.Subject1
+		SubjectType = InvoiceSubjectType.Subject1
 	};
 
 	var invoicesMetadata = await ksefClient.QueryInvoiceMetadataAsync(query, accessToken);
@@ -119,7 +119,6 @@ async Task GetInvoices(string accessToken)
 
 	var invoice = await ksefClient.GetInvoiceAsync(nr, accessToken);
 }
-
 /*
 var tokenInfo = await AuthenticateUsingSignature("1111111111");
 var accessToken = tokenInfo.accessToken.Token;
@@ -134,6 +133,14 @@ var accessToken = tokenInfo.accessToken.Token;
 Console.WriteLine($"Access token: {accessToken}");
 */
 
+//await ksefClient.CloseOnlineSessionAsync("20251001-SO-2010AF1000-F54E4BB6FA-FC", accessToken);
+
 await GetInvoices(accessToken);
+
+//var invs = await ksefClient.GetSessionInvoicesAsync("20251001-SO-2010AF1000-F54E4BB6FA-FC", accessToken);
+
+//var sessions = await ksefClient.GetSessionsAsync(KSeF.Client.Core.Models.Sessions.SessionType.Online, accessToken, 100, null);
+
+//await GetInvoices(accessToken);
 
 Console.WriteLine("Ok");
