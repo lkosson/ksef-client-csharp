@@ -20,6 +20,9 @@ using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models.Permissions.Authorizations;
 using KSeF.Client.Core.Interfaces.Rest;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
+using KSeF.Client.Http.Helpers;
+using KSeF.Client.Extensions;
+using KSeF.Client.Helpers;
 
 namespace KSeF.Client.Clients;
 
@@ -37,10 +40,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         urlBuilder.Append("/api/v2/auth/sessions");
 
-        if (pageSize.HasValue)
-        {
-            urlBuilder.Append($"?pageSize={pageSize.Value}");
-        }
+        PaginationHelper.AppendPagination(null, pageSize, urlBuilder);
 
         string url = urlBuilder.ToString();
 
@@ -229,46 +229,11 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         urlBuilder.Append($"/api/v2/sessions?sessionType={sessionType}");
 
-        if (pageSize.HasValue)
-        {
-            urlBuilder.Append($"&pageSize={pageSize.Value}");
-        }
+        // use helper
+        PaginationHelper.AppendPagination(null, pageSize, urlBuilder);
 
-        if (sessionsFilter != null)
-        {
-            if (!string.IsNullOrEmpty(sessionsFilter.ReferenceNumber))
-            {
-                urlBuilder.Append($"&referenceNumber={Uri.EscapeDataString(sessionsFilter.ReferenceNumber)}");
-            }
-            if (sessionsFilter.DateCreatedFrom.HasValue)
-            {
-                urlBuilder.Append($"&dateCreatedFrom={Uri.EscapeDataString(sessionsFilter.DateCreatedFrom.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
-            }
-            if (sessionsFilter.DateCreatedTo.HasValue)
-            {
-                urlBuilder.Append($"&dateCreatedTo={Uri.EscapeDataString(sessionsFilter.DateCreatedTo.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
-            }
-            if (sessionsFilter.DateClosedFrom.HasValue)
-            {
-                urlBuilder.Append($"&dateClosedFrom={Uri.EscapeDataString(sessionsFilter.DateClosedFrom.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
-            }
-            if (sessionsFilter.DateClosedTo.HasValue)
-            {
-                urlBuilder.Append($"&dateClosedTo={Uri.EscapeDataString(sessionsFilter.DateClosedTo.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
-            }
-            if (sessionsFilter.DateModifiedFrom.HasValue)
-            {
-                urlBuilder.Append($"&dateModifiedFrom={Uri.EscapeDataString(sessionsFilter.DateModifiedFrom.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
-            }
-            if (sessionsFilter.DateModifiedTo.HasValue)
-            {
-                urlBuilder.Append($"&dateModifiedTo={Uri.EscapeDataString(sessionsFilter.DateModifiedTo.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))}");
-            }
-            if (sessionsFilter.Statuses != null && sessionsFilter.Statuses.Any())
-            {
-                urlBuilder.Append($"&statuses={Uri.EscapeDataString(string.Join(",", sessionsFilter.Statuses))}");
-            }
-        }
+        // Append filter query parameters via extension method to keep logic in one place
+        sessionsFilter?.AppendAsQuery(urlBuilder);
 
         string url = urlBuilder.ToString();
 
@@ -310,10 +275,8 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
         urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/invoices");
 
-        if (pageSize.HasValue)
-        {
-            urlBuilder.Append($"?pageSize={pageSize.Value}");
-        }
+        // use helper
+        PaginationHelper.AppendPagination(null, pageSize, urlBuilder);
 
         string url = urlBuilder.ToString();
 
@@ -359,10 +322,8 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
         urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/invoices/failed");
 
-        if (pageSize.HasValue)
-        {
-            urlBuilder.Append($"?pageSize={pageSize.Value}");
-        }
+        // use helper
+        PaginationHelper.AppendPagination(null, pageSize, urlBuilder);
 
         string url = urlBuilder.ToString();
 
@@ -386,7 +347,6 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
 
         StringBuilder urlBuilder = new StringBuilder();
-
         urlBuilder.Append("/api/v2/sessions/");
         urlBuilder.Append(Uri.EscapeDataString(sessionReferenceNumber));
         urlBuilder.Append("/invoices/ksef/");
@@ -460,7 +420,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder($"/api/v2/invoices/query/metadata?sortOrder={sortOrder}");
 
-        Pagination(pageOffset, pageSize, urlBuilder, true);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<PagedInvoiceResponse, InvoiceQueryFilters>(HttpMethod.Post,
                                                                     urlBuilder.ToString(),
@@ -544,7 +504,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder("/api/v2/permissions/query/personal/grants");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<PagedPermissionsResponse<PersonalPermission>, PersonalPermissionsQueryRequest>(
             HttpMethod.Post,
@@ -568,7 +528,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder("/api/v2/permissions/query/persons/grants");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<PagedPermissionsResponse<PersonPermission>, PersonPermissionsQueryRequest>(
             HttpMethod.Post,
@@ -593,7 +553,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder("/api/v2/permissions/query/subunits/grants");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<PagedPermissionsResponse<SubunitPermission>, SubunitPermissionsQueryRequest>(
             HttpMethod.Post,
@@ -616,7 +576,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder("/api/v2/permissions/query/entities/roles");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<PagedRolesResponse<EntityRole>, object>(
             HttpMethod.Get,
@@ -641,7 +601,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder("/api/v2/permissions/query/subordinate-entities/roles");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<PagedRolesResponse<SubordinateEntityRole>, SubordinateEntityRolesQueryRequest>(
             HttpMethod.Post,
@@ -650,7 +610,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
             accessToken,
             RestClient.DefaultContentType,
             cancellationToken
-        ).ConfigureAwait(false);
+        ). ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -666,7 +626,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder("/api/v2/permissions/query/authorizations/grants");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<PagedAuthorizationsResponse<AuthorizationGrant>, EntityAuthorizationsQueryRequest>(
             HttpMethod.Post,
@@ -691,7 +651,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder("/api/v2/permissions/query/eu-entities/grants");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<PagedPermissionsResponse<EuEntityPermission>, EuEntityPermissionsQueryRequest>(
             HttpMethod.Post,
@@ -834,8 +794,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
                                                                                                            requestPayload,
                                                                                                            accessToken,
                                                                                                            RestClient.DefaultContentType,
-                                                                                                           cancellationToken)
-                                                                                                         .ConfigureAwait(false);
+                                                                                                           cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -892,7 +851,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         StringBuilder urlBuilder = new StringBuilder("/api/v2/certificates/query");
 
-        Pagination(pageOffset, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<CertificateMetadataListResponse, CertificateMetadataListRequest>(
             HttpMethod.Post,
@@ -954,7 +913,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
             urlBuilder.Append($"description={Uri.EscapeDataString(description)}&");
         }
 
-        Pagination(null, pageSize, urlBuilder);
+        PaginationHelper.AppendPagination(null, pageSize, urlBuilder);
 
         return await restClient.SendAsync<QueryKsefTokensResponse, string>(
             HttpMethod.Get,
@@ -1005,19 +964,13 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
      int? pageSize = null,
      CancellationToken cancellationToken = default)
     {
-        StringBuilder urlBuilder = new StringBuilder("/api/v2/peppol/query?");
+        StringBuilder urlBuilder = new StringBuilder("/api/v2/peppol/query");
 
-        if (pageOffset.HasValue)
-            urlBuilder.Append($"pageOffset={pageOffset.Value}&");
-
-        if (pageSize.HasValue)
-            urlBuilder.Append($"pageSize={pageSize.Value}&");
-
-        string url = urlBuilder.ToString().TrimEnd('&').TrimEnd('?');
+        PaginationHelper.AppendPagination(pageOffset, pageSize, urlBuilder);
 
         return await restClient.SendAsync<QueryPeppolProvidersResponse, string>(
             HttpMethod.Get,
-            url,
+            urlBuilder.ToString(),
             default,
             accessToken,
             RestClient.DefaultContentType,
@@ -1025,33 +978,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
         ).ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
-    public async Task SendBatchPartsAsync(OpenBatchSessionResponse openBatchSessionResponse, ICollection<BatchPartSendingInfo> parts, CancellationToken cancellationToken = default)
-    {
-        if (parts == null || parts.Count == 0)
-            throw new ArgumentException("Brak plików do wysłania.", nameof(parts));
-
-        await SendPackagePartsAsync(
-            openBatchSessionResponse.PartUploadRequests,
-            parts,
-            (info) => new ByteArrayContent(info.Data),
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc />
-    public async Task SendBatchPartsWithStreamAsync(OpenBatchSessionResponse openBatchSessionResponse, ICollection<BatchPartStreamSendingInfo> parts, CancellationToken cancellationToken = default)
-    {
-        if (parts == null || parts.Count == 0)
-            throw new ArgumentException("Brak plików do wysłania.", nameof(parts));
-
-        await SendPackagePartsAsync(
-            openBatchSessionResponse.PartUploadRequests,
-            parts,
-            (info) => new StreamContent(info.DataStream),
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
+   
 
     /// <inheritdoc />
     public async Task<OperationResponse> ExportInvoicesAsync(
@@ -1104,6 +1031,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
             cancellationToken
         ).ConfigureAwait(false);
     }
+
     /// <inheritdoc />
     public async Task<string> GetUpoAsync(Uri uri, CancellationToken cancellationToken = default)
     {
@@ -1116,76 +1044,35 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
             cancellationToken: cancellationToken
         ).ConfigureAwait(false);
     }
-
-    private async Task SendPackagePartsAsync<TInfo>(
-        ICollection<PackagePartSignatureInitResponseType> parts,
-        ICollection<TInfo> batchPartSendingInfos,
-        Func<TInfo, HttpContent> contentFactory,
-        CancellationToken cancellationToken = default)
-        where TInfo : class
+    /// <inheritdoc />
+    public async Task SendBatchPartsAsync(OpenBatchSessionResponse openBatchSessionResponse, ICollection<BatchPartSendingInfo> parts, CancellationToken cancellationToken = default)
     {
-        if (parts == null)
-            throw new InvalidOperationException("Brak informacji o częściach paczki do wysłania.");
-
-        List<string> errors = new List<string>();
-
-        foreach (PackagePartSignatureInitResponseType part in parts)
+        if (parts == null || parts.Count == 0)
         {
-            TInfo fileInfo = batchPartSendingInfos.FirstOrDefault(x =>
-                (int)x.GetType().GetProperty("OrdinalNumber")!.GetValue(x)! == part.OrdinalNumber);
-
-            if (fileInfo == null)
-            {
-                errors.Add($"Brak danych dla części paczki {part.OrdinalNumber}.");
-                continue;
-            }
-
-            using HttpContent content = contentFactory(fileInfo);
-
-            if (string.IsNullOrWhiteSpace(part.Method))
-            {
-                errors.Add($"Brak metody HTTP dla części paczki {part.OrdinalNumber}.");
-                continue;
-            }
-
-            try
-            {
-                await restClient.SendAsync(
-                    new HttpMethod(part.Method.ToUpperInvariant()),
-                    part.Url.ToString(),
-                    content,
-                    part.Headers,
-                    cancellationToken
-                ).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                errors.Add($"Błąd wysyłki części paczki {part.OrdinalNumber}: {ex.Message}");
-            }
+            throw new ArgumentException("Brak plików do wysłania.", nameof(parts));
         }
 
-        if (errors.Count > 0)
-        {
-            throw new AggregateException(
-                "Wystąpiły błędy podczas wysyłania części paczki.",
-                errors.Select(e => new Exception(e))
-            );
-        }
+        await BatchPartsSender.SendPackagePartsAsync(
+            restClient,
+            openBatchSessionResponse.PartUploadRequests,
+            parts,
+            (info) => new ByteArrayContent(info.Data),
+            cancellationToken
+        ).ConfigureAwait(false);
     }
 
-    private static void Pagination(int? pageOffset, int? pageSize, StringBuilder urlBuilder,bool hasQuery = false)
+    /// <inheritdoc />
+    public async Task SendBatchPartsWithStreamAsync(OpenBatchSessionResponse openBatchSessionResponse, ICollection<BatchPartStreamSendingInfo> parts, CancellationToken cancellationToken = default)
     {
-        if (pageSize.HasValue && pageSize > 0)
-        {
-            urlBuilder.Append(hasQuery ? "&" : "?");
-            urlBuilder.Append("pageSize=").Append(Uri.EscapeDataString(pageSize.ToString()));
-            hasQuery = true;
-        }
-        if (pageOffset.HasValue && pageOffset > 0)
-        {
-            urlBuilder.Append(hasQuery ? "&" : "?");
-            urlBuilder.Append("pageOffset=").Append(Uri.EscapeDataString(pageOffset.ToString()));
-            hasQuery = true;
-        }
+        if (parts == null || parts.Count == 0)
+            throw new ArgumentException("Brak plików do wysłania.", nameof(parts));
+
+        await BatchPartsSender.SendPackagePartsAsync(
+            restClient,
+            openBatchSessionResponse.PartUploadRequests,
+            parts,
+            (info) => new StreamContent(info.DataStream),
+            cancellationToken
+        ).ConfigureAwait(false);
     }
 }

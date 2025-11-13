@@ -1,5 +1,55 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
 
+## Changelog zmian – ## Wersja 2.0.0 RC5.7.1
+
+### Nowe
+- **KSeF.Client** 🔧➕
+  - Podzielono `IKSefClient` na mniejsze interfejsy:
+    - `IActiveSessionsClient`
+    - `IAuthorizationClient`
+    - `IBatchSessionClient`
+    - `ICertificateClient`
+    - `ICryptographyClient`
+    - `IGrantPermissionClient`
+    - `IInvoiceDownloadClient`
+    - `IKSeFClient`
+    - `IKsefTokenClient`
+    - `ILimitsClient`
+    - `IOnlineSessionClient`
+    - `IPeppolClient`
+    - `IPermissionOperationClient`
+    - `IRevokePermissionClient`
+    - `ISearchPermissionClient`
+    - `ISessionStatusClient`
+
+    oraz dodano ich mniejsze implementacje.
+
+### Zmodyfikowane
+➖ Usunięto klasę `ApiException` i zastąpiono użycie jej w summary klasą `KsefApiException`
+
+## Changelog zmian – ## Wersja 2.0.0 RC5.7 
+
+### Nowe
+- **API Responses** — dodano zestaw klas reprezentujących odpowiedzi statusów operacji:
+  - `AuthenticationStatusCodeResponse`
+  - `CertificateStatusCodeResponse`
+  - `InvoiceExportStatusCodeResponse`
+  - `InvoiceInSessionStatusCodeResponse`
+  - `OperationStatusCodeResponse`
+- **Operation Status Codes** — dodano nowy kod statusu **550 – "OperationCancelled"**  
+
+### Zmodyfikowane
+- `BatchFilePartInfo` — pole `FileName` oznaczono jako **Obsolete** (planowane usunięcie w przyszłych wersjach).
+
+## Changelog zmian – ## Wersja 2.0.0 RC5.6 
+
+### Nowe
+- **PdfTestApp** ➕
+  - Dodano aplikację konsolową `KSeF.Client.Tests.PdfTestApp` do automatycznego generowania wizualizacji PDF faktur KSeF i dokumentów UPO.
+  - Obsługuje generowanie PDF zarówno dla faktur (`faktura`, `invoice`) jak i dokumentów UPO (`upo`).
+  - Automatyczna instalacja zależności: npm packages, Chromium (Playwright).
+  - Dokumentacja w README.md z instrukcjami instalacji i przykładami użycia.
+
 ## Changelog zmian – ## Wersja 2.0.0 RC5.5 
 
 ### Nowe
@@ -493,7 +543,6 @@ Wybrane: **Authorization.cs**, `EntityPermission*.cs`, **OnlineSession.cs**, **T
 
 ```
 ```
-> • 🔀 przeniesione
 
 ## Rozwiązania zgłoszonych  - `2025-07-21`
 
@@ -545,6 +594,3 @@ po
   🔧 Zmiana kodu statusu dla zamknięcia sesji interaktywnej z 300 na 170.
   🔧 Zmiana kodu statusu dla zamknięcia sesji wsadowej z 300 na 150.
 ---
-
-```
-```

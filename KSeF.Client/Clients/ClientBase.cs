@@ -54,6 +54,19 @@ public abstract class ClientBase(IRestClient restClient, IRouteBuilder routeBuil
         return _restClient.ExecuteAsync<TResponse, TRequest>(req, cancellationToken);
     }
 
+    protected virtual Task<TResponse> ExecuteAsync<TResponse, TRequest>(string relativeEndpoint, TRequest body, string accessToken, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+
+        string path = _routeBuilder.Build(relativeEndpoint);
+        RestRequest<TRequest> req = RestRequest
+            .New(path, HttpMethod.Post)
+            .WithBody(body)
+            .AddAccessToken(accessToken);
+
+        return _restClient.ExecuteAsync<TResponse, TRequest>(req, cancellationToken);
+    }
+
     protected virtual Task<TResponse> ExecuteAsync<TResponse>(string relativeEndpoint, HttpMethod httpMethod, CancellationToken cancellationToken)
     {
         string path = _routeBuilder.Build(relativeEndpoint);
@@ -82,4 +95,55 @@ public abstract class ClientBase(IRestClient restClient, IRouteBuilder routeBuil
 
         return _restClient.ExecuteAsync(req, cancellationToken);
     }
+
+  
+    protected virtual Task<TResponse> ExecuteAsync<TResponse>(string relativeEndpoint, HttpMethod httpMethod, string accessToken, IDictionary<string, string> additionalHeaders, CancellationToken cancellationToken)
+    {
+        string path = _routeBuilder.Build(relativeEndpoint);
+        RestRequest req = RestRequest
+            .New(path, httpMethod)
+            .AddAccessToken(accessToken);
+
+        if (additionalHeaders is { Count: > 0 })
+        {
+            foreach (KeyValuePair<string, string> header in additionalHeaders)
+            {
+                req.AddHeader(header.Key, header.Value);
+            }
+        }
+
+        return _restClient.ExecuteAsync<TResponse>(req, cancellationToken);
+    }
+
+    protected virtual Task<TResponse> ExecuteAsync<TResponse, TRequest>(string relativeEndpoint, TRequest body, string accessToken, IDictionary<string, string> additionalHeaders, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+
+        string path = _routeBuilder.Build(relativeEndpoint);
+        RestRequest<TRequest> req = RestRequest
+            .New(path, HttpMethod.Post)
+            .WithBody(body)
+            .AddAccessToken(accessToken);
+
+        if (additionalHeaders is { Count: > 0 })
+        {
+            foreach (KeyValuePair<string, string> header in additionalHeaders)
+            {
+                req.AddHeader(header.Key, header.Value);
+            }
+        }
+
+        return _restClient.ExecuteAsync<TResponse, TRequest>(req, cancellationToken);
+    }
+
+    protected virtual Task<TResponse> ExecuteAsync<TResponse>(Uri absoluteUri, HttpMethod httpMethod, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(absoluteUri);
+
+        RestRequest req = RestRequest
+            .New(absoluteUri.ToString(), httpMethod);
+
+        return _restClient.ExecuteAsync<TResponse>(req, cancellationToken);
+    }
+
 }

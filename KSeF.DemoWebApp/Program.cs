@@ -17,10 +17,20 @@ builder.Services.AddKSeFClient(options =>
                 .GetSection("ApiSettings:customHeaders")
                 .Get<Dictionary<string, string>>()
               ?? new Dictionary<string, string>();
+
+    options.ResourcesPath = builder.Configuration.GetSection("ApiSettings")
+                .GetValue<string>("ResourcesPath") ?? null;
+
+    options.DefaultCulture = builder.Configuration.GetSection("ApiSettings")
+            .GetValue<string>("DefaultCulture") ?? null;
+
+    options.SupportedCultures = builder.Configuration.GetSection("ApiSettings").GetSection("SupportedCultures").Get<string[]>() ?? null;
+
+    options.SupportedUICultures = builder.Configuration.GetSection("ApiSettings").GetSection("SupportedUICultures").Get<string[]>() ?? null;
 });
 
 // UWAGA: w aplikacji webowej używamy AddCryptographyClient do rejestracji CryptographyClient i powiązanych serwisów
-// tutaj z domyślnym delegatem pobierającym certyfikaty, zobacz dostępne parametry w dokumentacji metody rozszerzającej
+// tutaj z domyślnym DefaultCertificateFetcher pobierającym certyfikaty, zobacz dostępne parametry w dokumentacji metody rozszerzającej
 builder.Services.AddCryptographyClient();
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
