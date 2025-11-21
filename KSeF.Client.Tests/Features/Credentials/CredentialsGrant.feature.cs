@@ -5,7 +5,7 @@ using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.Token;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Features
+namespace KSeF.Client.Tests.Features.Credentials
 {
     [Collection("CredentialsGrantScenario")]
     [Trait("Category", "Features")]
@@ -16,7 +16,7 @@ namespace KSeF.Client.Tests.Features
         [InlineData("90091309123", new[] { PersonPermissionType.InvoiceWrite, PersonPermissionType.InvoiceRead, PersonPermissionType.Introspection, PersonPermissionType.CredentialsRead, PersonPermissionType.CredentialsManage })]
         [InlineData("6651887777", new[] { PersonPermissionType.InvoiceWrite, PersonPermissionType.InvoiceRead, PersonPermissionType.Introspection, PersonPermissionType.CredentialsRead, PersonPermissionType.CredentialsManage })]
         [Trait("Scenario", "Nadanie uprawnienia wystawianie faktur")]
-        public async Task GivenOwnerIsAuthenticated_WhenGrantInvoiceIssuingPermissionToEntity_ThenPermissionIsConfirmed(string identyficator, PersonPermissionType[] permissions)
+        public async Task GivenOwnerIsAuthenticatedWhenGrantInvoiceIssuingPermissionToEntityThenPermissionIsConfirmed(string identyficator, PersonPermissionType[] permissions)
         {
             string ownerNip = MiscellaneousUtils.GetRandomNip();
 
@@ -91,7 +91,7 @@ namespace KSeF.Client.Tests.Features
                 status => status is not null &&
                          status.Status is not null &&
                          status.Status.Code == 200,
-                delay: TimeSpan.FromSeconds(5),
+                delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 60,
                 cancellationToken: CancellationToken.None);
 
@@ -133,7 +133,7 @@ namespace KSeF.Client.Tests.Features
                     status => status is not null &&
                              status.Status is not null &&
                              status.Status.Code == 200,
-                    delay: TimeSpan.FromSeconds(2),
+                    delay: TimeSpan.FromMilliseconds(SleepTime),
                     maxAttempts: 60,
                     cancellationToken: CancellationToken.None);
             }

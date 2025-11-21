@@ -38,7 +38,7 @@ public interface ISelfSignedCertificateForSignatureBuilderReady
 }
 
 
-internal class SelfSignedCertificateForSignatureBuilderImpl
+internal sealed class SelfSignedCertificateForSignatureBuilderImpl
     : ISelfSignedCertificateForSignatureBuilder
     , ISelfSignedCertificateForSignatureBuilderWithName
     , ISelfSignedCertificateForSignatureBuilderWithSurname

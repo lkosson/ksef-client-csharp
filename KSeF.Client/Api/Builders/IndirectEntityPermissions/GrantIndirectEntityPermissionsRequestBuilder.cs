@@ -51,7 +51,9 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
         public IOptionalStep WithPermissions(params IndirectEntityStandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
+            {
                 throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));
+            }
 
             _permissions = permissions;
             return this;
@@ -66,11 +68,19 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
         public GrantPermissionsIndirectEntityRequest Build()
         {
             if (_subject is null)
+            {
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
+            }
+
             if (_context is null)
+            {
                 throw new InvalidOperationException("Metoda WithContext(...) musi zostać wywołana po ustawieniu podmiotu.");
+            }
+
             if (_permissions is null)
+            {
                 throw new InvalidOperationException("Metoda WithPermissions(...) musi zostać wywołana po ustawieniu kontekstu.");
+            }
 
             return new GrantPermissionsIndirectEntityRequest
             {

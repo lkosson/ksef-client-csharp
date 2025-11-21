@@ -91,7 +91,6 @@
             /// Globalne limity zapytań (rate limits).
             /// </summary>
             public const string RateLimits = "rate-limits";
-
         }
 
         /// <summary>

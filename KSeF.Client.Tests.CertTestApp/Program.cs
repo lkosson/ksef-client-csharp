@@ -21,7 +21,7 @@ Console.WriteLine("KSeF.Client.Tests.CertTestApp – demonstracja procesu uwierz
 Console.WriteLine($"Tryb wyjścia: {outputMode}");
 
 // 0) DI i konfiguracja klienta
-ServiceCollection services = new ServiceCollection();
+ServiceCollection services = new();
 services.AddKSeFClient(options =>
 {
     options.BaseUrl = KsefEnvironmentsUris.TEST;
@@ -51,7 +51,7 @@ try
 {
     // 1) NIP (z parametru lub losowy)
     Console.WriteLine("[1] Przygotowanie NIP...");
-    string? nipArg = ParseNip(args);
+    string nipArg = ParseNip(args);
     string nip = string.IsNullOrWhiteSpace(nipArg) ? MiscellaneousUtils.GetRandomNip() : nipArg.Trim();
     Console.WriteLine($"    NIP: {nip} {(string.IsNullOrWhiteSpace(nipArg) ? "(losowy)" : "(z parametru)")}");
 
@@ -81,7 +81,7 @@ try
 
     // (5a) Zapis certyfikatu gdy tryb file
     // Eksportowanie: PFX (z kluczem prywatnym) oraz CER (część publiczna)
-    string timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+    string timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
     if (outputMode.Equals("file", StringComparison.OrdinalIgnoreCase))
     {
         string certPfxPath = Path.Combine(Environment.CurrentDirectory, $"cert-{timestamp}.pfx");
@@ -175,15 +175,19 @@ static string ParseOutputMode(string[] args)
     {
         if (string.Equals(args[i], "--output", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
         {
-            string val = args[i + 1].Trim();
-            if (val.Equals("file", StringComparison.OrdinalIgnoreCase)) return "file";
+            string value = args[i + 1].Trim();
+            if (value.Equals("file", StringComparison.OrdinalIgnoreCase))
+            {
+                return "file";
+            }
+
             return "screen";
         }
     }
     return "screen";
 }
 
-static string? ParseNip(string[] args)
+static string ParseNip(string[] args)
 {
     // akceptowane: --nip 1111111111
     for (int i = 0; i < args.Length; i++)
@@ -193,5 +197,5 @@ static string? ParseNip(string[] args)
             return args[i + 1].Trim();
         }
     }
-    return null;
+    return string.Empty;
 }

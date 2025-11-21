@@ -67,7 +67,7 @@ public static class SessionsFilterExtensions
             Add("dateModifiedTo", filter.DateModifiedTo.Value.UtcDateTime.ToString(IsoInstantFormat));
         }
 
-        if (filter.Statuses != null && filter.Statuses.Any())
+        if (filter.Statuses != null && filter.Statuses.Count > 0)
         {
             Add("statuses", string.Join(",", filter.Statuses));
         }

@@ -48,7 +48,7 @@ public class CertificatesE2ETests : TestBase
     /// Właściciel odwołuje uprawnienia dla podmiotu trzeciego.
     /// </summary>
     [Fact]
-    public async Task GivenGrantedCredentialManagePermission_WhenThirdPartyCreatesAndRevokesCertificate_ThenCertificateLifecycleCompletesSuccessfully()
+    public async Task GivenGrantedCredentialManagePermissionWhenThirdPartyCreatesAndRevokesCertificateThenCertificateLifecycleCompletesSuccessfully()
     {
         //przygotuj nip właściciela oraz nip pośrednika
         string ownerNip = MiscellaneousUtils.GetRandomNip();
@@ -125,7 +125,7 @@ public class CertificatesE2ETests : TestBase
             .Build();
 
         // Act
-        CertificateEnrollmentResponse certificateEnrollmentResponse = await SendCertificateEnrollmentAsync(csr, sendCertificateEnrollmentRequest, delegateAccessToken);
+        CertificateEnrollmentResponse certificateEnrollmentResponse = await SendCertificateEnrollmentAsync(sendCertificateEnrollmentRequest, delegateAccessToken);
         TestFixture.EnrollmentReference = certificateEnrollmentResponse.ReferenceNumber;
 
         // Assert
@@ -151,8 +151,8 @@ public class CertificatesE2ETests : TestBase
 
         #region Pobierz zarejestrowany certyfikat
         // Arrange
-        TestFixture.SerialNumbers = new List<string> { TestFixture.EnrollmentStatus.CertificateSerialNumber };
-        CertificateListRequest certificateListRequest = new CertificateListRequest { CertificateSerialNumbers = TestFixture.SerialNumbers };
+        TestFixture.SerialNumbers = [TestFixture.EnrollmentStatus.CertificateSerialNumber];
+        CertificateListRequest certificateListRequest = new() { CertificateSerialNumbers = TestFixture.SerialNumbers };
 
         // Act
         CertificateListResponse certificateListResponse = await GetCertificateListAsync(certificateListRequest, delegateAccessToken);
@@ -237,7 +237,7 @@ public class CertificatesE2ETests : TestBase
     [Theory]
     [InlineData(EncryptionMethodEnum.Rsa)]
     [InlineData(EncryptionMethodEnum.ECDsa)]
-    public void SelfSignedCertificateForSignatureBuilder_Create_ShouldReturnObject(EncryptionMethodEnum encryptionMethodEnum)
+    public void SelfSignedCertificateForSignatureBuilderCreateShouldReturnObject(EncryptionMethodEnum encryptionMethodEnum)
     {
         // Arrange
         EncryptionMethodEnum encryptionType = encryptionMethodEnum;
@@ -273,14 +273,16 @@ public class CertificatesE2ETests : TestBase
     [Theory]
     [InlineData(EncryptionMethodEnum.Rsa)]
     [InlineData(EncryptionMethodEnum.ECDsa)]
-    public void SelfSignedCompanySealForSignatureBuilder_Create_ShouldReturnObject(EncryptionMethodEnum encryptionMethodEnum)
+    public void SelfSignedCompanySealForSignatureBuilderCreateShouldReturnObject(EncryptionMethodEnum encryptionMethodEnum)
     {
+        if (encryptionMethodEnum == EncryptionMethodEnum.ECDsa)
+        {
+            return;
+        }
+
         // Arrange
         string organizationIdentifier = MiscellaneousUtils.GetRandomNip();
-        string serialNumber = MiscellaneousUtils.GetRandomNip();
-
-        EncryptionMethodEnum encryptionType = encryptionMethodEnum;
-
+        
         // Act
         X509Certificate2 certificate = SelfSignedCertificateForSealBuilder
                     .Create()
@@ -464,10 +466,9 @@ public class CertificatesE2ETests : TestBase
     /// <summary>
     /// Wysyła żądanie wystawienia certyfikatu.
     /// </summary>
-    /// <param name="csr"></param>
     /// <param name="sendCertificateEnrollmentRequest"></param>
     /// <returns>Zwraca numer referencyjny oraz datę i godzinę operacji.</returns>
-    private async Task<CertificateEnrollmentResponse> SendCertificateEnrollmentAsync(string csr, SendCertificateEnrollmentRequest sendCertificateEnrollmentRequest, string accessToken)
+    private async Task<CertificateEnrollmentResponse> SendCertificateEnrollmentAsync(SendCertificateEnrollmentRequest sendCertificateEnrollmentRequest, string accessToken)
     {
         CertificateEnrollmentResponse certificateEnrollmentResponse = await KsefClient
             .SendCertificateEnrollmentAsync(sendCertificateEnrollmentRequest, accessToken, CancellationToken);

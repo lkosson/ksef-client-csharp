@@ -7,8 +7,7 @@ using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Tests.Utils;
 using System.Security.Cryptography.X509Certificates;
-
-namespace KSeF.Client.Tests.Core.E2E.Permissions.EntityPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.EntityPermission;
 
 
 public class EntityPermissionsE2ETestsScenarios : TestBase
@@ -25,7 +24,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         string subjectNip = MiscellaneousUtils.GetRandomNip();
 
         GrantPermissionsEntitySubjectIdentifier BR_subject =
-            new GrantPermissionsEntitySubjectIdentifier
+            new()
             {
                 Type = GrantPermissionsEntitySubjectIdentifierType.Nip,
                 Value = subjectNip
@@ -40,9 +39,9 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
                 .Create()
                 .WithSubject(BR_subject)
                 .WithPermissions(
-                    EntityPermission.New(
+                    Client.Core.Models.Permissions.Entity.EntityPermission.New(
                         EntityStandardPermissionType.InvoiceRead, true),
-                    EntityPermission.New(
+                    Client.Core.Models.Permissions.Entity.EntityPermission.New(
                         EntityStandardPermissionType.InvoiceWrite, false)
                 )
                 .WithDescription("Read and Write permissions")
@@ -57,12 +56,12 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         Assert.NotNull(grantsPermissionsResponse);
 
         PersonPermissionsQueryRequest queryForAllPermissions =
-            new PersonPermissionsQueryRequest
+            new()
             {
                 QueryType = PersonQueryType.PermissionsGrantedInCurrentContext
             };
 
-        PagedPermissionsResponse<PersonPermission>
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>
             queryForAllPermissionsResponse =
             await AsyncPollingUtils.PollAsync(
                 action: () => KsefClient.SearchGrantedPersonPermissionsAsync(
@@ -82,7 +81,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
     /// Potwierdza że podmiot któremu nadano uprawnienia widzi je w swoim kontekście.
     /// </summary>
     /// <returns></returns>
-    //[Fact]
+    [Fact]
     public async Task GrantPermissions_E2E_ShouldReturnPersonalPermissions()
     {
         // Arrange + Grants
@@ -90,7 +89,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         string subjectNip = MiscellaneousUtils.GetRandomNip();
 
         GrantPermissionsEntitySubjectIdentifier subject =
-            new GrantPermissionsEntitySubjectIdentifier
+            new()
             {
                 Type = GrantPermissionsEntitySubjectIdentifierType.Nip,
                 Value = subjectNip
@@ -102,10 +101,10 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
             .Create()
             .WithSubject(subject)
             .WithPermissions(
-                EntityPermission.New(
+                Client.Core.Models.Permissions.Entity.EntityPermission.New(
                     EntityStandardPermissionType.InvoiceRead, true),
-                EntityPermission.New(
-                    EntityStandardPermissionType.InvoiceWrite, false)
+                Client.Core.Models.Permissions.Entity.EntityPermission.New(
+                    EntityStandardPermissionType.InvoiceWrite, true)
             )
             .WithDescription("Grant read and write permissions")
             .Build();
@@ -117,7 +116,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         // Auth: Entity we własnym kontekście
         AuthenticationOperationStatusResponse entityAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, subjectNip);
 
-        PersonalPermissionsQueryRequest queryForAllPermissions = new PersonalPermissionsQueryRequest();
+        PersonalPermissionsQueryRequest queryForAllPermissions = new();
         PagedPermissionsResponse<PersonalPermission> queryForAllPermissionsResponse =
             await AsyncPollingUtils.PollAsync(
                 action: () => KsefClient.SearchGrantedPersonalPermissionsAsync(
@@ -131,7 +130,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         Assert.NotEmpty(queryForAllPermissionsResponse.Permissions);
         Assert.Equal(2, queryForAllPermissionsResponse.Permissions.Count);
 
-        List<PersonalPermission> permissionsGrantedByEntity = queryForAllPermissionsResponse.Permissions.Where(p => p.ContextIdentifier.Value == contextNip).ToList();
+        List<PersonalPermission> permissionsGrantedByEntity = [.. queryForAllPermissionsResponse.Permissions.Where(p => p.ContextIdentifier.Value == contextNip)];
         Assert.Equal(2, permissionsGrantedByEntity.Count);
     }
 
@@ -150,26 +149,26 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         string kdpNip = MiscellaneousUtils.GetRandomNip(); // kancelaria doradztwa podatkowego
 
         GrantPermissionsEntitySubjectIdentifier brSubject =
-            new GrantPermissionsEntitySubjectIdentifier
+            new()
             {
                 Type = GrantPermissionsEntitySubjectIdentifierType.Nip,
                 Value = brNip
             };
 
         GrantPermissionsEntitySubjectIdentifier kdpSubject =
-            new GrantPermissionsEntitySubjectIdentifier
+            new()
             {
                 Type = GrantPermissionsEntitySubjectIdentifierType.Nip,
                 Value = kdpNip
             };
 
-        EntityPermission[] permissions = new EntityPermission[]
-        {
-            EntityPermission.New(
+        Client.Core.Models.Permissions.Entity.EntityPermission[] permissions =
+        [
+            Client.Core.Models.Permissions.Entity.EntityPermission.New(
                 EntityStandardPermissionType.InvoiceRead, true),
-            EntityPermission.New(
+            Client.Core.Models.Permissions.Entity.EntityPermission.New(
                 EntityStandardPermissionType.InvoiceWrite, false)
-        };
+        ];
 
         // Act
         // uwierzytelnienie jdg we własnym kontekście
@@ -211,7 +210,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
             personalCertificate);
 
         PersonalPermissionsQueryRequest queryForContextPermissions =
-            new PersonalPermissionsQueryRequest();
+            new();
 
         // uprawnienia biura rachunkowego w kontekście jdg
         PagedPermissionsResponse<PersonalPermission>
@@ -232,7 +231,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
     private async Task<OperationResponse> GrantPermissionsAsync(
             GrantPermissionsEntitySubjectIdentifier subject,
             AuthenticationOperationStatusResponse authorizationInfo,
-            EntityPermission[] permissions)
+            Client.Core.Models.Permissions.Entity.EntityPermission[] permissions)
     {
         GrantPermissionsEntityRequest grantEntityPermissionsRequest = GrantEntityPermissionsRequestBuilder
                     .Create()

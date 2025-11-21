@@ -16,8 +16,8 @@ public abstract class KsefIntegrationTestBase : IDisposable
 {
     internal const int SleepTime = 500;
 
-    private ServiceProvider _serviceProvider = default!;
-    private IServiceScope _scope = default!;
+    private readonly ServiceProvider _serviceProvider = default!;
+    private readonly IServiceScope _scope = default!;
 
     protected IKSeFClient KsefClient => _scope.ServiceProvider.GetRequiredService<IKSeFClient>();
     protected IAuthorizationClient AuthorizationClient => _scope.ServiceProvider.GetRequiredService<IAuthorizationClient>();
@@ -30,20 +30,21 @@ public abstract class KsefIntegrationTestBase : IDisposable
     public KsefIntegrationTestBase()
     {
         CryptographyConfigInitializer.EnsureInitialized();
-        ServiceCollection services = new ServiceCollection();
+        ServiceCollection services = new();
 
         ApiSettings apiSettings = TestConfig.GetApiSettings();
 
-        string? customHeadersFromSettings = TestConfig.Load()["ApiSettings:customHeaders"];
+        string customHeadersFromSettings = TestConfig.Load()["ApiSettings:customHeaders"] ?? string.Empty;
         if (!string.IsNullOrEmpty(customHeadersFromSettings))
         {
-            apiSettings.CustomHeaders = JsonSerializer.Deserialize<Dictionary<string, string>>(customHeadersFromSettings);
+            apiSettings.CustomHeaders = JsonSerializer.Deserialize<Dictionary<string, string>>(customHeadersFromSettings)
+                ?? [];
         }
 
         services.AddKSeFClient(options =>
         {
             options.BaseUrl = apiSettings.BaseUrl!;
-            options.CustomHeaders = apiSettings.CustomHeaders ?? new Dictionary<string, string>();
+            options.CustomHeaders = apiSettings.CustomHeaders ?? [];
         });
 
         // UWAGA! w testach nie używamy AddCryptographyClient tylko rejestrujemy ręcznie, bo on uruchamia HostedService w tle
@@ -67,11 +68,12 @@ public abstract class KsefIntegrationTestBase : IDisposable
                    .StartAsync(CancellationToken.None).GetAwaiter().GetResult();
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public Task DisposeAsync() => Task.Run(() => Dispose());
 
     public void Dispose()
     {
         _scope.Dispose();
         _serviceProvider.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

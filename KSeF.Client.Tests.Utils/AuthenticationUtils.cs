@@ -21,6 +21,11 @@ public static class AuthenticationUtils
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip,
         EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.Rsa)
     {
+        if (encryptionMethod == EncryptionMethodEnum.ECDsa)
+        {
+            throw new NotImplementedException("Brak obsługi ECDsa");
+        }
+
         AuthenticationChallengeResponse challengeResponse = await authorizationClient
             .GetAuthChallengeAsync();
 
@@ -186,7 +191,10 @@ public static class AuthenticationUtils
 
         // Wylicz liczbę prób (>=1)
         int maxAttempts = (int)Math.Ceiling(effectiveTimeout.TotalMilliseconds / delay.TotalMilliseconds);
-        if (maxAttempts <= 0) maxAttempts = 1;
+        if (maxAttempts <= 0)
+        {
+            maxAttempts = 1;
+        }
 
         DateTime startTime = DateTime.UtcNow;
         AuthStatus? lastStatus = null;
@@ -236,7 +244,7 @@ public static class AuthenticationUtils
         if (status.Status.Code != AuthSuccessCode)
         {
             string msg = $"Uwierzytelnienie nie powiodło się. Kod statusu: {status?.Status.Code}, opis: {status?.Status.Description}.";
-            throw new Exception(msg);
+            throw new InvalidOperationException(msg);
         }
     }
 }

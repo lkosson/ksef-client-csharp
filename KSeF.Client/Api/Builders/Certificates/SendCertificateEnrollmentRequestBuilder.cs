@@ -34,7 +34,7 @@ internal class SendCertificateEnrollmentRequestBuilderImpl :
     private string _csr;
     private DateTimeOffset? _validFrom;
     private CertificateType _certificateType;
-    private bool _certificateTypeSet = false;
+    private bool _certificateTypeSet;
 
     public static ISendCertificateEnrollmentRequestBuilder Create() =>
         new SendCertificateEnrollmentRequestBuilderImpl();
@@ -42,7 +42,9 @@ internal class SendCertificateEnrollmentRequestBuilderImpl :
     public ISendCertificateEnrollmentRequestBuilderWithCertificateName WithCertificateName(string certificateName)
     {
         if (string.IsNullOrWhiteSpace(certificateName))
+        {
             throw new ArgumentException("CertificateName cannot be null or empty.");
+        }
 
         _certificateName = certificateName;
         return this;
@@ -58,7 +60,9 @@ internal class SendCertificateEnrollmentRequestBuilderImpl :
     public ISendCertificateEnrollmentRequestBuilderWithCsr WithCsr(string csr)
     {
         if (string.IsNullOrWhiteSpace(csr))
+        {
             throw new ArgumentException("CSR cannot be null or empty.");
+        }
 
         _csr = csr;
         return this;
@@ -73,12 +77,19 @@ internal class SendCertificateEnrollmentRequestBuilderImpl :
     public SendCertificateEnrollmentRequest Build()
     {
         if (string.IsNullOrWhiteSpace(_certificateName))
+        {
             throw new InvalidOperationException("CertificateName is required.");
-            
+        }
+
         if (!_certificateTypeSet)
+        {
             throw new InvalidOperationException("CertificateType is required.");
+        }
+
         if (string.IsNullOrWhiteSpace(_csr))
+        {
             throw new InvalidOperationException("CSR is required.");
+        }
 
         return new SendCertificateEnrollmentRequest
         {

@@ -16,7 +16,7 @@ public class AuthorizationE2ETests : TestBase
     [Theory]
     [InlineData(EncryptionMethodEnum.Rsa)]
     [InlineData(EncryptionMethodEnum.ECDsa)]
-    public async Task AuthAsync_FullIntegrationFlow_ReturnsAccessToken(EncryptionMethodEnum encryptionMethodEnum)
+    public async Task AuthAsyncFullIntegrationFlowReturnsAccessToken(EncryptionMethodEnum encryptionMethodEnum)
     {
         // Arrange & Act
         AuthenticationOperationStatusResponse authResult =
@@ -35,7 +35,7 @@ public class AuthorizationE2ETests : TestBase
     /// Budowanie żądania tokenu autoryzacyjnego.
     /// </summary>
     [Fact]
-    public void AuthTokenRequestBuilder_Create_ShouldReturnObject()
+    public void AuthTokenRequestBuilderCreateShouldReturnObject()
     {
         AuthenticationTokenContextIdentifierType contextIdentifierType = 
             AuthenticationTokenContextIdentifierType.Nip;

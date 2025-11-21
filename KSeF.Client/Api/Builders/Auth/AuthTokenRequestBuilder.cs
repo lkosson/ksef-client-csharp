@@ -45,7 +45,9 @@ internal sealed class AuthTokenRequestBuilderImpl :
     public IAuthTokenRequestBuilderWithChallenge WithChallenge(string challenge)
     {
         if (string.IsNullOrWhiteSpace(challenge))
-            throw new ArgumentException(nameof(challenge));
+        {
+            throw new ArgumentNullException(nameof(challenge));
+        }
 
         _challenge = challenge;
         return this;
@@ -54,7 +56,9 @@ internal sealed class AuthTokenRequestBuilderImpl :
     public IAuthTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifierType type, string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException(nameof(value));
+        {
+            throw new ArgumentNullException(nameof(value));
+        }
 
         _context = new AuthenticationTokenContextIdentifier  {  Type = type, Value = value };
         return this;
@@ -68,7 +72,11 @@ internal sealed class AuthTokenRequestBuilderImpl :
 
     public IAuthTokenRequestBuilderReady WithAuthorizationPolicy(AuthenticationTokenAuthorizationPolicy authorizationPolicy)
     {
-        if (authorizationPolicy is null) return this;
+        if (authorizationPolicy is null)
+        {
+            return this;
+        }
+
         _authorizationPolicy = authorizationPolicy ?? throw new ArgumentNullException(nameof(authorizationPolicy));
         return this;
     }
@@ -76,9 +84,14 @@ internal sealed class AuthTokenRequestBuilderImpl :
     public AuthenticationTokenRequest Build()
     {
         if (_challenge is null)
+        {
             throw new InvalidOperationException();
+        }
+
         if (_context is null)
+        {
             throw new InvalidOperationException();
+        }
 
         return new AuthenticationTokenRequest
         {

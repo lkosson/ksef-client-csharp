@@ -6,13 +6,13 @@ using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermission;
 
 public class PersonPermissionE2ETests : TestBase
 {
     private const string PermissionDescription = "E2E test grant";
 
-    private string accessToken = string.Empty;
+    private readonly string accessToken = string.Empty;
     private GrantPermissionsPersonSubjectIdentifier Person { get; } = new();
 
     public PersonPermissionE2ETests()
@@ -37,7 +37,7 @@ public class PersonPermissionE2ETests : TestBase
     /// - ponowne wyszukanie (weryfikacja, że zostały cofnięte)
     /// </summary>
     [Fact]
-    public async Task PersonPermissions_FullFlow_GrantSearchRevokeSearch()
+    public async Task PersonPermissionsFullFlowGrantSearchRevokeSearch()
     {
         // Arrange: dane wejściowe i oczekiwane typy uprawnień
         string description = PermissionDescription;
@@ -51,18 +51,21 @@ public class PersonPermissionE2ETests : TestBase
         Assert.False(string.IsNullOrEmpty(grantResponse.ReferenceNumber));
 
         // Act: odpytywanie do momentu, aż nadane uprawnienia będą widoczne (obie pule: Read i Write)
-        PagedPermissionsResponse<PersonPermission> searchAfterGrant =
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterGrant =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchGrantedPersonPermissionsAsync(accessToken),
-                (Func<PagedPermissionsResponse<PersonPermission>, bool>)(                result =>
+                (Func<PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>, bool>)(result =>
                 {
-                    if (result is null || result.Permissions is null) return false;
+                    if (result is null || result.Permissions is null)
+                    {
+                        return false;
+                    }
 
-                    List<PersonPermission> byDescription =
-                        result.Permissions.Where(p => p.Description == description).ToList();
+                    List<Client.Core.Models.Permissions.PersonPermission> byDescription =
+                        [.. result.Permissions.Where(p => p.Description == description)];
 
-                    bool hasRead = byDescription.Any((Func<PersonPermission, bool>)(x => Enum.Parse<Client.Core.Models.Permissions.Person.PersonPermissionType>(x.PermissionScope) == Client.Core.Models.Permissions.Person.PersonPermissionType.InvoiceRead));
-                    bool hasWrite = byDescription.Any((Func<PersonPermission, bool>)(x => Enum.Parse<Client.Core.Models.Permissions.Person.PersonPermissionType>(x.PermissionScope) == Client.Core.Models.Permissions.Person.PersonPermissionType.InvoiceWrite));
+                    bool hasRead = byDescription.Any(x => x.PermissionScope == PersonPermissionType.InvoiceRead);
+                    bool hasWrite = byDescription.Any(x => x.PermissionScope == PersonPermissionType.InvoiceWrite);
 
                     return byDescription.Count > 0 && hasRead && hasWrite;
                 }),
@@ -74,14 +77,12 @@ public class PersonPermissionE2ETests : TestBase
         Assert.NotNull(searchAfterGrant);
         Assert.NotEmpty(searchAfterGrant.Permissions);
 
-        List<PersonPermission> grantedNow =
-            searchAfterGrant.Permissions
-                .Where(p => p.Description == description)
-                .ToList();
+        List<Client.Core.Models.Permissions.PersonPermission> grantedNow =
+            [.. searchAfterGrant.Permissions.Where(p => p.Description == description)];
 
         Assert.NotEmpty(grantedNow);
-        Assert.Contains(grantedNow, x => Enum.Parse<PersonPermissionType>(x.PermissionScope) == PersonPermissionType.InvoiceRead);
-        Assert.Contains(grantedNow, x => Enum.Parse<PersonPermissionType>(x.PermissionScope) == PersonPermissionType.InvoiceWrite);
+        Assert.Contains(grantedNow, x => x.PermissionScope == PersonPermissionType.InvoiceRead);
+        Assert.Contains(grantedNow, x => x.PermissionScope == PersonPermissionType.InvoiceWrite);
 
         // Act: cofnij nadane uprawnienia
         List<PermissionsOperationStatusResponse> revokeResult = await RevokePermissionsAsync(searchAfterGrant.Permissions, accessToken);
@@ -96,15 +97,18 @@ public class PersonPermissionE2ETests : TestBase
         );
 
         // Act: odpytywanie do momentu, aż uprawnienia o danym opisie znikną
-        PagedPermissionsResponse<PersonPermission> searchAfterRevoke =
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterRevoke =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchGrantedPersonPermissionsAsync(accessToken),
                 result =>
                 {
-                    if (result is null || result.Permissions is null) return false;
+                    if (result is null || result.Permissions is null)
+                    {
+                        return false;
+                    }
 
-                    List<PersonPermission> remainingLocal =
-                        result.Permissions.Where(p => p.Description == description).ToList();
+                    List<Client.Core.Models.Permissions.PersonPermission> remainingLocal =
+                        [.. result.Permissions.Where(p => p.Description == description)];
 
                     return remainingLocal.Count == 0;
                 },
@@ -115,10 +119,8 @@ public class PersonPermissionE2ETests : TestBase
         // Assert: upewnij się, że nie pozostały wpisy z danym opisem
         Assert.NotNull(searchAfterRevoke);
 
-        List<PersonPermission> remaining =
-            searchAfterRevoke.Permissions
-                .Where(p => p.Description == description)
-                .ToList();
+        List<Client.Core.Models.Permissions.PersonPermission> remaining =
+            [.. searchAfterRevoke.Permissions.Where(p => p.Description == description)];
 
         Assert.Empty(remaining);
     }
@@ -150,23 +152,23 @@ public class PersonPermissionE2ETests : TestBase
     }
 
     /// <summary>
-    /// Wyszukuje nadane uprawnienia dla osób i zwraca wynik wyszukiwania.
+    /// Wyszukuje uprawnienia nadane osobom i zwraca wynik wyszukiwania.
     /// </summary>
-    private async Task<PagedPermissionsResponse<PersonPermission>>
+    private async Task<PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>>
         SearchGrantedPersonPermissionsAsync(string accessToken)
     {
         // Arrange: budowa zapytania wyszukującego uprawnienia
-        PersonPermissionsQueryRequest query = new PersonPermissionsQueryRequest
+        PersonPermissionsQueryRequest query = new()
         {
-            PermissionTypes = new List<PersonPermissionType>
-            {
+            PermissionTypes =
+            [
                 PersonPermissionType.InvoiceRead,
                 PersonPermissionType.InvoiceWrite
-            }
+            ]
         };
 
         // Act: wywołanie API wyszukiwania
-        PagedPermissionsResponse<PersonPermission> response =
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> response =
             await KsefClient.SearchGrantedPersonPermissionsAsync(query, accessToken, pageOffset: 0, pageSize: 10, CancellationToken);
 
         // Assert: zwrócenie wyniku wyszukiwania
@@ -177,21 +179,21 @@ public class PersonPermissionE2ETests : TestBase
     /// Cofnięcie wszystkich przekazanych uprawnień i zwrócenie statusów operacji.
     /// </summary>
     private async Task<List<PermissionsOperationStatusResponse>> RevokePermissionsAsync(
-        IEnumerable<PersonPermission> grantedPermissions,
+        IEnumerable<Client.Core.Models.Permissions.PersonPermission> grantedPermissions,
         string accessToken)
     {
         // Arrange: lista odpowiedzi z operacji cofania
-        List<OperationResponse> revokeResponses = new List<OperationResponse>();
+        List<OperationResponse> revokeResponses = [];
 
         // Act: uruchomienie operacji cofania dla każdej pozycji
-        foreach (PersonPermission permission in grantedPermissions)
+        foreach (Client.Core.Models.Permissions.PersonPermission permission in grantedPermissions)
         {
             OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
             revokeResponses.Add(response);
         }
 
         // Act: odpytywanie statusów do skutku (sukces) i zebranie wyników
-        List<PermissionsOperationStatusResponse> statuses = new List<PermissionsOperationStatusResponse>();
+        List<PermissionsOperationStatusResponse> statuses = [];
 
         foreach (OperationResponse revokeResponse in revokeResponses)
         {

@@ -11,7 +11,7 @@ namespace KSeF.Client.Tests;
 
 public class VerificationLinkServiceTests
 {
-    private readonly IVerificationLinkService _svc = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnvironmentsUris.TEST }); 
+    private readonly IVerificationLinkService _svc = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnvironmentsUris.TEST });
     private readonly string BaseUrl = $"{KsefEnvironmentsUris.TEST}/client-app";
 
 
@@ -25,15 +25,14 @@ public class VerificationLinkServiceTests
     [Theory]
     [InlineData("<root>test</root>")]
     [InlineData("<data>special & chars /?</data>")]
-    public void BuildInvoiceVerificationUrl_EncodesHashCorrectly(string xml)
+    public void BuildInvoiceVerificationUrlEncodesHashCorrectly(string xml)
     {
         // Arrange
         string nip = "1234567890";
-        DateTime issueDate = new DateTime(2026, 1, 5);
+        DateTime issueDate = new(2026, 1, 5);
 
         byte[] sha;
-        using (SHA256 sha256 = SHA256.Create())
-            sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+        sha = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
 
         string invoiceHash = Convert.ToBase64String(sha);
         string expectedHash = sha.EncodeBase64UrlToString();
@@ -45,45 +44,40 @@ public class VerificationLinkServiceTests
         // Assert
         Assert.Equal(expectedUrl, url);
 
-        string[] segments = new Uri(url)
+        string[] segments = [.. new Uri(url)
             .Segments
-            .Select(s => s.Trim('/'))
-            .ToArray();
+            .Select(s => s.Trim('/'))];
 
         Assert.Equal("client-app", segments[1]);
         Assert.Equal("invoice", segments[2]);
         Assert.Equal(nip, segments[3]);
-        Assert.Equal(issueDate.ToString("dd-MM-yyyy"), segments[4]);
+        Assert.Equal(issueDate.ToString("dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture), segments[4]);
         Assert.Equal(expectedHash, segments[5]);
     }
 
     [Fact]
-    public void BuildCertificateVerificationUrl_WithRsaCertificate_ShouldMatchFormat()
+    public void BuildCertificateVerificationUrlWithRsaCertificateShouldMatchFormat()
     {
         // Arrange
         string nip = "0000000000";
         string xml = "<x/>";
         string serial = Guid.NewGuid().ToString();
         string invoiceHash;
-        using (SHA256 sha256 = SHA256.Create())
-        {
-            byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
-            invoiceHash = Convert.ToBase64String(hashBytes);
-        }
+        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
+        invoiceHash = Convert.ToBase64String(hashBytes);
 
         // Create full self-signed RSA cert with private key
         using RSA rsa = RSA.Create(2048);
-        CertificateRequest req = new CertificateRequest("CN=TestRSA", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
+        CertificateRequest req = new("CN=TestRSA", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
         X509Certificate2 fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
-                    
+
         // Act
-        string url = _svc.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip,nip, serial.ToString(), invoiceHash, fullCert);
+        string url = _svc.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, fullCert);
 
         // Assert
-        string[] segments = new Uri(url)
+        string[] segments = [.. new Uri(url)
             .Segments
-            .Select(s => s.Trim('/'))
-            .ToArray();
+            .Select(s => s.Trim('/'))];
 
         Assert.Equal("client-app", segments[1]);
         Assert.Equal("certificate", segments[2]);
@@ -96,32 +90,28 @@ public class VerificationLinkServiceTests
     }
 
     [Fact]
-    public void BuildCertificateVerificationUrl_WithEcdsaCertificate_ShouldMatchFormat()
+    public void BuildCertificateVerificationUrlWithEcdsaCertificateShouldMatchFormat()
     {
         // Arrange
         string nip = "0000000000";
         string xml = "<x/>";
         string serial = Guid.NewGuid().ToString();
         string invoiceHash;
-        using (SHA256 sha256 = SHA256.Create())
-        {
-            byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
-            invoiceHash = Convert.ToBase64String(hashBytes);
-        }
+        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
+        invoiceHash = Convert.ToBase64String(hashBytes);
 
         // Create full self-signed ECDsa cert with private key
         using ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        CertificateRequest req = new CertificateRequest("CN=TestECDSA", ecdsa, HashAlgorithmName.SHA256);
+        CertificateRequest req = new("CN=TestECDSA", ecdsa, HashAlgorithmName.SHA256);
         X509Certificate2 fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
 
         // Act
-        string url = _svc.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, fullCert,fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
+        string url = _svc.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, fullCert, fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
 
         // Assert
-        string[] segments = new Uri(url)
+        string[] segments = [.. new Uri(url)
             .Segments
-            .Select(s => s.Trim('/'))
-            .ToArray();
+            .Select(s => s.Trim('/'))];
 
         Assert.Equal("client-app", segments[1]);
         Assert.Equal("certificate", segments[2]);
@@ -135,26 +125,24 @@ public class VerificationLinkServiceTests
 
 
     [Fact]
-    public void BuildCertificateVerificationUrl_WithoutPrivateKey_ShouldThrow()
+    public void BuildCertificateVerificationUrlWithoutPrivateKeyShouldThrow()
     {
         // Arrange: certyfikat z samym kluczem publicznym (bez prywatnego)
         using RSA rsa = RSA.Create(2048);
-        CertificateRequest req = new CertificateRequest("CN=PublicOnly", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
+        CertificateRequest req = new("CN=PublicOnly", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
         X509Certificate2 fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
 
         // Eksport tylko publicznego certyfikatu
         byte[] publicBytes = fullCert.Export(X509ContentType.Cert);
-        X509Certificate2 pubOnly = new X509Certificate2(publicBytes); // brak prywatnego klucza
+        X509Certificate2 pubOnly = publicBytes.LoadCertificate();
+        // brak prywatnego klucza
 
         string nip = "0000000000";
         string xml = "<x/>";
         string serial = Guid.NewGuid().ToString();
         string invoiceHash;
-        using (SHA256 sha256 = SHA256.Create())
-        {
-            byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
-            invoiceHash = Convert.ToBase64String(hashBytes);
-        }
+        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
+        invoiceHash = Convert.ToBase64String(hashBytes);
 
         // Act & Assert: próba podpisania bez klucza prywatnego → wyjątek
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
@@ -168,11 +156,11 @@ public class VerificationLinkServiceTests
 
 
     [Fact]
-    public void BuildCertificateVerificationUrl_WithEmbeddedPrivateKey_ShouldSucceed()
+    public void BuildCertificateVerificationUrlWithEmbeddedPrivateKeyShouldSucceed()
     {
         // Arrange: wygeneruj self-signed cert z kluczem RSA
         using RSA rsa = RSA.Create(2048);
-        CertificateRequest req = new CertificateRequest(
+        CertificateRequest req = new(
             "CN=FullCert",
             rsa,
             HashAlgorithmName.SHA256,
@@ -185,21 +173,14 @@ public class VerificationLinkServiceTests
 
         // Zapisz PFX i zaimportuj z flagą Exportable — certyfikat ma teraz wbudowany klucz
         byte[] pfxBytes = fullCert.Export(X509ContentType.Pfx);
-        X509Certificate2 certWithKey = new X509Certificate2(
-            pfxBytes,
-            (string?)null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet
-        );
+        X509Certificate2 certWithKey = certWithKey = pfxBytes.LoadPkcs12();
 
         string nip = "0000000000";
         string xml = "<x/>";
         string serial = Guid.NewGuid().ToString();
         string invoiceHash;
-        using (SHA256 sha256 = SHA256.Create())
-        {
-            byte[] sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
-            invoiceHash = Convert.ToBase64String(sha);
-        }
+        byte[] sha = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
+        invoiceHash = Convert.ToBase64String(sha);
 
         // Act
         string url = _svc.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip,
@@ -211,7 +192,7 @@ public class VerificationLinkServiceTests
 
         // Assert: URL powinien zawierać URL-encoded Base64 podpisu (końcówka "==" → "%3D%3D")
         Assert.NotNull(url);
-        Uri uri = new Uri(url);
+        Uri uri = new(url);
         string[] segments = uri.AbsolutePath.Split('/');
         string signedUrl = segments.Last();
         Assert.Matches("^[A-Za-z0-9_-]+$", signedUrl);
@@ -226,17 +207,16 @@ public class VerificationLinkServiceTests
     [Theory]
     [InlineData("<root>test</root>")]
     [InlineData("<data>special & chars /?</data>")]
-    public void BuildInvoiceVerificationUrl_EncodesHashCorrectly_Ecc(string xml)
+    public void BuildInvoiceVerificationUrlEncodesHashCorrectlyEcc(string xml)
     {
         // Arrange – bez zmian, testuje enkodowanie hash
         string nip = "1234567890";
-        DateTime issueDate = new DateTime(2026, 1, 5);
+        DateTime issueDate = new(2026, 1, 5);
 
         byte[] sha;
-        using (SHA256 sha256 = SHA256.Create())
-            sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(xml));
+        sha = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
 
-        string invoiceHash = Convert.ToBase64String(sha);            
+        string invoiceHash = Convert.ToBase64String(sha);
         string expectedHash = sha.EncodeBase64UrlToString();
 
         string expectedUrl = $"{BaseUrl}/invoice/{nip}/{issueDate:dd-MM-yyyy}/{expectedHash}";
@@ -246,34 +226,31 @@ public class VerificationLinkServiceTests
 
         // Assert
         Assert.Equal(expectedUrl, url);
-        string[] segments = new Uri(url).Segments.Select(s => s.Trim('/')).ToArray();
+        string[] segments = [.. new Uri(url).Segments.Select(s => s.Trim('/'))];
         Assert.Equal("invoice", segments[2]);
         Assert.Equal(expectedHash, segments[5]);
     }
 
     [Fact]
-    public void BuildCertificateVerificationUrl_WithEcdsaCertificate_ShouldMatchFormat_Ecc()
+    public void BuildCertificateVerificationUrlWithEcdsaCertificateShouldMatchFormatEcc()
     {
         // Arrange – generowanie ECDSA P-256
         string nip = "0000000000";
         string xml = "<x/>";
         string serial = Guid.NewGuid().ToString();
         string invoiceHash;
-        using (SHA256 sha256 = SHA256.Create())
-        {
-            invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
-        }
+        invoiceHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(xml)));
 
         using ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        CertificateRequest req = new CertificateRequest("CN=TestECDSA", ecdsa, HashAlgorithmName.SHA256);
+        CertificateRequest req = new("CN=TestECDSA", ecdsa, HashAlgorithmName.SHA256);
         X509Certificate2 fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
 
         // Act – jawnie przekazujemy prywatny klucz ECDSA
-        string? privateKeyPem = fullCert.GetECDsaPrivateKey()?.ExportPkcs8PrivateKeyPem();
+        string privateKeyPem = fullCert.GetECDsaPrivateKey()?.ExportPkcs8PrivateKeyPem() ?? string.Empty;
         string url = _svc.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial, invoiceHash, fullCert, privateKeyPem);
 
         // Assert – format ścieżek
-        string[] segments = new Uri(url).Segments.Select(s => s.Trim('/')).ToArray();
+        string[] segments = [.. new Uri(url).Segments.Select(s => s.Trim('/'))];
         Assert.Equal("client-app", segments[1]);
         Assert.Equal("certificate", segments[2]);
         Assert.Equal("Nip", segments[3]);
@@ -285,23 +262,20 @@ public class VerificationLinkServiceTests
     }
 
     [Fact]
-    public void BuildCertificateVerificationUrl_WithoutPrivateKey_ShouldThrow_Ecc()
+    public void BuildCertificateVerificationUrlWithoutPrivateKeyShouldThrowEcc()
     {
         // Arrange – public-only ECC powinno rzucić
         using ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        CertificateRequest req = new CertificateRequest("CN=PublicOnly", ecdsa, HashAlgorithmName.SHA256);
+        CertificateRequest req = new("CN=PublicOnly", ecdsa, HashAlgorithmName.SHA256);
         X509Certificate2 fullCert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
         byte[] publicBytes = fullCert.Export(X509ContentType.Cert);
-        X509Certificate2 pubOnly = new X509Certificate2(publicBytes);
+        X509Certificate2 pubOnly = publicBytes.LoadCertificate();        
 
         string nip = "0000000000";
         string xml = "<x/>";
         string serial = Guid.NewGuid().ToString();
         string invoiceHash;
-        using (SHA256 sha256 = SHA256.Create())
-        {
-            invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
-        }
+        invoiceHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(xml)));
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
@@ -310,29 +284,28 @@ public class VerificationLinkServiceTests
     }
 
     [Fact]
-    public void BuildCertificateVerificationUrl_WithEmbeddedEcdsaKey_ShouldSucceed_Ecc()
+    public void BuildCertificateVerificationUrlWithEmbeddedEcdsaKeyShouldSucceedEcc()
     {
         // Arrange – certyfikat PFX ECDSA P-256 z flagą exportowalności
         using ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        CertificateRequest req = new CertificateRequest("CN=FullEccCert", ecdsa, HashAlgorithmName.SHA256);
+        CertificateRequest req = new("CN=FullEccCert", ecdsa, HashAlgorithmName.SHA256);
         X509Certificate2 fullCert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(1));
         byte[] pfx = fullCert.Export(X509ContentType.Pfx);
-        X509Certificate2 certWithKey = new X509Certificate2(pfx, string.Empty, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+        X509Certificate2 certWithKey = pfx.LoadPkcs12();
 
         string nip = "0000000000";
         string xml = "<x/>";
         string serial = Guid.NewGuid().ToString();
         string invoiceHash;
-        using (SHA256 sha256 = SHA256.Create())
-            invoiceHash = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(xml)));
+        invoiceHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(xml)));
 
         // Act
-        string url = _svc.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip,    nip, serial, invoiceHash, certWithKey);
+        string url = _svc.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial, invoiceHash, certWithKey);
 
         // Assert: URL zawiera poprawny ECDSA podpis kodowany w Base64
-        Uri uri = new Uri(url);
+        Uri uri = new(url);
         string[] segments = uri.AbsolutePath.Split('/');
         string signedUrl = segments.Last();
-        Assert.Matches("^[A-Za-z0-9_-]+$", signedUrl);             
+        Assert.Matches("^[A-Za-z0-9_-]+$", signedUrl);
     }
 }

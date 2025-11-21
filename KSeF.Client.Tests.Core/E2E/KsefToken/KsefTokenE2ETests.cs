@@ -83,7 +83,7 @@ public class KsefTokenE2ETests : TestBase
     /// <returns><see cref="KsefTokenResponse"/> zawierająca numer referencyjny oraz wygenerowany token.</returns>
     private async Task<KsefTokenResponse> GenerateKsefTokenAsync(string description)
     {
-        KsefTokenRequest request = new KsefTokenRequest
+        KsefTokenRequest request = new()
         {
             Permissions =
             [
@@ -119,7 +119,7 @@ public class KsefTokenE2ETests : TestBase
         string encryptedTokenB64 = Convert.ToBase64String(encrypted);
 
         // 3) Wyślij żądanie uwierzytelnienia tokenem KSeF
-        AuthenticationKsefTokenRequest request = new AuthenticationKsefTokenRequest
+        AuthenticationKsefTokenRequest request = new()
         {
             Challenge = challenge.Challenge,
             ContextIdentifier = new AuthenticationTokenContextIdentifier

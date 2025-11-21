@@ -10,7 +10,7 @@ using KSeF.Client.Tests.Utils;
 using static KSeF.Client.Core.Models.Permissions.Identifiers.PersonalPermissionsTargetIdentifier;
 using static KSeF.Client.Core.Models.Permissions.PersonalPermission;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermission;
 
 public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBase
 {
@@ -28,7 +28,7 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
     /// </list>
     /// </remarks>
     [Fact]
-    public async Task Search_MyActive_InNipContext_AsAuthorizedPesel_ShouldReturnGrantedPermissions()
+    public async Task SearchMyActiveInNipContextAsAuthorizedPeselShouldReturnGrantedPermissions()
     {
         #region Arrange
         string ownerNip = MiscellaneousUtils.GetRandomNip();
@@ -47,19 +47,19 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
             await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, ownerNip);
         string ownerAccessToken = ownerAuth.AccessToken.Token;
 
-        // GRANT (publiczne API): nadajemy InvoiceRead + InvoiceWrite dla osoby identyfikowanej PESEL
-        GrantPermissionsPersonRequest grantRequest = new GrantPermissionsPersonRequest
+        // GRANT (publiczne API): nadajemy InvoiceRead + InvoiceWrite osobie identyfikowanej PESELem
+        GrantPermissionsPersonRequest grantRequest = new()
         {
             SubjectIdentifier = new GrantPermissionsPersonSubjectIdentifier
             {
                 Type = GrantPermissionsPersonSubjectIdentifierType.Pesel,
                 Value = authorizedPesel
             },
-            Permissions = new PersonPermissionType[]
-            {
+            Permissions =
+            [
                 PersonPermissionType.InvoiceRead,
                 PersonPermissionType.InvoiceWrite
-            },
+            ],
             Description = description
         };
 
@@ -96,7 +96,7 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
         string personAccessToken = personAuth.AccessToken.Token;
 
         // Zapytanie: personal/grants — obowiązujące (Active) uprawnienia w bieżącym kontekście NIP
-        PersonalPermissionsQueryRequest query = new PersonalPermissionsQueryRequest
+        PersonalPermissionsQueryRequest query = new()
         {
             ContextIdentifier = new PersonalPermissionsContextIdentifier
             {
@@ -127,9 +127,7 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
                 cancellationToken: CancellationToken);
 
         // wyłuskaj obie nadane w tym teście (po opisie)
-        PersonalPermission[] inContext = page.Permissions
-            .Where(p => p.Description == description && p.PermissionState == PersonalPermissionState.Active)
-            .ToArray();
+        PersonalPermission[] inContext = [.. page.Permissions.Where(p => p.Description == description && p.PermissionState == PersonalPermissionState.Active)];
         #endregion
 
         #region Assert

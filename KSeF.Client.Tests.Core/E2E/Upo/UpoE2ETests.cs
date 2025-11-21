@@ -1,4 +1,5 @@
-﻿using KSeF.Client.Core.Interfaces.Services;
+﻿using KSeF.Client.Api.Builders.Online;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Core.Models.Sessions;
@@ -19,7 +20,7 @@ public class UpoE2ETests : TestBase
     private const int SuccessfulInvoiceCountExpected = 1;
     private const int SessionStatusCodeExpected = 100;
 
-    private string accessToken = string.Empty;
+    private readonly string accessToken = string.Empty;
     private string nip { get; }
 
     public UpoE2ETests()
@@ -33,7 +34,7 @@ public class UpoE2ETests : TestBase
 
     [Theory]
     [InlineData(SystemCode.FA3, "invoice-template-fa-3.xml")]
-    public async Task UpoRetreivalAsync_FullIntegrationFlow_AllStepsSucceed(SystemCode systemCode, string invoiceTemplatePath)
+    public async Task UpoRetreivalAsyncFullIntegrationFlowAllStepsSucceed(SystemCode systemCode, string invoiceTemplatePath)
     {
         // Arrange
         EncryptionData encryptionData = CryptographyService.GetEncryptionData();
@@ -132,7 +133,7 @@ public class UpoE2ETests : TestBase
         xml = xml.Replace("#nip#", nip);
         xml = xml.Replace("#invoice_number#", $"{Guid.NewGuid()}");
 
-        using MemoryStream memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+        using MemoryStream memoryStream = new(Encoding.UTF8.GetBytes(xml));
         byte[] invoice = memoryStream.ToArray();
 
         byte[] encryptedInvoice = cryptographyService.EncryptBytesWithAES256(invoice, encryptionData.CipherKey, encryptionData.CipherIv);

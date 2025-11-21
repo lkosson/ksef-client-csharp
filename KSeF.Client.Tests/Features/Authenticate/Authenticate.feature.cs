@@ -13,7 +13,7 @@ using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Core.Models.ApiResponses;
 
-namespace KSeF.Client.Tests.Features;
+namespace KSeF.Client.Tests.Features.Authenticate;
 
 [Collection("Authenticate.feature")]
 [Trait("Category", "Features")]
@@ -22,7 +22,7 @@ public class AuthenticateTests : KsefIntegrationTestBase
 {
     [Fact]
     [Trait("Scenario", "Uwierzytelnienie za pomocą certyfikatu z identyfikatorem NIP, na uprawnienie właściciel")]
-    public async Task GivenOwnerContextAndOwnerPermission_WhenAuthenticatingWithCertificate_ThenAccessTokenReturned()
+    public async Task GivenOwnerContextAndOwnerPermissionWhenAuthenticatingWithCertificateThenAccessTokenReturned()
     {
         string nip = MiscellaneousUtils.GetRandomNip();
         string accessToken = (await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, nip)).AccessToken.Token;
@@ -49,7 +49,7 @@ public class AuthenticateTests : KsefIntegrationTestBase
     [InlineData("nip", new PersonPermissionType[] { PersonPermissionType.Introspection })]
     [InlineData("nip", new PersonPermissionType[] { PersonPermissionType.SubunitManage })]
     [Trait("Scenario", "Uwierzytelnienie certyfikatem (PESEL/NIP) na różne uprawnienia")]
-    public async Task GivenOwnerContextAndPermissionGranted_WhenAuthenticatingAsSubject_ThenAccessTokenReturned(
+    public async Task GivenOwnerContextAndPermissionGrantedWhenAuthenticatingAsSubjectThenAccessTokenReturned(
         string identifierKind,
         PersonPermissionType[] permissions,
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip)
@@ -122,7 +122,7 @@ public class AuthenticateTests : KsefIntegrationTestBase
     [InlineData(EntityStandardPermissionType.InvoiceRead)]
     [InlineData(EntityStandardPermissionType.InvoiceWrite)]
     [Trait("Scenario", "Uwierzytelnienie za pomocą pieczęci z nip, na różne uprawnienia")]
-    public async Task GivenOwnerContextAndPermissionGranted_WhenAuthenticatingAsSubjectEntity_ThenAccessTokenReturned(
+    public async Task GivenOwnerContextAndPermissionGrantedWhenAuthenticatingAsSubjectEntityThenAccessTokenReturned(
         EntityStandardPermissionType permission,
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip)
     {
@@ -131,8 +131,7 @@ public class AuthenticateTests : KsefIntegrationTestBase
 
         string delegateNip = MiscellaneousUtils.GetRandomNip();
 
-        GrantPermissionsEntitySubjectIdentifier subject = new GrantPermissionsEntitySubjectIdentifier
-        { Type = GrantPermissionsEntitySubjectIdentifierType.Nip, Value = delegateNip };
+        GrantPermissionsEntitySubjectIdentifier subject = new() { Type = GrantPermissionsEntitySubjectIdentifierType.Nip, Value = delegateNip };
 
         GrantPermissionsEntityRequest request = GrantEntityPermissionsRequestBuilder
             .Create()
@@ -183,7 +182,7 @@ public class AuthenticateTests : KsefIntegrationTestBase
 
     [Fact]
     [Trait("Scenario", "Uwierzytelnienie za pomocą PESEL oraz niepoprawnego certyfikatu z PESEL")]
-    public async Task GivenOwnerContextAndWrongCertificate_WhenAuthenticateWithPESEL_ThenError()
+    public async Task GivenOwnerContextAndWrongCertificateWhenAuthenticateWithPESELThenError()
     {
         string ownerNip = MiscellaneousUtils.GetRandomNip();
         string ownerToken = (await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, ownerNip)).AccessToken.Token;
@@ -224,7 +223,7 @@ public class AuthenticateTests : KsefIntegrationTestBase
 
     [Fact]
     [Trait("Scenario", "Niepoprawne uwierzytelnienia - brak żądania autoryzacyjnego")]
-    public async Task GivenOwnerContextAndNip_WhenAuthenticatingWithWrongData_ThenError()
+    public async Task GivenOwnerContextAndNipWhenAuthenticatingWithWrongDataThenError()
     {
         string nip = MiscellaneousUtils.GetRandomNip();
 
@@ -249,7 +248,7 @@ public class AuthenticateTests : KsefIntegrationTestBase
 
     [Fact]
     [Trait("Scenario", "Niepoprawne uwierzytelnienia - zły nip w podpisie")]
-    public async Task GivenOwnerContext_WhenAuthenticatingWithWrongNip_ThenError()
+    public async Task GivenOwnerContextWhenAuthenticatingWithWrongNipThenError()
     {
         string ownerNip = MiscellaneousUtils.GetRandomNip();
 
@@ -286,7 +285,7 @@ public class AuthenticateTests : KsefIntegrationTestBase
 
     [Fact]
     [Trait("Scenario", "Niepoprawne uwierzytelnienia - błędny plik autoryzacyjny")]
-    public async Task GivenOwnerContext_WhenAuthenticatingWithWrongAuthenticateFile_ThenError()
+    public async Task GivenOwnerContextWhenAuthenticatingWithWrongAuthenticateFileThenError()
     {
         string ownerNip = MiscellaneousUtils.GetRandomNip();
         string nip = MiscellaneousUtils.GetRandomNip();
@@ -346,14 +345,13 @@ public class AuthenticateTests : KsefIntegrationTestBase
     {
         JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(jwtToken);
 
-        string[] perClaims = jwt.Claims
+        string[] perClaims = [.. jwt.Claims
             .Where(c => c.Type == "per")
-            .Select(c => c.Value)
-            .ToArray();
+            .Select(c => c.Value)];
 
-        if (perClaims.Length == 1 && perClaims[0].TrimStart().StartsWith("["))
+        if (perClaims.Length == 1 && perClaims[0].TrimStart().StartsWith('['))
         {
-            string[] arr = JsonSerializer.Deserialize<string[]>(perClaims[0]) ?? Array.Empty<string>();
+            string[] arr = JsonSerializer.Deserialize<string[]>(perClaims[0]) ?? [];
             return arr.ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
 
@@ -364,18 +362,22 @@ public class AuthenticateTests : KsefIntegrationTestBase
           where TEnum : struct, Enum
     {
         JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(jwtToken);
-        string[] perValues = jwt.Claims.Where(c => c.Type == "per").Select(c => c.Value).ToArray();
+        string[] perValues = [.. jwt.Claims.Where(c => c.Type == "per").Select(c => c.Value)];
 
-        IEnumerable<string> raw =
-            perValues.Length == 1 && perValues[0].TrimStart().StartsWith("[")
-                ? JsonSerializer.Deserialize<string[]>(perValues[0]) ?? Array.Empty<string>()
+        IEnumerable<string> rawEnums =
+            perValues.Length == 1 && perValues[0].TrimStart().StartsWith('[')
+                ? JsonSerializer.Deserialize<string[]>(perValues[0]) ?? []
                 : perValues;
 
-        HashSet<TEnum> set = new HashSet<TEnum>();
-        foreach (string s in raw)
-            if (Enum.TryParse<TEnum>(s, ignoreCase: true, out TEnum e))
-                set.Add(e);
+        HashSet<TEnum> parsedEnums = [];
+        foreach (string enumValue in rawEnums)
+        {
+            if (Enum.TryParse(enumValue, ignoreCase: true, out TEnum parsedEnum))
+            {
+                parsedEnums.Add(parsedEnum);
+            }
+        }
 
-        return set;
+        return parsedEnums;
     }
 }

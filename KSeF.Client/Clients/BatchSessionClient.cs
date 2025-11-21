@@ -42,7 +42,7 @@ public class BatchSessionClient(IRestClient restClient, IRouteBuilder routeBuild
         }
 
         return BatchPartsSender.SendPackagePartsAsync(
-            _restClient,
+            restClient,
             openBatchSessionResponse.PartUploadRequests,
             parts,
             (info) => new ByteArrayContent(info.Data),
@@ -59,7 +59,7 @@ public class BatchSessionClient(IRestClient restClient, IRouteBuilder routeBuild
         }
 
         return BatchPartsSender.SendPackagePartsAsync(
-            _restClient,
+            restClient,
             openBatchSessionResponse.PartUploadRequests,
             parts,
             (info) => new StreamContent(info.DataStream),

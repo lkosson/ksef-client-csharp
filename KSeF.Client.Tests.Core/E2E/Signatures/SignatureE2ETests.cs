@@ -11,7 +11,7 @@ public class SignatureE2ETests : TestBase
     /// </summary>
     /// <returns></returns>
     [Fact]
-    public async Task CreateSignedXmlDocument_ValidInput_Success()
+    public async Task CreateSignedXmlDocumentValidInputSuccess()
     {
         // Arrange
         string pesel = MiscellaneousUtils.GetRandomPesel();
@@ -48,7 +48,7 @@ public class SignatureE2ETests : TestBase
     /// </summary>
     /// <returns></returns>
     [Fact]
-    public async Task SubmitXadesAuthRequestAsync_E2E_Positive()
+    public async Task SubmitXadesAuthRequestAsyncE2EPositive()
     {
         // Arrange
         string pesel = MiscellaneousUtils.GetRandomPesel();

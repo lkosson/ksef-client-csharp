@@ -39,7 +39,7 @@ public class LimitsE2ETests : TestBase
 
         // 4. Zmiana limitów dla bieżącego kontekstu sesji
         Client.Core.Models.TestData.ChangeSessionLimitsInCurrentContextRequest newLimits =
-            new Client.Core.Models.TestData.ChangeSessionLimitsInCurrentContextRequest
+            new()
             {
                 OnlineSession = new Client.Core.Models.TestData.TestDataSessionLimitsBase
                 {
@@ -112,7 +112,7 @@ public class LimitsE2ETests : TestBase
         Assert.True(limitsForSubject.Enrollment.MaxEnrollments > 0);
 
         // 3. Zmiana limitów
-        Client.Core.Models.TestData.ChangeCertificatesLimitInCurrentSubjectRequest newCertificateLimitsForSubject = new Client.Core.Models.TestData.ChangeCertificatesLimitInCurrentSubjectRequest
+        Client.Core.Models.TestData.ChangeCertificatesLimitInCurrentSubjectRequest newCertificateLimitsForSubject = new()
         {
             SubjectIdentifierType = Client.Core.Models.TestData.TestDataSubjectIdentifierType.Nip,
             Certificate = new Client.Core.Models.TestData.TestDataCertificate

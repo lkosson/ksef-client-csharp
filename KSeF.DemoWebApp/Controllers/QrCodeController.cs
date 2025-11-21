@@ -1,5 +1,6 @@
 using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.QRCode;
+using KSeF.Client.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography.X509Certificates;
 
@@ -55,8 +56,9 @@ public class QrCodeController(
         string privateKey = ""        
        )
     {
-        X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certbase64));
-        string url = linkSvc.BuildCertificateVerificationUrl(sellerNip,contextIdentifierType ,contextIdentifierValue ,certSerial, invoiceHash, cert, privateKey);
+        byte[] bytes = Convert.FromBase64String(certbase64);
+        X509Certificate2 certificate = bytes.LoadPkcs12();
+        string url = linkSvc.BuildCertificateVerificationUrl(sellerNip,contextIdentifierType ,contextIdentifierValue ,certSerial, invoiceHash, certificate, privateKey);
         byte[] qrCode = qrSvc.GenerateQrCode(url);
         byte[] labeledQr = qrSvc.AddLabelToQrCode(qrCode, "CERTYFIKAT");
 

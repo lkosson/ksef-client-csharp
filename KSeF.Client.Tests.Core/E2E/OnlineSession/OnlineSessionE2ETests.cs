@@ -1,4 +1,5 @@
 using KSeF.Client.Core.Exceptions;
+using KSeF.Client.Api.Builders.Online;
 using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Authorization;
@@ -22,7 +23,7 @@ public class OnlineSessionE2ETests : TestBase
     private const int SuccessfulInvoiceCountExpected = 1;
     private const int MaxRetries = 60;
 
-    private string accessToken = string.Empty;
+    private readonly string accessToken = string.Empty;
     private string Nip { get; }
 
     public OnlineSessionE2ETests()
@@ -81,6 +82,7 @@ public class OnlineSessionE2ETests : TestBase
         Assert.Equal(SuccessfulInvoiceCountExpected, statusAfterSend.SuccessfulInvoiceCount);
         Assert.True(statusAfterSend.FailedInvoiceCount is null);
         Assert.Null(statusAfterSend.Upo);
+        Assert.Equal(InvoiceInSessionStatusCodeResponse.AcceptedForProcessing, statusAfterSend.Status.Code);
         
         SessionInvoicesResponse invoices = await KsefClient.GetSessionInvoicesAsync(openSessionResponse.ReferenceNumber, accessToken);
 
@@ -146,6 +148,7 @@ public class OnlineSessionE2ETests : TestBase
         Assert.NotNull(statusAfterClose);
         Assert.Equal(InvoiceInSessionStatusCodeResponse.Success, statusAfterClose.Status.Code);
         string upoReferenceNumber = statusAfterClose.Upo.Pages.First().ReferenceNumber;
+        Assert.NotNull(upoReferenceNumber);
 
         // 7) pobranie UPO faktury z URL zawartego w metadanych faktury
         Uri upoDownloadUrl = invoices.Invoices.First().UpoDownloadUrl;
@@ -189,7 +192,7 @@ public class OnlineSessionE2ETests : TestBase
         xml = xml.Replace("#nip#", nip);
         xml = xml.Replace("#invoice_number#", $"{Guid.NewGuid()}");
 
-        using MemoryStream memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+        using MemoryStream memoryStream = new(Encoding.UTF8.GetBytes(xml));
         byte[] invoice = memoryStream.ToArray();
 
         byte[] encryptedInvoice = cryptographyService.EncryptBytesWithAES256(invoice, encryptionData.CipherKey, encryptionData.CipherIv);

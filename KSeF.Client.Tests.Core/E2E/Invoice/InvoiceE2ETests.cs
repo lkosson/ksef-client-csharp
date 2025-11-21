@@ -38,7 +38,7 @@ public class InvoiceE2ETests : TestBase
     public async Task Invoice_GetInvoiceMetadataAsync_ReturnsMetadata()
     {
         // Arrange
-        InvoiceQueryFilters invoiceMetadataQueryRequest = new InvoiceQueryFilters
+        InvoiceQueryFilters invoiceMetadataQueryRequest = new()
         {
             SubjectType = InvoiceSubjectType.Subject1,
             DateRange = new DateRange
@@ -137,7 +137,7 @@ public class InvoiceE2ETests : TestBase
         Assert.False(string.IsNullOrWhiteSpace(invoice));
 
         // 8. Przygotuj zapytanie o faktury
-        InvoiceQueryFilters query = new InvoiceQueryFilters
+        InvoiceQueryFilters query = new()
         {
             DateRange = new DateRange
             {
@@ -153,7 +153,7 @@ public class InvoiceE2ETests : TestBase
         Assert.NotNull(invoicesMetadataForSeller);
 
         // 10. Zainicjuj eksport faktur
-        InvoiceExportRequest invoiceExportRequest = new InvoiceExportRequest
+        InvoiceExportRequest invoiceExportRequest = new()
         {
             Encryption = encryptionData.EncryptionInfo,
             Filters = query
@@ -162,7 +162,7 @@ public class InvoiceE2ETests : TestBase
         OperationResponse invoicesForSellerResponse = await KsefClient.ExportInvoicesAsync(
             invoiceExportRequest,
             _accessToken,
-            CancellationToken);
+            cancellationToken:CancellationToken);
 
         Assert.NotNull(invoicesForSellerResponse?.ReferenceNumber);
 

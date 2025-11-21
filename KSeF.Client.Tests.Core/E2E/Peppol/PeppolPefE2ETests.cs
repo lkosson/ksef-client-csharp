@@ -1,4 +1,4 @@
-using KSeF.Client.Api.Builders.AuthorizationPermissions;
+using KSeF.Client.Api.Builders.AuthorizationEntityPermissions;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.ApiResponses;
@@ -12,7 +12,6 @@ using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeF.Client.Tests.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
@@ -26,39 +25,39 @@ namespace KSeF.Client.Tests.Core.E2E.Peppol;
 /// 3) Dostawca wysyła fakturę PEF w imieniu firmy.
 /// </summary>
 [Collection("OnlineSessionScenario")]
-public class PeppolPefE2ETests : TestBase
+public partial class PeppolPefE2ETests : TestBase
 {
-    protected ITestDataClient _testClient => _scope.ServiceProvider.GetRequiredService<ITestDataClient>();
+    protected ITestDataClient TestClient => Get<ITestDataClient>();
 
     // Wymaganie PeppolId (CN):
     private static readonly Regex PeppolIdRegex =
-        new(@"^P[A-Z]{2}[0-9]{6}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        PeppolIdCompiledRegex();
 
-    private string? _accessToken; // token firmy (NIP) – do odczytów i ewentualnie innych operacji
-    private string? _refreshToken;
-    private readonly string _companyNip;
-    private readonly string _buyerNip;
-    private readonly string _iban;
-    private string? _peppol;
-    private string? _privateKeyBase64;
-    private string? _publicKeyBase64;
+    private string accessToken; // token firmy (NIP) – do odczytów i ewentualnie innych operacji
+    private readonly string refreshToken;
+    private readonly string companyNip;
+    private readonly string buyerNip;
+    private readonly string iban;
+    private string peppol;
+    private string privateKeyBase64;
+    private string publicKeyBase64;
 
-    private string? _pefTemplate;
-    private string? _pefCorrectionTemplate;
+    private string _pefTemplate;
+    private string _pefCorrectionTemplate;
 
     public PeppolPefE2ETests() : base()
     {
         // Token firmy (XAdES) – jak w pozostałych E2E (posłuży do odczytów/list i ewentualnej sesji, ale wysyłkę robi dostawca)
-        _companyNip = MiscellaneousUtils.GetRandomNip();
-        _buyerNip = MiscellaneousUtils.GetRandomNip();
-        _iban = MiscellaneousUtils.GeneratePolishIban();
+        companyNip = MiscellaneousUtils.GetRandomNip();
+        buyerNip = MiscellaneousUtils.GetRandomNip();
+        iban = MiscellaneousUtils.GeneratePolishIban();
 
         AuthenticationOperationStatusResponse auth = AuthenticationUtils
-            .AuthenticateAsync(AuthorizationClient, SignatureService, _companyNip)
+            .AuthenticateAsync(AuthorizationClient, SignatureService, companyNip)
             .GetAwaiter().GetResult();
 
-        _accessToken = auth.AccessToken.Token;
-        _refreshToken = auth.RefreshToken.Token;
+        accessToken = auth.AccessToken.Token;
+        refreshToken = auth.RefreshToken.Token;
     }
 
     [Theory]
@@ -70,12 +69,12 @@ public class PeppolPefE2ETests : TestBase
 
         if (hasAttachment)
         {
-            Client.Core.Models.TestData.AttachmentPermissionGrantRequest request = new() { Nip = _companyNip };
-            await _testClient.EnableAttachmentAsync(request);
+            Client.Core.Models.TestData.AttachmentPermissionGrantRequest request = new() { Nip = companyNip };
+            await TestClient.EnableAttachmentAsync(request);
             await Task.Delay(SleepTime);
 
-            RefreshTokenResponse refreshToken = await AuthorizationClient.RefreshAccessTokenAsync(_refreshToken);
-            _accessToken = refreshToken.AccessToken.Token;
+            RefreshTokenResponse newRefreshToken = await AuthorizationClient.RefreshAccessTokenAsync(refreshToken);
+            accessToken = newRefreshToken.AccessToken.Token;
         }
 
 
@@ -90,7 +89,7 @@ public class PeppolPefE2ETests : TestBase
         Assert.False(string.IsNullOrWhiteSpace(peppolId));
         Assert.Matches(PeppolIdRegex, peppolId);
         Assert.False(string.IsNullOrWhiteSpace(providerToken));
-        _peppol = peppolId;
+        peppol = peppolId;
 
         // === 1) RESOLVE PROVIDER===
         // Arrange
@@ -110,17 +109,17 @@ public class PeppolPefE2ETests : TestBase
         await GrantPefInvoicingAsync(peppolId);
 
         // Assert (wstępna weryfikacja, bez przeszukiwania całej listy)
-        EntityAuthorizationsQueryRequest query = new EntityAuthorizationsQueryRequest
+        EntityAuthorizationsQueryRequest query = new()
         {
-            AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier { Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip, Value = _companyNip },
+            AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier { Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip, Value = companyNip },
             AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier { Type = EntityAuthorizationsAuthorizedEntityIdentifierType.PeppolId, Value = peppolId },
             QueryType = QueryType.Granted,
-            PermissionTypes = new() { InvoicePermissionType.PefInvoicing }
+            PermissionTypes = [InvoicePermissionType.PefInvoicing]
         };
 
         PagedAuthorizationsResponse<AuthorizationGrant> authz = await KsefClient.SearchEntityAuthorizationGrantsAsync(
             requestPayload: query,
-            accessToken: _accessToken,
+            accessToken: accessToken,
             pageOffset: 0,
             pageSize: 10,
             cancellationToken: CancellationToken.None);
@@ -150,12 +149,12 @@ public class PeppolPefE2ETests : TestBase
 
         if (hasAttachment)
         {
-            Client.Core.Models.TestData.AttachmentPermissionGrantRequest request = new() { Nip = _companyNip };
-            await _testClient.EnableAttachmentAsync(request);
+            Client.Core.Models.TestData.AttachmentPermissionGrantRequest request = new() { Nip = companyNip };
+            await TestClient.EnableAttachmentAsync(request);
             await Task.Delay(SleepTime);
 
-            RefreshTokenResponse refreshToken = await AuthorizationClient.RefreshAccessTokenAsync(_refreshToken);
-            _accessToken = refreshToken.AccessToken.Token;
+            RefreshTokenResponse newRefreshToken = await AuthorizationClient.RefreshAccessTokenAsync(refreshToken);
+            accessToken = newRefreshToken.AccessToken.Token;
         }
 
 
@@ -170,7 +169,7 @@ public class PeppolPefE2ETests : TestBase
         Assert.False(string.IsNullOrWhiteSpace(peppolId));
         Assert.Matches(PeppolIdRegex, peppolId);
         Assert.False(string.IsNullOrWhiteSpace(providerToken));
-        _peppol = peppolId;
+        peppol = peppolId;
 
         // === 1) RESOLVE PROVIDER===
         // Arrange
@@ -190,17 +189,17 @@ public class PeppolPefE2ETests : TestBase
         await GrantPefInvoicingAsync(peppolId);
 
             // Assert (wstępna weryfikacja, bez przeszukiwania całej listy)
-        EntityAuthorizationsQueryRequest query = new EntityAuthorizationsQueryRequest
+        EntityAuthorizationsQueryRequest query = new()
         {
-            AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier { Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip, Value = _companyNip },
+            AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier { Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip, Value = companyNip },
             AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier { Type = EntityAuthorizationsAuthorizedEntityIdentifierType.PeppolId, Value = peppolId },
             QueryType = QueryType.Granted,
-            PermissionTypes = new() { InvoicePermissionType.PefInvoicing }
+            PermissionTypes = [InvoicePermissionType.PefInvoicing]
         };
 
         PagedAuthorizationsResponse<AuthorizationGrant> authz = await KsefClient.SearchEntityAuthorizationGrantsAsync(
             requestPayload: query,
-            accessToken: _accessToken,
+            accessToken: accessToken,
             pageOffset: 0,
             pageSize: 10,
             cancellationToken: CancellationToken.None);
@@ -253,15 +252,25 @@ public class PeppolPefE2ETests : TestBase
             organizationIdentifier: organizationIdentifier,
             commonName: peppolId);
 
-        using RSA rsaPrivateKey = providerSeal.GetRSAPrivateKey();
-        using RSA rsaPublicKey = providerSeal.GetRSAPublicKey();
+        using RSA rsaPrivateKey = providerSeal.GetRSAPrivateKey() ?? throw new InvalidCastException();
+        using RSA rsaPublicKey = providerSeal.GetRSAPublicKey() ?? throw new InvalidCastException();
 
-        _privateKeyBase64 =
+        if (rsaPrivateKey is null)
+        {
+            throw new InvalidOperationException("Provider certificate does not contain a private key.");
+        }
+
+        if (rsaPublicKey is null)
+        {
+            throw new InvalidOperationException("Provider certificate does not contain a public key.");
+        }
+
+        privateKeyBase64 =
             "-----BEGIN PRIVATE KEY-----\n" +
             Convert.ToBase64String(rsaPrivateKey.ExportPkcs8PrivateKey(), Base64FormattingOptions.InsertLineBreaks) +
             "\n-----END PRIVATE KEY-----";
 
-        _publicKeyBase64 =
+        publicKeyBase64 =
             "-----BEGIN PUBLIC KEY-----\n" +
             Convert.ToBase64String(rsaPublicKey.ExportSubjectPublicKeyInfo(), Base64FormattingOptions.InsertLineBreaks) +
             "\n-----END PUBLIC KEY-----";
@@ -288,14 +297,14 @@ public class PeppolPefE2ETests : TestBase
             description: $"Znaleziono PeppolId {peppolId}",
             check: async () =>
             {
-                int? pageOffset = null;
+                int pageOffset = 0;
                 const int pageSize = 100;
                 int guardPages = 100;
-
+                QueryPeppolProvidersResponse page;
                 do
                 {
-                    QueryPeppolProvidersResponse page = await KsefClient.QueryPeppolProvidersAsync(
-                        accessToken: _accessToken,
+                     page = await KsefClient.QueryPeppolProvidersAsync(
+                        accessToken: accessToken,
                         pageOffset: pageOffset,
                         pageSize: pageSize,
                         cancellationToken: CancellationToken.None);
@@ -309,10 +318,13 @@ public class PeppolPefE2ETests : TestBase
 
                     if (page?.HasMore == true)
                     {
-                        pageOffset = (pageOffset ?? 0) + (page?.PeppolProviders?.Count ?? 0);
+                        pageOffset++;
                     }
-                    else break;
-                } while (guardPages-- > 0);
+                    else
+                    {
+                        break;
+                    }
+                } while (guardPages-- > 0 || page?.HasMore == true);
 
                 return false;
             },
@@ -340,27 +352,27 @@ public class PeppolPefE2ETests : TestBase
                 Value = peppolId
             })
             .WithPermission(AuthorizationPermissionType.PefInvoicing)
-            .WithDescription($"E2E: Nadanie uprawnienia do wystawiania faktur PEF dla firmy {_companyNip} (na wniosek {peppolId})")
+            .WithDescription($"E2E: Nadanie uprawnienia do wystawiania faktur PEF dla firmy {companyNip} (na wniosek {peppolId})")
             .Build();
 
         OperationResponse grantResp = await KsefClient.GrantsAuthorizationPermissionAsync(
             requestPayload: grantReq,
-            accessToken: _accessToken,
+            accessToken: accessToken,
             cancellationToken: CancellationToken.None);
 
         Assert.NotNull(grantResp);
 
-        PermissionsOperationStatusResponse grantRespStatus = await KsefClient.OperationsStatusAsync(grantResp.ReferenceNumber, _accessToken);
+        PermissionsOperationStatusResponse grantRespStatus = await KsefClient.OperationsStatusAsync(grantResp.ReferenceNumber, accessToken);
 
-        // Assert.Equal(200, grantRespStatus.Status.Code);
+        Assert.NotNull(grantRespStatus);
 
             // opcjonalnie: szybka walidacja listy grantów (w niektórych env może nie być 1:1)
-            EntityAuthorizationsQueryRequest query = new EntityAuthorizationsQueryRequest
+            EntityAuthorizationsQueryRequest query = new()
             {
                 AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier
                 {
                     Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip,
-                    Value = _companyNip
+                    Value = companyNip
                 },
                 AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier
                 {
@@ -368,12 +380,12 @@ public class PeppolPefE2ETests : TestBase
                     Value = peppolId
                 },
                 QueryType = QueryType.Granted,
-                PermissionTypes = new() { InvoicePermissionType.PefInvoicing }
+                PermissionTypes = [InvoicePermissionType.PefInvoicing]
             };
 
         PagedAuthorizationsResponse<AuthorizationGrant> authz = await KsefClient.SearchEntityAuthorizationGrantsAsync(
             requestPayload: query,
-            accessToken: _accessToken,
+            accessToken: accessToken,
             pageOffset: 0,
             pageSize: 10,
             cancellationToken: CancellationToken.None);
@@ -401,10 +413,10 @@ public class PeppolPefE2ETests : TestBase
             ksefClient: KsefClient,
             sessionReferenceNumber: openSession.ReferenceNumber,
             accessToken: providerToken,
-            supplierNip: $"PL{_companyNip}",
-            customerNip: $"PL{_buyerNip}",
-            buyerReference: $"PL{_buyerNip}",
-            iban: _iban,
+            supplierNip: $"PL{companyNip}",
+            customerNip: $"PL{buyerNip}",
+            buyerReference: $"PL{buyerNip}",
+            iban: iban,
             templatePath: _pefTemplate,
             encryptionData: encryptionData,
             cryptographyService: CryptographyService);
@@ -429,7 +441,7 @@ public class PeppolPefE2ETests : TestBase
 
         // czekamy na zamknięcie sesji deterministycznym pollingiem
         await AsyncPollingUtils.PollAsync(
-           description: $"Sesja zamknięta dla {_peppol}",
+           description: $"Sesja zamknięta dla {peppol}",
            check: async () =>
            {
                SessionStatusResponse st = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None);
@@ -490,10 +502,10 @@ public class PeppolPefE2ETests : TestBase
             ksefClient: KsefClient,
             sessionReferenceNumber: openSession.ReferenceNumber,
             accessToken: providerToken,
-            supplierNip: $"PL{_companyNip}",
-            customerNip: $"PL{_buyerNip}",
-            buyerReference: $"PL{_buyerNip}",
-            iban: _iban,
+            supplierNip: $"PL{companyNip}",
+            customerNip: $"PL{buyerNip}",
+            buyerReference: $"PL{buyerNip}",
+            iban: iban,
             templatePath: _pefCorrectionTemplate,
             encryptionData: encryptionData,
             cryptographyService: CryptographyService);
@@ -519,7 +531,7 @@ public class PeppolPefE2ETests : TestBase
 
         // oczekiwanie na zamknięcie sesji deterministycznym pollingiem
         await AsyncPollingUtils.PollAsync(
-           description: $"Sesja zamknięta dla {_peppol}",
+           description: $"Sesja zamknięta dla {peppol}",
            check: async () =>
            {
                SessionStatusResponse st = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None);
@@ -558,5 +570,8 @@ public class PeppolPefE2ETests : TestBase
         Assert.NotNull(upo);
         return upo;
     }
+
+    [GeneratedRegex(@"^P[A-Z]{2}[0-9]{6}$", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    private static partial Regex PeppolIdCompiledRegex();
 }
 

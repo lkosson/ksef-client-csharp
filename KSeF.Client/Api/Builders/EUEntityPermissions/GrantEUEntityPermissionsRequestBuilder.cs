@@ -56,7 +56,10 @@ public static class GrantEuEntityPermissionsRequestBuilder
         public IPermissionsStep WithSubjectName(string subjectName)
         {
             if (string.IsNullOrWhiteSpace(subjectName))
+            {
                 throw new ArgumentException("Wartość nie może być pusta ani zawierać wyłącznie białych znaków.", nameof(subjectName));
+            }
+
             _subjectName = subjectName;
             return this;
         }
@@ -76,11 +79,19 @@ public static class GrantEuEntityPermissionsRequestBuilder
         public GrantPermissionsEuEntityRequest Build()
         {
             if (_subject is null)
+            {
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
+            }
+
             if (_context is null)
+            {
                 throw new InvalidOperationException("Metoda WithContext(...) musi zostać wywołana po ustawieniu podmiotu.");
+            }
+
             if (_description is null)
+            {
                 throw new InvalidOperationException("Metoda WithDescription(...) musi zostać wywołana po ustawieniu uprawnień.");
+            }
 
             return new GrantPermissionsEuEntityRequest
             {

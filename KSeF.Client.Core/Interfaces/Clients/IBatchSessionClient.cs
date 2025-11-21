@@ -18,7 +18,7 @@ namespace KSeF.Client.Core.Interfaces.Clients
         /// <remarks>
         /// Otwiera sesję do wysyłki wsadowej faktur.
         /// </remarks>
-        /// <param name="requestPayload"><see cref=OpenBatchSessionRequest"/>schemat wysyłanych faktur, informacje o paczce faktur oraz informacje o kluczu używanym do szyfrowania.</param>
+        /// <param name="requestPayload"><see cref="OpenBatchSessionRequest"/>schemat wysyłanych faktur, informacje o paczce faktur oraz informacje o kluczu używanym do szyfrowania.</param>
         /// <param name="accessToken">Access token</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns><see cref="OpenBatchSessionResponse"/></returns>

@@ -1,4 +1,23 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
+## Changelog zmian – ## Wersja 2.0.0 RC5.7.2
+
+### Nowe
+- `EntityRoleType` → nowy enum (`CourtBailiff`, `EnforcementAuthority`, `LocalGovernmentUnit`, `LocalGovernmentSubUnit`, `VatGroupUnit`, `VatGroupSubUnit`) używany w `EntityRole`
+- `SubordinateEntityRoleType` → nowy enum (`LocalGovernmentSubUnit`, `VatGroupSubUnit`) używany w `SubordinateEntityRole`
+- Rozdzielono zależności na poszczególne wersje .NET SDK.
+- EditorConfig: C# 7.3, NRT off, wymuszenie jawnych typów, Async*…Async, _underscore dla pól prywatnych i chronionych.
+- KSeF.Client.Api: Opisy w języku polskim dla publicznych interfejsów/typów.
+- Utils: ToVatEuFromDomestic(...) – poprawiona heurystyka i komunikaty w języku polskim.
+
+### Zmodyfikowane
+- Zmieniono nazwę `EuEntityPermissionsQueryPermissionType` → `EuEntityPermissionType`
+- `PersonPermission` pole `PermissionScope` zmieniono typ ze `string` na enum `PersonPermissionType`  
+  (zgłoszenie: https://github.com/CIRFMF/ksef-client-csharp/issues/131)
+- `PersonPermission` pole `PermissionState` zmieniono typ ze `string` na  enum `PersonPermissionState`
+- `EntityRole` pole `Role` zmieniono typ ze `string` na  enum `EntityRoleType`
+- `SubordinateEntityRole` pole `Role` zmieniono typ ze `string` na  enum `SubordinateEntityRoleType`
+- `AuthorizationGrant` pole `PermissionScope` zmieniono typ ze `string` na  enum `AuthorizationPermissionType`
+- `EuEntityPermission` pole `PermissionScope` zmieniono typ ze `string` na  enum `EuEntityPermissionType`
 
 ## Changelog zmian – ## Wersja 2.0.0 RC5.7.1
 

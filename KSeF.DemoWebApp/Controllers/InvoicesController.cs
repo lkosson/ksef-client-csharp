@@ -3,17 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models;
 
-namespace WebApplication.Controllers;
+namespace KSeF.DemoWebApp.Controllers;
 [Route("[controller]")]
 [ApiController]
-public class InvoicesController : ControllerBase
+public class InvoicesController(IKSeFClient ksefClient) : ControllerBase
 {
-    private readonly IKSeFClient ksefClient;
-
-    public InvoicesController(IKSeFClient ksefClient)
-    {
-        this.ksefClient = ksefClient;
-    }
+    private readonly IKSeFClient ksefClient = ksefClient;
 
     /// <summary>
     /// Pobranie faktury po numerze referencyjnym.
@@ -46,11 +41,9 @@ public class InvoicesController : ControllerBase
     public async Task<ActionResult<OperationResponse>> ExportInvoices(
         [FromBody] InvoiceExportRequest request,
         [FromHeader(Name = "Authorization")] string accessToken,
-        [FromQuery] int? pageOffset,
-        [FromQuery] int? pageSize,
         CancellationToken cancellationToken)
     {
-        OperationResponse result = await ksefClient.ExportInvoicesAsync(request, accessToken, cancellationToken);
+        OperationResponse result = await ksefClient.ExportInvoicesAsync(request, accessToken, cancellationToken:cancellationToken);
         return Ok(result);
     }
 

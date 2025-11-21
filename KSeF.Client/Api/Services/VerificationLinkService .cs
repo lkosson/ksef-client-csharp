@@ -8,23 +8,21 @@ using System.Text;
 
 namespace KSeF.Client.Api.Services
 {
-    public class VerificationLinkService : IVerificationLinkService
+    /// <inheritdoc/>
+    public class VerificationLinkService(KSeFClientOptions options) : IVerificationLinkService
     {
-        private readonly string BaseUrl;
+        private readonly string BaseUrl = $"{options.BaseUrl}/client-app";
 
-        public VerificationLinkService(KSeFClientOptions options)
-        {
-            BaseUrl = $"{options.BaseUrl}/client-app";
-        }
-
+        /// <inheritdoc/>
         public string BuildInvoiceVerificationUrl(string nip, DateTime issueDate, string invoiceHash)
         {
-            string date = issueDate.ToString("dd-MM-yyyy");
+            string date = issueDate.ToString("dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
             byte[] bytes = Convert.FromBase64String(invoiceHash);
             string urlEncoded = bytes.EncodeBase64UrlToString();
             return $"{BaseUrl}/invoice/{nip}/{date}/{urlEncoded}";
         }
 
+        /// <inheritdoc/>
         public string BuildCertificateVerificationUrl(
             string sellerNip,
             QRCodeContextIdentifierType contextIdentifierType,
@@ -49,20 +47,16 @@ namespace KSeF.Client.Api.Services
         {
             // 1. SHA-256
             byte[] sha;
-
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                sha = sha256.ComputeHash(Encoding.UTF8.GetBytes(pathToSign));
-            }
+            sha = SHA256.HashData(Encoding.UTF8.GetBytes(pathToSign));
 
             if (!string.IsNullOrEmpty(privateKey))
             {
-                if (privateKey.StartsWith("-----"))
+                if (privateKey.StartsWith("-----", StringComparison.Ordinal))
                 {
                     privateKey = string.Concat(
                         privateKey
-                            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                            .Where(l => !l.StartsWith("-----"))
+                            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                            .Where(l => !l.StartsWith("-----", StringComparison.Ordinal))
                     );
                 }
 

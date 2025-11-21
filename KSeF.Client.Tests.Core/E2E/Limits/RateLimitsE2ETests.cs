@@ -65,7 +65,7 @@ public class RateLimitsE2ETests : TestBase
         // Act: Wyliczenie nowych limitów w bezpiecznych widełkach (min=1, max wg kategorii)
         EffectiveApiRateLimits modifiedLimits = CloneAndModifyWithinBounds(originalLimits, LimitsChangeValue);
 
-        EffectiveApiRateLimitsRequest setRequest = new EffectiveApiRateLimitsRequest
+        EffectiveApiRateLimitsRequest setRequest = new()
         {
             RateLimits = modifiedLimits
         };
@@ -125,7 +125,7 @@ public class RateLimitsE2ETests : TestBase
         Assert.NotNull(baseLimits);
 
         // Arrange: Przygotowanie jawnie nieprawidłowych wartości (OnlineSession poza maksimum)
-        EffectiveApiRateLimits invalidLimits = new EffectiveApiRateLimits
+        EffectiveApiRateLimits invalidLimits = new()
         {
             OnlineSession = new EffectiveApiRateLimitValues
             {
@@ -146,11 +146,10 @@ public class RateLimitsE2ETests : TestBase
             Other = baseLimits.Other
         };
 
-        EffectiveApiRateLimitsRequest request = new EffectiveApiRateLimitsRequest
+        EffectiveApiRateLimitsRequest request = new()
         {
             RateLimits = invalidLimits
         };
-
 
         try
         {

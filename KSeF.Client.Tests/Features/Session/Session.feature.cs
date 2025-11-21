@@ -1,9 +1,10 @@
+using KSeF.Client.Api.Builders.Online;
 using KSeF.Client.Core.Exceptions;
 using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Features;
+namespace KSeF.Client.Tests.Features.Session;
 
 [CollectionDefinition("Session.feature")]
 [Trait("Category", "Features")]
@@ -19,7 +20,7 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
     [InlineData(SystemCode.FA2)]
     [InlineData(SystemCode.FA3)]
     [Trait("Scenario", "Pytam o status aktualnej sesji interaktywnej")]
-    public async Task GivenActiveInteractiveSession_WhenCheckingStatus_ThenReturnsValidStatus(SystemCode systemCode)
+    public async Task GivenActiveInteractiveSessionWhenCheckingStatusThenReturnsValidStatus(SystemCode systemCode)
     {
         Core.Models.Authorization.AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, OwnerContextNip);
 
@@ -48,7 +49,7 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
     [InlineData(SystemCode.FA2)]
     [InlineData(SystemCode.FA3)]
     [Trait("Scenario", "Pytam o status innej sesji interaktywnej z mojego kontekstu")]
-    public async Task GivenSessionFromSameContext_WhenCheckingStatus_ThenReturnsValidStatus(SystemCode systemCode)
+    public async Task GivenSessionFromSameContextWhenCheckingStatusThenReturnsValidStatus(SystemCode systemCode)
     {
         Core.Models.Authorization.AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, OwnerContextNip);
 
@@ -82,7 +83,7 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
     [InlineData(SystemCode.FA2)]
     [InlineData(SystemCode.FA3)]
     [Trait("Scenario", "Pytam o status innej sesji interaktywnej z innego kontekstu")]
-    public async Task GivenSessionFromDifferentContext_WhenCheckingStatus_ThenReturnsAuthorizationError(SystemCode systemCode)
+    public async Task GivenSessionFromDifferentContextWhenCheckingStatusThenReturnsAuthorizationError(SystemCode systemCode)
     {
         Core.Models.Authorization.AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, OwnerContextNip);
 
@@ -122,7 +123,7 @@ public class InteractiveSessionTests : KsefIntegrationTestBase
     [InlineData(SystemCode.FA2)]
     [InlineData(SystemCode.FA3)]
     [Trait("Scenario", "Zamykam sesję interaktywną")]
-    public async Task GivenInteractiveSession_WhenClosingSession_ThenSessionIsClosed(SystemCode systemCode)
+    public async Task GivenInteractiveSessionWhenClosingSessionThenSessionIsClosed(SystemCode systemCode)
     {
         Core.Models.Authorization.AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, OwnerContextNip);
 

@@ -7,14 +7,15 @@ using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeF.Client.DI;
 using KSeF.Client.Extensions;
 using KSeF.Client.Tests.Utils;
+using System.Globalization;
 
 namespace KSeF.Client.Tests.Core.E2E.QrCode;
 
 public class QrCodeOnlineE2EScenarioFixture
 {
-    public string? AccessToken { get; set; }
-    public string? Nip { get; set; }
-    public string? SessionReferenceNumber { get; set; }
+    public string AccessToken { get; set; }
+    public string Nip { get; set; }
+    public string SessionReferenceNumber { get; set; }
 }
 
 [CollectionDefinition("QrCodeOnlineE2EScenario")]
@@ -135,7 +136,7 @@ public class QrCodeOnlineE2ETests : TestBase
         Assert.NotNull(invoiceForOnlineUrl);
         Assert.Contains(Convert.FromBase64String(invoiceHash).EncodeBase64UrlToString(), invoiceForOnlineUrl);
         Assert.Contains(_fixture.Nip, invoiceForOnlineUrl);
-        Assert.Contains(invoicingDate.ToString("dd-MM-yyyy"), invoiceForOnlineUrl);
+        Assert.Contains(invoicingDate.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture), invoiceForOnlineUrl);
 
         byte[] qrOnline = _qrSvc.GenerateQrCode(invoiceForOnlineUrl);
         Assert.NotNull(qrOnline);

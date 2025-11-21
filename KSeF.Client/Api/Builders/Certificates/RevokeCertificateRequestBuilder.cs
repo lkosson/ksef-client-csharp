@@ -8,10 +8,10 @@ public interface IRevokeCertificateRequestBuilder
     CertificateRevokeRequest Build();
 }
 
-internal class RevokeCertificateRequestBuilderImpl : IRevokeCertificateRequestBuilder
+internal sealed class RevokeCertificateRequestBuilderImpl : IRevokeCertificateRequestBuilder
 {
     private CertificateRevocationReason _revocationReason = CertificateRevocationReason.Unspecified;
-    private bool _revocationReasonSet = false;
+    private bool _revocationReasonSet;
 
     public static IRevokeCertificateRequestBuilder Create() => new RevokeCertificateRequestBuilderImpl();
 

@@ -9,7 +9,7 @@ using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Tests.Utils;
 using System.Security.Cryptography.X509Certificates;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.EuRepresentativePermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.EuRepresentativePermission;
 
 public class EuRepresentativePermissionE2ETests : TestBase
 {
@@ -30,21 +30,18 @@ public class EuRepresentativePermissionE2ETests : TestBase
     {
         // Przygotowanie
         string ownerNip = MiscellaneousUtils.GetRandomNip();
-        string ownerVatEu = MiscellaneousUtils.GetRandomVatEU(ownerNip);
-        string ownerNipVatEu = MiscellaneousUtils.GetNipVatEU(ownerNip, ownerVatEu);
+        string ownerVatEu = MiscellaneousUtils.GetRandomNipVatEU(ownerNip);
 
         string euEntityNip = MiscellaneousUtils.GetRandomNip();
-        string euEntityVatEu = MiscellaneousUtils.GetRandomVatEU(euEntityNip);
-        string euEntityNipVatEu = MiscellaneousUtils.GetNipVatEU(euEntityNip, euEntityVatEu);
+        string euEntityVatEu = MiscellaneousUtils.GetRandomNipVatEU(euEntityNip);
 
         string euRepresentativeEntityNip = MiscellaneousUtils.GetRandomNip();
-        string euRepresentativeEntityVatEu = MiscellaneousUtils.GetRandomVatEU(euRepresentativeEntityNip);
-        string euRepresentativeEntityNipVatEu = MiscellaneousUtils.GetNipVatEU(euRepresentativeEntityNip, euRepresentativeEntityVatEu);
-
+        string euRepresentativeEntityVatEu = MiscellaneousUtils.GetRandomNipVatEU(euRepresentativeEntityNip);
+      
         X509Certificate2 ownerCertificate = CertificateUtils.GetPersonalCertificate("Jan", "Kowalski", "TINPL", ownerNip, "M B");
         string ownerCertificateFingerprint = CertificateUtils.GetSha256Fingerprint(ownerCertificate);
 
-        X509Certificate2 euEntitySealCertificate = CertificateUtils.GetCompanySeal("Kowalski sp. z o.o", euEntityNipVatEu, "Kowalski");
+        X509Certificate2 euEntitySealCertificate = CertificateUtils.GetCompanySeal("Kowalski sp. z o.o", euEntityVatEu, "Kowalski");
         string euEntitySealCertificateFingerprint = CertificateUtils.GetSha256Fingerprint(euEntitySealCertificate);
 
         X509Certificate2 euEntityPersonalCertificate = CertificateUtils.GetPersonalCertificate("Paweł", "Testowy", "TINPL", euEntityNip, "T P");
@@ -77,17 +74,17 @@ public class EuRepresentativePermissionE2ETests : TestBase
                 Value = euEntityPersonalCertificateFingerprint
             })
             .WithSubjectName("MB Company")
-            .WithContext(new EuEntityContextIdentifier { Type = EuEntityContextIdentifierType.NipVatUe, Value = ownerNipVatEu })
+            .WithContext(new EuEntityContextIdentifier { Type = EuEntityContextIdentifierType.NipVatUe, Value = ownerVatEu })
             .WithDescription("EU Company")
             .Build();
 
         OperationResponse response = await KsefClient
             .GrantsPermissionEUEntityAsync(grantAdministrativePermissionsRequest, ownerAuthInfo.AccessToken.Token, CancellationToken);
 
-        // 3) Odpytywanie aż uprawnienia nadane dla kontekstu będą widoczne
-        EuEntityPermissionsQueryRequest permissionsQueryRequest = new EuEntityPermissionsQueryRequest { };
+        // 3) Odpytywanie, aż uprawnienia nadane kontekstowi będą widoczne
+        EuEntityPermissionsQueryRequest permissionsQueryRequest = new() { };
 
-        PagedPermissionsResponse<EuEntityPermission> grantedPermissions = await AsyncPollingUtils.PollAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> grantedPermissions = await AsyncPollingUtils.PollAsync(
             action: async () => await KsefClient.SearchGrantedEuEntityPermissionsAsync(permissionsQueryRequest, ownerAuthInfo.AccessToken.Token),
             condition: result => result is not null && result.Permissions is { Count: > 0 },
             delay: TimeSpan.FromSeconds(1),
@@ -99,7 +96,7 @@ public class EuRepresentativePermissionE2ETests : TestBase
         AuthenticationOperationStatusResponse euAuthInfo = await AuthenticationUtils.AuthenticateAsync(
             AuthorizationClient,
             SignatureService,
-            ownerNipVatEu, // nipvateu kontekstu
+            ownerVatEu, // nipvateu kontekstu
             AuthenticationTokenContextIdentifierType.NipVatUe, // typ identyfikatora kontekstu
             euEntityPersonalCertificate, // certyfikat jednostki eu
             AuthenticationTokenSubjectIdentifierTypeEnum.CertificateFingerprint); // typ identyfikatora jednostki eu
@@ -127,7 +124,7 @@ public class EuRepresentativePermissionE2ETests : TestBase
                 CancellationToken);
 
         // 7) Odpytywanie aż uprawnienia reprezentanta będą widoczne
-        PagedPermissionsResponse<EuEntityPermission> grantedRepresentativePermission = await AsyncPollingUtils.PollAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> grantedRepresentativePermission = await AsyncPollingUtils.PollAsync(
             action: async () => await KsefClient.SearchGrantedEuEntityPermissionsAsync(permissionsQueryRequest, euAuthInfo.AccessToken.Token),
             condition: result => result is not null && result.Permissions is { Count: > 0 },
             delay: TimeSpan.FromSeconds(1),
@@ -136,13 +133,13 @@ public class EuRepresentativePermissionE2ETests : TestBase
         );
 
         // 8) Odwołaj uprawnienia reprezentanta (wszystkie zwrócone)
-        foreach (EuEntityPermission? permission in grantedRepresentativePermission.Permissions)
+        foreach (Client.Core.Models.Permissions.EuEntityPermission? permission in grantedRepresentativePermission.Permissions)
         {
             await KsefClient.RevokeCommonPermissionAsync(permission.Id, euAuthInfo.AccessToken.Token);
         }
 
         // 9) Odpytywanie aż uprawnienia znikną
-        PagedPermissionsResponse<EuEntityPermission> afterRevoke = await AsyncPollingUtils.PollAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> afterRevoke = await AsyncPollingUtils.PollAsync(
             action: async () => await KsefClient.SearchGrantedEuEntityPermissionsAsync(permissionsQueryRequest, euAuthInfo.AccessToken.Token),
             condition: result => result is not null && (result.Permissions is null || result.Permissions.Count == 0),
             delay: TimeSpan.FromSeconds(1),

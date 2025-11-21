@@ -1,4 +1,4 @@
-using KSeF.Client.Api.Builders.AuthorizationPermissions;
+using KSeF.Client.Api.Builders.AuthorizationEntityPermissions;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
@@ -6,7 +6,7 @@ using KSeF.Client.Core.Models.Permissions.Authorizations;
 using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.AuthorizationPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.AuthorizationPermission;
 
 [Collection("AuthorizationPermissionsScenarioE2ECollection")]
 public class AuthorizationPermissionsE2ETests : TestBase
@@ -114,7 +114,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
     /// <returns>Stronicowana lista nadanych uprawnień.</returns>
     private async Task<PagedAuthorizationsResponse<AuthorizationGrant>> SearchGrantedRolesAsync()
     {
-        EntityAuthorizationsQueryRequest request = new EntityAuthorizationsQueryRequest();
+        EntityAuthorizationsQueryRequest request = new();
         PagedAuthorizationsResponse<AuthorizationGrant> entityRolesPaged = await KsefClient
             .SearchEntityAuthorizationGrantsAsync(
                 request,
@@ -132,7 +132,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
     /// </summary>
     private async Task RevokePermissionsAsync()
     {
-        List<OperationResponse> revokeResponses = new List<OperationResponse>();
+        List<OperationResponse> revokeResponses = [];
 
         // Uruchomienie operacji cofania
         foreach (AuthorizationGrant permission in _fixture.SearchResponse.AuthorizationGrants)

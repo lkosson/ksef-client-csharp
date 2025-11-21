@@ -16,6 +16,4 @@ namespace KSeF.Client.Core.Models.Permissions.Authorizations
         TaxRepresentative,
         PefInvoicing
     }
-
-    
 }

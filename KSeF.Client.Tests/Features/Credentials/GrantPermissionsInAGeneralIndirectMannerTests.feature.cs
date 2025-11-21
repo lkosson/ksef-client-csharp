@@ -9,7 +9,7 @@ using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using KSeF.Client.Core.Models.Token;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Features;
+namespace KSeF.Client.Tests.Features.Credentials;
 
 [CollectionDefinition("GrantPermissionsInAGeneralIndirectMannerTests.feature")]
 [Trait("Category", "Features")]
@@ -19,7 +19,7 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
 
     [Fact]
     [Trait("Scenario", "Nadanie pośrednich uprawnień przez dwa podmioty pośrednikowi i dalszemu podmiotowi końcowemu")]
-    public async Task GivenGrantPermissionsToIntermediary_WhenIntermediaryGrantsIndirectPermissions_ThenFinalSubjectsHasSinglePermissionInEachContext()
+    public async Task GivenGrantPermissionsToIntermediaryWhenIntermediaryGrantsIndirectPermissionsThenFinalSubjectsHasSinglePermissionInEachContext()
     {
         //Arrange
         string firstSubject = MiscellaneousUtils.GetRandomNip();
@@ -154,15 +154,15 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
 
     private async Task<OperationResponse> GrantIndirectPermissions(string identifier, IndirectEntitySubjectIdentifierType type , string authToken)
     {
-        IndirectEntitySubjectIdentifier subject = new IndirectEntitySubjectIdentifier
+        IndirectEntitySubjectIdentifier subject = new()
         {
             Type = type,
             Value = identifier
         };
 
-        IndirectEntityTargetIdentifier target = new IndirectEntityTargetIdentifier { Type = IndirectEntityTargetIdentifierType.AllPartners };
+        IndirectEntityTargetIdentifier target = new() { Type = IndirectEntityTargetIdentifierType.AllPartners };
 
         return await PermissionsUtils.GrantIndirectPermissionsAsync(KsefClient, authToken,
-            subject, target, new[] { IndirectEntityStandardPermissionType.InvoiceRead });
+            subject, target, [IndirectEntityStandardPermissionType.InvoiceRead]);
     }
 }

@@ -7,7 +7,7 @@ using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Tests.Utils;
 using System.Security.Cryptography.X509Certificates;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission;
 
 /// <summary>
 /// Pobranie listy administratorów podmiotów unijnych jako właściciel.
@@ -21,8 +21,7 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
     {
         // Arrange: przygotuj kontekst właściciela (NIP oraz NIP-VAT UE)
         string ownerNip = MiscellaneousUtils.GetRandomNip();
-        string ownerVatEu = MiscellaneousUtils.GetRandomVatEU(ownerNip);
-        string ownerNipVatEu = MiscellaneousUtils.GetNipVatEU(ownerNip, ownerVatEu);
+        string ownerVatEu = MiscellaneousUtils.GetRandomNipVatEU(ownerNip,CountryCode.ES);
 
         // Uwierzytelnij właściciela w kontekście NIP
         AuthenticationOperationStatusResponse ownerAuth = await AuthenticationUtils.AuthenticateAsync(
@@ -54,7 +53,7 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
             .WithContext(new EuEntityContextIdentifier
             {
                 Type = EuEntityContextIdentifierType.NipVatUe,
-                Value = ownerNipVatEu
+                Value = ownerVatEu
             })
             .WithDescription("Grant admin for EU Entity context")
             .Build();
@@ -79,13 +78,13 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
         // Act: pobierz listę administratorów podmiotów unijnych jako właściciel
         EuEntityPermissionsQueryRequest query = new EuEntityPermissionsQueryRequest
         {
-            PermissionTypes = new List<EuEntityPermissionsQueryPermissionType>
+            PermissionTypes = new List<EuEntityPermissionType>
             {
-                EuEntityPermissionsQueryPermissionType.VatUeManage
+                EuEntityPermissionType.VatUeManage
             }
         };
 
-        PagedPermissionsResponse<EuEntityPermission> admins = await AsyncPollingUtils.PollAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> admins = await AsyncPollingUtils.PollAsync(
             action: async () => await KsefClient.SearchGrantedEuEntityPermissionsAsync(
                 query,
                 ownerAuth.AccessToken.Token,

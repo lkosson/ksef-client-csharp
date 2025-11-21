@@ -1,4 +1,4 @@
-﻿using KSeF.Client.Api.Builders.AuthorizationPermissions;
+﻿using KSeF.Client.Api.Builders.AuthorizationEntityPermissions;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Authorization;
@@ -8,7 +8,7 @@ using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.AuthorizationPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.AuthorizationPermission;
 
 public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
 {
@@ -58,7 +58,7 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
             await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, ownerNip);
         string ownerAccessToken = ownerAuth.AccessToken.Token;
 
-        EntityAuthorizationsQueryRequest searchRequest = new EntityAuthorizationsQueryRequest
+        EntityAuthorizationsQueryRequest searchRequest = new()
         {
             AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier
             {                
@@ -73,7 +73,7 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
             await AsyncPollingUtils.PollAsync(
                 async () => await KsefClient.SearchEntityAuthorizationGrantsAsync(
                     searchRequest, ownerAccessToken, pageOffset: 0, pageSize: 50, cancellationToken: CancellationToken),
-                page => page.AuthorizationGrants != null && page.AuthorizationGrants.Any(),
+                page => page.AuthorizationGrants != null && page.AuthorizationGrants.Count > 0,
                 description: "Czekam aż Received zawiera nowy grant",
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 30,
@@ -83,7 +83,7 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
             receivedPage.AuthorizationGrants.FirstOrDefault(g =>
                 g.AuthorizedEntityIdentifier != null &&
                 g.AuthorizedEntityIdentifier.Value == ownerNip &&
-                string.Equals(g.AuthorizationScope, AuthorizationPermissionType.SelfInvoicing.ToString(), StringComparison.OrdinalIgnoreCase));
+                g.AuthorizationScope == AuthorizationPermissionType.SelfInvoicing);
         #endregion
 
         #region Assert
@@ -163,7 +163,7 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
             await AsyncPollingUtils.PollAsync(
                 async () => await KsefClient.SearchEntityAuthorizationGrantsAsync(
                     searchRequest, ownerAccessToken, pageOffset: 0, pageSize: 50, cancellationToken: CancellationToken),
-                page => page.AuthorizationGrants != null && page.AuthorizationGrants.Any(),
+                page => page.AuthorizationGrants != null && page.AuthorizationGrants.Count > 0,
                 description: "Czekam aż Received zawiera nowy grant",
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 30,
@@ -173,7 +173,7 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
             receivedPage.AuthorizationGrants.FirstOrDefault(g =>
                 g.AuthorizedEntityIdentifier != null &&
                 g.AuthorizedEntityIdentifier.Value == ownerNip &&
-                string.Equals(g.AuthorizationScope, AuthorizationPermissionType.SelfInvoicing.ToString(), StringComparison.OrdinalIgnoreCase));
+                g.AuthorizationScope == AuthorizationPermissionType.SelfInvoicing);
         #endregion
 
         #region Assert

@@ -1,7 +1,7 @@
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
 
-namespace KSeF.Client.Api.Builders.SubUnitPermissions;
+namespace KSeF.Client.Api.Builders.SubEntityPermissions;
 
 public static class GrantSubunitPermissionsRequestBuilder
 {
@@ -70,11 +70,19 @@ public static class GrantSubunitPermissionsRequestBuilder
         public GrantPermissionsSubunitRequest Build()
         {
             if (_subject is null)
+            {
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
+            }
+
             if (_context is null)
+            {
                 throw new InvalidOperationException("Metoda WithContext(...) musi zostać wywołana po ustawieniu podmiotu.");
+            }
+
             if (_context.Type == SubunitContextIdentifierType.InternalId && string.IsNullOrWhiteSpace(_subunitName))
+            {
                 throw new InvalidOperationException("Dla typu ContextIdentifierType.InternalId, metoda WithSubunitName(...) musi zostać wywołana przed Build().");
+            }
 
             return new GrantPermissionsSubunitRequest
             {

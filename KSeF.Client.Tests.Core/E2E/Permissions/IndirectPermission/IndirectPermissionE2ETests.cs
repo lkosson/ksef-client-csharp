@@ -8,10 +8,10 @@ using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.IndirectPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.IndirectPermission;
 
 /// <summary>
-/// Testy end-to-end dla nadawania uprawnień w sposób pośredni systemie KSeF.
+/// Testy end-to-end nadawania uprawnień w sposób pośredni systemie KSeF.
 /// Obejmuje scenariusze nadawania i odwoływania uprawnień oraz ich weryfikację.
 /// </summary>
 [Collection("IndirectPermissionScenario")]
@@ -71,7 +71,7 @@ public class IndirectPermissionE2ETests : TestBase
         Assert.Equal(OperationStatusCodeResponse.Success, indirectGrantStatus.Status.Code);
 
         // Act: 3) Wyszukanie nadanych uprawnień (w bieżącym kontekście, nieaktywne)
-        PagedPermissionsResponse<PersonPermission> permissionsAfterGrant =
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> permissionsAfterGrant =
             await SearchGrantedPersonPermissionsInCurrentContextAsync(
                 accessToken: delegateAccessToken,
                 includeInactive: true,
@@ -108,7 +108,7 @@ public class IndirectPermissionE2ETests : TestBase
         );
 
         // Poll: 5) Wyszukanie po cofnięciu – oczekujemy pustej listy
-        PagedPermissionsResponse<PersonPermission> permissionsAfterRevoke =
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> permissionsAfterRevoke =
             await AsyncPollingUtils.PollAsync(
                 action: () => SearchGrantedPersonPermissionsInCurrentContextAsync(
                     accessToken: delegateAccessToken,
@@ -199,14 +199,14 @@ public class IndirectPermissionE2ETests : TestBase
     /// Możliwe jest włączenie filtracji po stanie (np. nieaktywne).
     /// </summary>
     /// <returns>Zwraca stronicowaną listę uprawnień.</returns>
-    private async Task<PagedPermissionsResponse<PersonPermission>>
+    private async Task<PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>>
         SearchGrantedPersonPermissionsInCurrentContextAsync(
             string accessToken,
             bool includeInactive,
             int pageOffset,
             int pageSize)
     {
-        PersonPermissionsQueryRequest query = new PersonPermissionsQueryRequest
+        PersonPermissionsQueryRequest query = new()
         {
             QueryType = PersonQueryType.PermissionsGrantedInCurrentContext,
             PermissionState = includeInactive
@@ -214,7 +214,7 @@ public class IndirectPermissionE2ETests : TestBase
                 : PersonPermissionState.Active
         };
 
-        PagedPermissionsResponse<PersonPermission> pagedPermissionsResponse = await KsefClient.SearchGrantedPersonPermissionsAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> pagedPermissionsResponse = await KsefClient.SearchGrantedPersonPermissionsAsync(
             query,
             accessToken,
             pageOffset: pageOffset,
@@ -227,27 +227,25 @@ public class IndirectPermissionE2ETests : TestBase
     /// Cofnięcie wszystkich przekazanych uprawnień i zwrócenie statusów operacji.
     /// </summary>
     private async Task<List<PermissionsOperationStatusResponse>> RevokePermissionsAsync(
-        IEnumerable<PersonPermission> permissions,
+        IEnumerable<Client.Core.Models.Permissions.PersonPermission> permissions,
         string accessToken)
     {
-        List<OperationResponse> revokeResponses = new List<OperationResponse>();
+        List<OperationResponse> revokeResponses = [];
 
         // Uruchomienie operacji cofania
-        foreach (PersonPermission permission in permissions)
+        foreach (Client.Core.Models.Permissions.PersonPermission permission in permissions)
         {
             OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
             revokeResponses.Add(response);
         }
 
         // Poll statusów wszystkich operacji (równolegle)
-        Task<PermissionsOperationStatusResponse>[] revokeStatusTasks = revokeResponses
-            .Select(r => WaitForOperationSuccessAsync(r.ReferenceNumber, accessToken))
-            .ToArray();
+        Task<PermissionsOperationStatusResponse>[] revokeStatusTasks = [.. revokeResponses.Select(r => WaitForOperationSuccessAsync(r.ReferenceNumber, accessToken))];
 
         PermissionsOperationStatusResponse[] revokeStatusResults =
             await Task.WhenAll(revokeStatusTasks);
 
-        return revokeStatusResults.ToList();
+        return [.. revokeStatusResults];
     }
 
     /// <summary>
