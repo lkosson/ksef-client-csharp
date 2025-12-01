@@ -5,7 +5,7 @@ using KSeF.Client.Core.Models.Permissions.SubUnit;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
 
-namespace WebApplication.Controllers;
+namespace KSeF.DemoWebApp.Controllers;
 
 [ApiController]
 [Route("/permissions/query")]

@@ -51,7 +51,9 @@ public static class GrantPersonPermissionsRequestBuilder
         public IDescriptionStep WithPermissions(params PersonPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
+            {
                 throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));
+            }
 
             _permissions = permissions;
             return this;
@@ -66,11 +68,19 @@ public static class GrantPersonPermissionsRequestBuilder
         public GrantPermissionsPersonRequest Build()
         {
             if (_subject is null)
+            {
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
+            }
+
             if (_permissions is null)
+            {
                 throw new InvalidOperationException("Metoda WithPermissions(...) musi zostać wywołana po ustawieniu podmiotu.");
+            }
+
             if (_description is null)
+            {
                 throw new InvalidOperationException("Metoda WithDescription(...) musi zostać wywołana po ustawieniu uprawnień.");
+            }
 
             return new GrantPermissionsPersonRequest
             {

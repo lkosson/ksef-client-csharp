@@ -3,26 +3,21 @@ using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
 
 
-namespace WebApplication.Controllers;
+namespace KSeF.DemoWebApp.Controllers;
 
 [Route("[controller]")]
 [ApiController]
-public class SessionController : ControllerBase
+public class SessionController(IKSeFClient ksefClient) : ControllerBase
 {
 
-    private readonly IKSeFClient ksefClient;
-
-    public SessionController(IKSeFClient ksefClient)
-    {
-        this.ksefClient = ksefClient;
-    }
+    private readonly IKSeFClient ksefClient = ksefClient;
 
     [HttpGet("online-sessions")]
     public async Task<ActionResult<ICollection<Session>>> GetOnlineSessionsAsync([FromForm] string accessToken, [FromForm] SessionsFilter sessionsFilter, CancellationToken cancellationToken)
     {
-        List<Session> sessions = new List<Session>();
+        List<Session> sessions = [];
         const int pageSize = 20;
-        string? continuationToken = null;
+        string continuationToken = string.Empty;
         do
         {
             SessionsListResponse response = await ksefClient.GetSessionsAsync(SessionType.Online, accessToken, pageSize, continuationToken, sessionsFilter, cancellationToken);
@@ -36,9 +31,9 @@ public class SessionController : ControllerBase
     [HttpGet("batch-sessions")]
     public async Task<ActionResult<ICollection<Session>>> GetbatchSessionsAsync([FromForm] string accessToken, [FromForm] SessionsFilter sessionsFilter, CancellationToken cancellationToken)
     {
-        List<Session> sessions = new List<Session>();
+        List<Session> sessions = [];
         const int pageSize = 20;
-        string? continuationToken = null;
+        string continuationToken = string.Empty;
         do
         {
             SessionsListResponse response = await ksefClient.GetSessionsAsync(SessionType.Batch, accessToken, pageSize, continuationToken, sessionsFilter, cancellationToken);

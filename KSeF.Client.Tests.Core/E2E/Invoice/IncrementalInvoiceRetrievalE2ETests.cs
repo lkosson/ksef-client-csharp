@@ -42,7 +42,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
     {
         _sellerNip = MiscellaneousUtils.GetRandomNip();
         AuthenticationOperationStatusResponse authOperationStatusResponse = AuthenticationUtils
-            .AuthenticateAsync(KsefClient, SignatureService, _sellerNip)
+            .AuthenticateAsync(AuthorizationClient, SignatureService, _sellerNip)
             .GetAwaiter()
             .GetResult();
 
@@ -65,7 +65,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
         int totalMetadataEntries = 0;
 
         // Słownik do śledzenia punktu kontynuacji dla każdego SubjectType
-        Dictionary<InvoiceSubjectType, DateTime?> continuationPoints = new();
+        Dictionary<InvoiceSubjectType, DateTime?> continuationPoints = [];
 
         // 2. Budowanie listy okien czasowych. Zachodzą na siebie celowo w celu wymuszenia konieczności deduplikacji.
         IReadOnlyList<(DateTime From, DateTime To)> windows = BuildIncrementalWindows(batchCreationStart, batchCreationCompleted);
@@ -229,7 +229,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
         };
 
         OperationResponse response = await KsefRateLimitWrapper.ExecuteWithRetryAsync(
-            ksefApiCall: ct => KsefClient.ExportInvoicesAsync(request, _accessToken, ct, includeMetadata: true),
+            ksefApiCall: cancellationToken => KsefClient.ExportInvoicesAsync(request, _accessToken, includeMetadata: true, cancellationToken),
             endpoint: KsefApiEndpoint.InvoiceExport,
             cancellationToken: CancellationToken,
             limitsClient: LimitsClient,
@@ -270,7 +270,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
 
     private async Task<PackageProcessingResult> DownloadAndProcessPackageAsync(InvoiceExportPackage package, EncryptionData encryptionData)
     {
-        List<InvoiceSummary> metadataSummaries = new();
+        List<InvoiceSummary> metadataSummaries = [];
         Dictionary<string, string> invoiceXmlFiles = new(StringComparer.OrdinalIgnoreCase);
 
         // Pobranie, odszyfrowanie i połączenie wszystkich części w jeden strumień
@@ -304,7 +304,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
             new ReadOnlyDictionary<string, string>(invoiceXmlFiles));
     }
 
-    private static IReadOnlyList<(DateTime From, DateTime To)> BuildIncrementalWindows(DateTime batchStartUtc, DateTime batchCompletedUtc)
+    private static List<(DateTime From, DateTime To)> BuildIncrementalWindows(DateTime batchStartUtc, DateTime batchCompletedUtc)
     {
         // Celowe przygotowanie okien, które mają duże pokrycie w celu zasymulowania deduplikacji.
         DateTime firstWindowStart = batchStartUtc.AddMinutes(-10);
@@ -313,11 +313,11 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
         DateTime secondWindowStart = batchStartUtc;
         DateTime secondWindowEnd = batchCompletedUtc.AddMinutes(10);
 
-        return new List<(DateTime From, DateTime To)>
-        {
+        return
+        [
             (firstWindowStart, firstWindowEnd),
             (secondWindowStart, secondWindowEnd)
-        };
+        ];
     }
 
     /// <summary>

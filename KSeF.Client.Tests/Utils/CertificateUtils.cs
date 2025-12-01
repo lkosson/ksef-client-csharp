@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
+using KSeF.Client.Extensions;
 
 namespace KSeF.Client.Tests.Utils;
 
@@ -85,7 +86,7 @@ internal static class CertificateUtils
     internal static X509Certificate2 CreateCertificateWithPrivateKey(CertificateResponse response, string privateKeyBase64Encoded)
     {
         byte[] certBytes = Convert.FromBase64String(response.Certificate);
-        X509Certificate2 certificate = new X509Certificate2(certBytes);
+        X509Certificate2 certificate = certBytes.LoadPkcs12();
 
         using RSA rsa = RSA.Create();
         rsa.ImportRSAPrivateKey(Convert.FromBase64String(privateKeyBase64Encoded), out _);

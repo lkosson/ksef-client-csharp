@@ -7,9 +7,9 @@ using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Tests.Utils;
 using static KSeF.Client.Core.Models.Permissions.PersonalPermission;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermission;
 
-public class PersonalPermissionsPeselInNipContext_MyPermissionsE2ETests : TestBase
+public class PersonalPermissionsPeselInNipContextMyPermissionsE2ETests : TestBase
 {
     /// <summary>
     /// Pobranie listy moich uprawnień do pracy w KSeF jako osoba uprawniona PESEL w kontekście NIP.
@@ -19,7 +19,7 @@ public class PersonalPermissionsPeselInNipContext_MyPermissionsE2ETests : TestBa
     /// w oczekiwanym kontekście (z użyciem mechanizmu pollingu na wypadek opóźnionej spójności).
     /// </summary>
     [Fact]
-    public async Task PersonalPermissions_ByPesel_InNipContext_ShouldReturnPermissionsInContext()
+    public async Task PersonalPermissionsByPeselInNipContextShouldReturnPermissionsInContext()
     {
         // Arrange
         string contextNip = MiscellaneousUtils.GetRandomNip();
@@ -27,10 +27,10 @@ public class PersonalPermissionsPeselInNipContext_MyPermissionsE2ETests : TestBa
 
         // Właściciel uwierzytelnia się we własnym kontekście
         AuthenticationOperationStatusResponse ownerAuth =
-            await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, contextNip);
+            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, contextNip);
 
-        // Nadaj uprawnienia dla osoby (PESEL) w kontekście NIP właściciela
-        GrantPermissionsPersonSubjectIdentifier subject = new GrantPermissionsPersonSubjectIdentifier
+        // Nadaj uprawnienia osobie (PESEL) w kontekście NIPu właściciela
+        GrantPermissionsPersonSubjectIdentifier subject = new()
         {
             Type = GrantPermissionsPersonSubjectIdentifierType.Pesel,
             Value = pesel
@@ -61,14 +61,14 @@ public class PersonalPermissionsPeselInNipContext_MyPermissionsE2ETests : TestBa
                 .Build();
 
         AuthenticationOperationStatusResponse personAuth = await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             contextNip,
             AuthenticationTokenContextIdentifierType.Nip,
             personalCertificate);
 
         // Act: pobierz moje uprawnienia dla osoby w bieżącym kontekście NIP, filtrując po kontekście na poziomie zapytania
-        PersonalPermissionsQueryRequest query = new PersonalPermissionsQueryRequest
+        PersonalPermissionsQueryRequest query = new()
         {
             ContextIdentifier = new PersonalPermissionsContextIdentifier
             {
@@ -91,10 +91,9 @@ public class PersonalPermissionsPeselInNipContext_MyPermissionsE2ETests : TestBa
         Assert.NotNull(personalPermissions);
         Assert.NotEmpty(personalPermissions.Permissions);
         Assert.Equal(2, personalPermissions.Permissions.Count);
-        List<PersonalPermission> inContextPermissions = personalPermissions.Permissions.Where(p =>
+        List<PersonalPermission> inContextPermissions = [.. personalPermissions.Permissions.Where(p =>
          p.Description == description &&
-         p.PermissionState == PersonalPermissionState.Active)
-            .ToList();
+         p.PermissionState == PersonalPermissionState.Active)];
 
         Assert.Contains(inContextPermissions, p => p.PermissionScope == PersonalPermissionScopeType.InvoiceRead);
         Assert.Contains(inContextPermissions, p => p.PermissionScope == PersonalPermissionScopeType.InvoiceWrite);

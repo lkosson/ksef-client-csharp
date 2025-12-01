@@ -1,5 +1,6 @@
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Core.Models.Permissions.IndirectEntity;
@@ -14,7 +15,7 @@ public partial class CredentialsRevokeTests
     /// Pomocnicza klasa do testów unieważniania i nadawania uprawnień (Credentials).
     /// Zawiera metody opakowujące wywołania API oraz ułatwiające sprawdzanie statusu operacji.
     /// </summary>
-    private class CredentialsRevokeHelpers
+    private sealed class CredentialsRevokeHelpers
     {
         /// <summary>
         /// Wyszukuje uprawnienia nadane osobom fizycznym w bieżącym kontekście, filtrowane po stanie uprawnienia.
@@ -42,8 +43,8 @@ public partial class CredentialsRevokeTests
         public static async Task<bool> GrantCredentialsManageToDelegateAsync(
             IKSeFClient client, string ownerToken, string delegateNip)
         {
-            GrantPermissionsPersonSubjectIdentifier subjectIdentifier = new GrantPermissionsPersonSubjectIdentifier { Type = GrantPermissionsPersonSubjectIdentifierType.Nip, Value = delegateNip };
-            PersonPermissionType[] permissions = new[] { PersonPermissionType.CredentialsManage };
+            GrantPermissionsPersonSubjectIdentifier subjectIdentifier = new() { Type = GrantPermissionsPersonSubjectIdentifierType.Nip, Value = delegateNip };
+            PersonPermissionType[] permissions = [PersonPermissionType.CredentialsManage];
 
             OperationResponse operationResponse = await PermissionsUtils.GrantPersonPermissionsAsync(client, ownerToken, subjectIdentifier, permissions);
 
@@ -77,19 +78,19 @@ public partial class CredentialsRevokeTests
         public static async Task<bool> GrantInvoiceWriteToPeselAsManagerAsync(
             IKSeFClient client, string delegateToken, string nipOwner, string pesel)
         {
-            IndirectEntitySubjectIdentifier subjectIdentifier = new IndirectEntitySubjectIdentifier
+            IndirectEntitySubjectIdentifier subjectIdentifier = new()
             {
                 Type = IndirectEntitySubjectIdentifierType.Pesel,
                 Value = pesel
             };
 
-            IndirectEntityTargetIdentifier targetIdentifier = new IndirectEntityTargetIdentifier
+            IndirectEntityTargetIdentifier targetIdentifier = new()
             {
                 Type = IndirectEntityTargetIdentifierType.Nip,
                 Value = nipOwner
             };
 
-            IndirectEntityStandardPermissionType[] permissions = new[] { IndirectEntityStandardPermissionType.InvoiceWrite };
+            IndirectEntityStandardPermissionType[] permissions = [IndirectEntityStandardPermissionType.InvoiceWrite];
 
             OperationResponse operationResponse = await PermissionsUtils.GrantIndirectPermissionsAsync(client, delegateToken, subjectIdentifier, targetIdentifier, permissions);
 
@@ -108,13 +109,15 @@ public partial class CredentialsRevokeTests
             IKSeFClient client, OperationResponse operationResponse, string token)
         {
             if (string.IsNullOrWhiteSpace(operationResponse?.ReferenceNumber))
+            {
                 return false;
+            }
 
             // Krótkie odczekanie, aby backend zdążył przetworzyć operację
             await Task.Delay(1000);
 
             PermissionsOperationStatusResponse status = await PermissionsUtils.GetPermissionsOperationStatusAsync(client, operationResponse.ReferenceNumber!, token);
-            return status?.Status?.Code == 200;
+            return status?.Status?.Code == OperationStatusCodeResponse.Success;
         }
     }
 }

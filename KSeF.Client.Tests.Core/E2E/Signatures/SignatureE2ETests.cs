@@ -11,12 +11,12 @@ public class SignatureE2ETests : TestBase
     /// </summary>
     /// <returns></returns>
     [Fact]
-    public async Task CreateSignedXmlDocument_ValidInput_Success()
+    public async Task CreateSignedXmlDocumentValidInputSuccess()
     {
         // Arrange
         string pesel = MiscellaneousUtils.GetRandomPesel();
 
-        AuthenticationChallengeResponse challengeResponse = await KsefClient.GetAuthChallengeAsync();
+        AuthenticationChallengeResponse challengeResponse = await AuthorizationClient.GetAuthChallengeAsync();
 
         AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
            .Create()
@@ -48,12 +48,12 @@ public class SignatureE2ETests : TestBase
     /// </summary>
     /// <returns></returns>
     [Fact]
-    public async Task SubmitXadesAuthRequestAsync_E2E_Positive()
+    public async Task SubmitXadesAuthRequestAsyncE2EPositive()
     {
         // Arrange
         string pesel = MiscellaneousUtils.GetRandomPesel();
 
-        AuthenticationChallengeResponse challengeResponse = await KsefClient.GetAuthChallengeAsync();
+        AuthenticationChallengeResponse challengeResponse = await AuthorizationClient.GetAuthChallengeAsync();
 
         AuthenticationTokenRequest authTokenRequest = AuthTokenRequestBuilder
            .Create()
@@ -76,7 +76,7 @@ public class SignatureE2ETests : TestBase
         string signedXml = SignatureService.Sign(unsignedXml, certificate);
 
         // Act
-        SignatureResponse authOperationInfo = await KsefClient
+        SignatureResponse authOperationInfo = await AuthorizationClient
             .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
 
         // Assert

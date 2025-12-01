@@ -1,9 +1,10 @@
+using KSeF.Client.Core.Interfaces.Services;
+using System.Globalization;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Xml;
-using KSeF.Client.Core.Interfaces.Services;
 
 namespace KSeF.Client.Api.Services;
 
@@ -24,7 +25,7 @@ public class SignatureService : ISignatureService
         ArgumentException.ThrowIfNullOrWhiteSpace(xml);
         ArgumentNullException.ThrowIfNull(certificate);
 
-        XmlDocument xmlDocument = new XmlDocument() { PreserveWhitespace = true };
+        XmlDocument xmlDocument = new() { PreserveWhitespace = true };
         xmlDocument.LoadXml(xml);
 
         Sign(xmlDocument, certificate);
@@ -41,21 +42,27 @@ public class SignatureService : ISignatureService
         ArgumentNullException.ThrowIfNull(certificate);
 
         if (xmlDocument.DocumentElement == null)
+        {
             throw new ArgumentException("Dokument XML nie ma elementu głównego", nameof(xmlDocument));
+        }
 
         if (!certificate.HasPrivateKey)
+        {
             throw new InvalidOperationException("Certyfikat nie zawiera klucza prywatnego");
+        }
 
         RSA rsaKey = certificate.GetRSAPrivateKey();
         ECDsa ecdsaKey = certificate.GetECDsaPrivateKey();
 
         if (rsaKey == null && ecdsaKey == null)
+        {
             throw new InvalidOperationException("Nie można wyodrębnić klucza prywatnego");
+        }
 
         string signatureId = "Signature";
         string signedPropertiesId = "SignedProperties";
 
-        SignedXmlFixed signedXml = new SignedXmlFixed(xmlDocument);
+        SignedXmlFixed signedXml = new(xmlDocument);
 
         if (rsaKey != null)
         {
@@ -77,7 +84,7 @@ public class SignatureService : ISignatureService
              signatureId, signedPropertiesId,
              certificate, DateTimeOffset.UtcNow.Add(CertificateTimeBuffer));
 
-        DataObject dataObject = new DataObject { Data = qualifyingProperties };
+        DataObject dataObject = new() { Data = qualifyingProperties };
 
         signedXml.AddDataObject(dataObject);
         signedXml.ComputeSignature();
@@ -96,7 +103,7 @@ public class SignatureService : ISignatureService
 
     private static void AddRootReference(SignedXml signedXml)
     {
-        Reference rootReference = new Reference(string.Empty);
+        Reference rootReference = new(string.Empty);
         rootReference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
         rootReference.AddTransform(new XmlDsigExcC14NTransform());
         signedXml.AddReference(rootReference);
@@ -104,7 +111,7 @@ public class SignatureService : ISignatureService
 
     private static void AddSignedPropertiesReference(SignedXml signedXml, string id)
     {
-        Reference xadesReference = new Reference("#" + id)
+        Reference xadesReference = new("#" + id)
         {
             Type = SignedPropertiesType
         };
@@ -118,9 +125,9 @@ public class SignatureService : ISignatureService
     {
         string certificateDigest = Convert.ToBase64String(signingCertificate.GetCertHash(HashAlgorithmName.SHA256));
         string certificateIssuerName = signingCertificate.Issuer;
-        string certificateSerialNumber = new BigInteger(signingCertificate.GetSerialNumber()).ToString();
+        string certificateSerialNumber = new BigInteger(signingCertificate.GetSerialNumber()).ToString(CultureInfo.InvariantCulture);
 
-        XmlDocument document = new XmlDocument();
+        XmlDocument document = new();
         document.LoadXml(
         $"""
         <xades:QualifyingProperties Target="#{signatureId}" xmlns:xades="{XadesNsUrl}" xmlns="{SignedXml.XmlDsigNamespaceUrl}">
@@ -147,7 +154,7 @@ public class SignatureService : ISignatureService
         return document.ChildNodes;
     }
 
-    class SignedXmlFixed(XmlDocument document) : SignedXml(document)
+    private class SignedXmlFixed(XmlDocument document) : SignedXml(document)
     {
         private readonly List<DataObject> _dataObjects = [];
 

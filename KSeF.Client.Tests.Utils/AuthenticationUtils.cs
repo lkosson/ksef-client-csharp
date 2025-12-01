@@ -15,13 +15,18 @@ public static class AuthenticationUtils
     /// Przeprowadza pełny proces uwierzytelnienia w KSeF z wykorzystaniem podpisu XAdES dla wskazanego identyfikatora.
     /// </summary>
     public static async Task<AuthenticationOperationStatusResponse> AuthenticateAsync(
-        IKSeFClient ksefClient,
+        IAuthorizationClient authorizationClient,
         ISignatureService signatureService,
         string identifierValue,
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip,
         EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.Rsa)
     {
-        AuthenticationChallengeResponse challengeResponse = await ksefClient
+        if (encryptionMethod == EncryptionMethodEnum.ECDsa)
+        {
+            throw new NotImplementedException("Brak obsługi ECDsa");
+        }
+
+        AuthenticationChallengeResponse challengeResponse = await authorizationClient
             .GetAuthChallengeAsync();
 
         AuthenticationTokenRequest authTokenRequest = GetAuthorizationTokenRequest(
@@ -36,14 +41,14 @@ public static class AuthenticationUtils
 
         string signedXml = signatureService.Sign(unsignedXml, certificate);
 
-        SignatureResponse authOperationInfo = await ksefClient
+        SignatureResponse authOperationInfo = await authorizationClient
             .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
 
-        AuthStatus finalStatus = await WaitForAuthCompletionAsync(ksefClient, authOperationInfo);
+        AuthStatus finalStatus = await WaitForAuthCompletionAsync(authorizationClient, authOperationInfo);
         EnsureSuccess(finalStatus);
 
         AuthenticationOperationStatusResponse authResult =
-            await ksefClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
+            await authorizationClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
         return authResult;
     }
 
@@ -51,13 +56,13 @@ public static class AuthenticationUtils
     /// Przeprowadza pełny proces uwierzytelnienia w KSeF z wykorzystaniem podpisu XAdES dla wskazanego numeru identyfikatora w kontekście innego podmiotu.
     /// </summary>
     public static async Task<AuthenticationOperationStatusResponse> AuthenticateAsync(
-        IKSeFClient ksefClient,
+        IAuthorizationClient authorizationClient,
         ISignatureService signatureService,
         string identifierValue,
         string contextIdentifierValue,
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip)
     {
-        AuthenticationChallengeResponse challengeResponse = await ksefClient
+        AuthenticationChallengeResponse challengeResponse = await authorizationClient   
             .GetAuthChallengeAsync();
 
         AuthenticationTokenRequest authTokenRequest = GetAuthorizationTokenRequest(
@@ -73,20 +78,20 @@ public static class AuthenticationUtils
 
         string signedXml = signatureService.Sign(unsignedXml, certificate);
 
-        SignatureResponse authOperationInfo = await ksefClient
+        SignatureResponse authOperationInfo = await authorizationClient
             .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
 
-        AuthStatus finalStatus = await WaitForAuthCompletionAsync(ksefClient, authOperationInfo);
+        AuthStatus finalStatus = await WaitForAuthCompletionAsync(authorizationClient, authOperationInfo);
         EnsureSuccess(finalStatus);
 
-        return await ksefClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
+        return await authorizationClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
     }
 
     /// <summary>
     /// Przeprowadza proces uwierzytelnienia w KSeF generując losowy NIP (test) i wykorzystując podpis XAdES.
     /// </summary>
     public static async Task<AuthenticationOperationStatusResponse> AuthenticateAsync(
-        IKSeFClient ksefClient,
+        IAuthorizationClient authorizationClient,
         ISignatureService signatureService,
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip,
         EncryptionMethodEnum encryptionMethod = EncryptionMethodEnum.Rsa
@@ -94,7 +99,7 @@ public static class AuthenticationUtils
     {
         string nip = MiscellaneousUtils.GetRandomNip();
 
-        AuthenticationChallengeResponse challengeResponse = await ksefClient
+        AuthenticationChallengeResponse challengeResponse = await authorizationClient
             .GetAuthChallengeAsync();
 
         AuthenticationTokenRequest authTokenRequest = GetAuthorizationTokenRequest(
@@ -109,27 +114,27 @@ public static class AuthenticationUtils
 
         string signedXml = signatureService.Sign(unsignedXml, certificate);
 
-        SignatureResponse authOperationInfo = await ksefClient
+        SignatureResponse authOperationInfo = await authorizationClient
             .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
 
-        AuthStatus finalStatus = await WaitForAuthCompletionAsync(ksefClient, authOperationInfo);
+        AuthStatus finalStatus = await WaitForAuthCompletionAsync(authorizationClient, authOperationInfo);
         EnsureSuccess(finalStatus);
 
-        return await ksefClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
+        return await authorizationClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
     }
 
     /// <summary>
     /// Przeprowadza uwierzytelnienie dla dostarczonego certyfikatu i parametrów identyfikatora kontekstu.
     /// </summary>
     public static async Task<AuthenticationOperationStatusResponse> AuthenticateAsync(
-        IKSeFClient ksefClient,
+        IAuthorizationClient authorizationClient,
         ISignatureService signatureService,
         string contextIdentifierValue,
         AuthenticationTokenContextIdentifierType contextIdentifierType,
         X509Certificate2 certificate,
         AuthenticationTokenSubjectIdentifierTypeEnum subjectIdentifierType = AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject)
     {
-        AuthenticationChallengeResponse challengeResponse = await ksefClient
+        AuthenticationChallengeResponse challengeResponse = await authorizationClient
             .GetAuthChallengeAsync();
 
         AuthenticationTokenRequest authTokenRequest = GetAuthorizationTokenRequest(
@@ -142,13 +147,13 @@ public static class AuthenticationUtils
 
         string signedXml = signatureService.Sign(unsignedXml, certificate);
 
-        SignatureResponse authOperationInfo = await ksefClient
+        SignatureResponse authOperationInfo = await authorizationClient
             .SubmitXadesAuthRequestAsync(signedXml, false, CancellationToken.None);
 
-        AuthStatus finalStatus = await WaitForAuthCompletionAsync(ksefClient, authOperationInfo);
+        AuthStatus finalStatus = await WaitForAuthCompletionAsync(authorizationClient, authOperationInfo);
         EnsureSuccess(finalStatus);
 
-        return await ksefClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
+        return await authorizationClient.GetAccessTokenAsync(authOperationInfo.AuthenticationToken.Token);
     }
 
     /// <summary>
@@ -176,7 +181,7 @@ public static class AuthenticationUtils
     /// Zwraca finalny AuthStatus (kod != 100) lub ostatni status po przekroczeniu limitu czasu.
     /// </summary>
     private static async Task<AuthStatus> WaitForAuthCompletionAsync(
-        IKSeFClient ksefClient,
+        IAuthorizationClient authorizationClient,
         SignatureResponse authOperationInfo,
         TimeSpan? timeout = null,
         TimeSpan? pollDelay = null)
@@ -186,7 +191,10 @@ public static class AuthenticationUtils
 
         // Wylicz liczbę prób (>=1)
         int maxAttempts = (int)Math.Ceiling(effectiveTimeout.TotalMilliseconds / delay.TotalMilliseconds);
-        if (maxAttempts <= 0) maxAttempts = 1;
+        if (maxAttempts <= 0)
+        {
+            maxAttempts = 1;
+        }
 
         DateTime startTime = DateTime.UtcNow;
         AuthStatus? lastStatus = null;
@@ -197,7 +205,7 @@ public static class AuthenticationUtils
             AuthStatus finalStatus = await AsyncPollingUtils.PollAsync(
                 action: async () =>
                 {
-                    AuthStatus status = await ksefClient
+                    AuthStatus status = await authorizationClient
                         .GetAuthStatusAsync(authOperationInfo.ReferenceNumber, authOperationInfo.AuthenticationToken.Token)
                         .ConfigureAwait(false);
 
@@ -236,7 +244,7 @@ public static class AuthenticationUtils
         if (status.Status.Code != AuthSuccessCode)
         {
             string msg = $"Uwierzytelnienie nie powiodło się. Kod statusu: {status?.Status.Code}, opis: {status?.Status.Description}.";
-            throw new Exception(msg);
+            throw new InvalidOperationException(msg);
         }
     }
 }

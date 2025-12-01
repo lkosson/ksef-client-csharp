@@ -1,5 +1,6 @@
 using KSeF.Client.Api.Builders.PersonPermissions;
 using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
@@ -7,7 +8,7 @@ using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.TestData;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermission;
 
 /// <summary>
 /// Nadawanie uprawnień do wykonywania operacji komorniczych w kontekście, który na to zezwala
@@ -16,7 +17,6 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.PersonPermissions;
 public class EnforcementOperationsE2ETests : TestBase
 {
     private const string PermissionDescription = "E2E grant EnforcementOperations";
-    private const int OperationSuccessfulStatusCode = 200;
 
     /// <summary>
     /// Scenariusz dla EnforcementAuthority:
@@ -28,7 +28,7 @@ public class EnforcementOperationsE2ETests : TestBase
     /// 6) Sprzątanie środowiska testowego (usunięcie podmiotu)
     /// </summary>
     [Fact]
-    public async Task GrantEnforcementOperations_AsEnforcementAuthority_E2E_GrantSearchRevokeSearch()
+    public async Task GrantEnforcementOperationsAsEnforcementAuthorityE2EGrantSearchRevokeSearch()
     {
         // Arrange: Utworzenie kontekstu EnforcementAuthority oraz uwierzytelnienie
         string enforcementAuthorityNip = MiscellaneousUtils.GetRandomNip();
@@ -37,7 +37,7 @@ public class EnforcementOperationsE2ETests : TestBase
         await CreateEnforcementAuthorityAsync(enforcementAuthorityNip);
 
         AuthenticationOperationStatusResponse authorizationInfo = await AuthenticationUtils
-            .AuthenticateAsync(KsefClient, SignatureService, enforcementAuthorityNip);
+            .AuthenticateAsync(AuthorizationClient, SignatureService, enforcementAuthorityNip);
 
         string accessToken = authorizationInfo.AccessToken.Token;
 
@@ -48,18 +48,19 @@ public class EnforcementOperationsE2ETests : TestBase
         Assert.False(string.IsNullOrEmpty(grantResponse.ReferenceNumber));
 
         // Wyszukiwanie - trwa do czasu aż pojawi się nadane uprawnienie
-        PagedPermissionsResponse<PersonPermission> searchAfterGrant = await AsyncPollingUtils.PollAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterGrant = await AsyncPollingUtils.PollAsync(
             action: async () => await SearchGrantedPersonPermissionsAsync(accessToken),
             condition: result =>
             {
-                if (result is null || result.Permissions is null) return false;
+                if (result is null || result.Permissions is null)
+                {
+                    return false;
+                }
 
-                List<PersonPermission> matches = result.Permissions
-                    .Where(p => p.Description == PermissionDescription)
-                    .ToList();
+                List<Client.Core.Models.Permissions.PersonPermission> matches = [.. result.Permissions.Where(p => p.Description == PermissionDescription)];
 
                 return matches.Any(x =>
-                    Enum.Parse<PersonPermissionType>(x.PermissionScope) == PersonPermissionType.EnforcementOperations);
+                    x.PermissionScope == PersonPermissionType.EnforcementOperations);
             },
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: 60,
@@ -70,12 +71,10 @@ public class EnforcementOperationsE2ETests : TestBase
         Assert.NotEmpty(searchAfterGrant.Permissions);
         Assert.Contains(searchAfterGrant.Permissions,
             x => x.Description == PermissionDescription &&
-                 Enum.Parse<PersonPermissionType>(x.PermissionScope) == PersonPermissionType.EnforcementOperations);
+                 x.PermissionScope == PersonPermissionType.EnforcementOperations);
 
         // Wycofanie wszystkich znalezionych uprawnień (po opisie)
-        List<PersonPermission> toRevoke = searchAfterGrant.Permissions
-            .Where(p => p.Description == PermissionDescription)
-            .ToList();
+        List<Client.Core.Models.Permissions.PersonPermission> toRevoke = [.. searchAfterGrant.Permissions.Where(p => p.Description == PermissionDescription)];
 
         List<PermissionsOperationStatusResponse> revokeStatuses = await RevokePermissionsAsync(toRevoke, accessToken);
 
@@ -83,18 +82,19 @@ public class EnforcementOperationsE2ETests : TestBase
         Assert.NotEmpty(revokeStatuses);
         Assert.Equal(toRevoke.Count, revokeStatuses.Count);
         Assert.All(revokeStatuses, s =>
-            Assert.Equal(OperationSuccessfulStatusCode, s.Status.Code));
+            Assert.Equal(OperationStatusCodeResponse.Success, s.Status.Code));
 
         // Ponowne wyszukiwanie — aż uprawnienie zniknie
-        PagedPermissionsResponse<PersonPermission> searchAfterRevoke = await AsyncPollingUtils.PollAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterRevoke = await AsyncPollingUtils.PollAsync(
             action: async () => await SearchGrantedPersonPermissionsAsync(accessToken),
             condition: result =>
             {
-                if (result is null || result.Permissions is null) return false;
+                if (result is null || result.Permissions is null)
+                {
+                    return false;
+                }
 
-                List<PersonPermission> remaining = result.Permissions
-                    .Where(p => p.Description == PermissionDescription)
-                    .ToList();
+                List<Client.Core.Models.Permissions.PersonPermission> remaining = [.. result.Permissions.Where(p => p.Description == PermissionDescription)];
 
                 return remaining.Count == 0;
             },
@@ -121,7 +121,7 @@ public class EnforcementOperationsE2ETests : TestBase
     /// 6) Sprzątanie środowiska testowego (usunięcie osoby fizycznej)
     /// </summary>
     [Fact]
-    public async Task GrantEnforcementOperations_AsCourtBailiff_E2E_GrantSearchRevokeSearch()
+    public async Task GrantEnforcementOperationsAsCourtBailiffE2EGrantSearchRevokeSearch()
     {
         // Arrange: Utworzenie osoby fizycznej z flagą komornika oraz uwierzytelnienie
         string bailiffNip = MiscellaneousUtils.GetRandomNip();
@@ -131,7 +131,7 @@ public class EnforcementOperationsE2ETests : TestBase
         await CreateCourtBailiffAsync(bailiffNip, bailiffPesel);
 
         AuthenticationOperationStatusResponse auth = await AuthenticationUtils
-            .AuthenticateAsync(KsefClient, SignatureService, bailiffNip);
+            .AuthenticateAsync(AuthorizationClient, SignatureService, bailiffNip);
 
         string accessToken = auth.AccessToken.Token;
 
@@ -142,18 +142,19 @@ public class EnforcementOperationsE2ETests : TestBase
         Assert.False(string.IsNullOrEmpty(grantResponse.ReferenceNumber));
 
         // Wyszukiwanie — aż pojawi się nadane uprawnienie
-        PagedPermissionsResponse<PersonPermission> searchAfterGrant = await AsyncPollingUtils.PollAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterGrant = await AsyncPollingUtils.PollAsync(
             action: async () => await SearchGrantedPersonPermissionsAsync(accessToken),
             condition: result =>
             {
-                if (result is null || result.Permissions is null) return false;
+                if (result is null || result.Permissions is null)
+                {
+                    return false;
+                }
 
-                List<PersonPermission> matches = result.Permissions
-                    .Where(p => p.Description == PermissionDescription)
-                    .ToList();
+                List<Client.Core.Models.Permissions.PersonPermission> matches = [.. result.Permissions.Where(p => p.Description == PermissionDescription)];
 
                 return matches.Any(x =>
-                    Enum.Parse<PersonPermissionType>(x.PermissionScope) == PersonPermissionType.EnforcementOperations);
+                    x.PermissionScope == PersonPermissionType.EnforcementOperations);
             },
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: 60,
@@ -164,12 +165,10 @@ public class EnforcementOperationsE2ETests : TestBase
         Assert.NotEmpty(searchAfterGrant.Permissions);
         Assert.Contains(searchAfterGrant.Permissions,
             x => x.Description == PermissionDescription &&
-                 Enum.Parse<PersonPermissionType>(x.PermissionScope) == PersonPermissionType.EnforcementOperations);
+                 x.PermissionScope == PersonPermissionType.EnforcementOperations);
 
         // Wycofanie wszystkich znalezionych uprawnień (po opisie)
-        List<PersonPermission> toRevoke = searchAfterGrant.Permissions
-            .Where(p => p.Description == PermissionDescription)
-            .ToList();
+        List<Client.Core.Models.Permissions.PersonPermission> toRevoke = [.. searchAfterGrant.Permissions.Where(p => p.Description == PermissionDescription)];
 
         List<PermissionsOperationStatusResponse> revokeStatuses = await RevokePermissionsAsync(toRevoke, accessToken);
 
@@ -177,18 +176,19 @@ public class EnforcementOperationsE2ETests : TestBase
         Assert.NotEmpty(revokeStatuses);
         Assert.Equal(toRevoke.Count, revokeStatuses.Count);
         Assert.All(revokeStatuses, s =>
-            Assert.Equal(OperationSuccessfulStatusCode, s.Status.Code));
+            Assert.Equal(OperationStatusCodeResponse.Success, s.Status.Code));
 
         // Ponowne wyszukiwanie — aż uprawnienie zniknie
-        PagedPermissionsResponse<PersonPermission> searchAfterRevoke = await AsyncPollingUtils.PollAsync(
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterRevoke = await AsyncPollingUtils.PollAsync(
             action: async () => await SearchGrantedPersonPermissionsAsync(accessToken),
             condition: result =>
             {
-                if (result is null || result.Permissions is null) return false;
+                if (result is null || result.Permissions is null)
+                {
+                    return false;
+                }
 
-                List<PersonPermission> remaining = result.Permissions
-                    .Where(p => p.Description == PermissionDescription)
-                    .ToList();
+                List<Client.Core.Models.Permissions.PersonPermission> remaining = [.. result.Permissions.Where(p => p.Description == PermissionDescription)];
 
                 return remaining.Count == 0;
             },
@@ -215,7 +215,7 @@ public class EnforcementOperationsE2ETests : TestBase
     /// <returns></returns>
     private async Task CreateCourtBailiffAsync(string nip, string pesel)
     {
-        PersonCreateRequest createRequest = new PersonCreateRequest
+        PersonCreateRequest createRequest = new()
         {
             Nip = nip,
             Pesel = pesel,
@@ -233,7 +233,7 @@ public class EnforcementOperationsE2ETests : TestBase
     /// <returns></returns>
     private async Task RemoveCourtBailiffAsync(string nip)
     {
-        PersonRemoveRequest removeRequest = new PersonRemoveRequest
+        PersonRemoveRequest removeRequest = new()
         {
             Nip = nip
         };
@@ -252,7 +252,7 @@ public class EnforcementOperationsE2ETests : TestBase
     /// <returns></returns>
     private async Task CreateEnforcementAuthorityAsync(string nip)
     {
-        SubjectCreateRequest createRequest = new SubjectCreateRequest
+        SubjectCreateRequest createRequest = new()
         {
             SubjectNip = nip,
             SubjectType = SubjectType.EnforcementAuthority,
@@ -269,7 +269,7 @@ public class EnforcementOperationsE2ETests : TestBase
     /// <returns></returns>
     private async Task RemoveEnforcementAuthorityAsync(string nip)
     {
-        SubjectRemoveRequest removeRequest = new SubjectRemoveRequest
+        SubjectRemoveRequest removeRequest = new()
         {
             SubjectNip = nip
         };
@@ -309,17 +309,17 @@ public class EnforcementOperationsE2ETests : TestBase
     /// </summary>
     /// <param name="accessToken"></param>
     /// <returns></returns>
-    private async Task<PagedPermissionsResponse<PersonPermission>> SearchGrantedPersonPermissionsAsync(string accessToken)
+    private async Task<PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>> SearchGrantedPersonPermissionsAsync(string accessToken)
     {
-        PersonPermissionsQueryRequest query = new PersonPermissionsQueryRequest
+        PersonPermissionsQueryRequest query = new()
         {
-            PermissionTypes = new List<PersonPermissionType>
-            {
+            PermissionTypes =
+            [
                 PersonPermissionType.EnforcementOperations
-            }
+            ]
         };
 
-        PagedPermissionsResponse<PersonPermission> response = await KsefClient
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> response = await KsefClient
             .SearchGrantedPersonPermissionsAsync(query, accessToken, pageOffset: 0, pageSize: 10, CancellationToken);
 
         return response;
@@ -332,23 +332,23 @@ public class EnforcementOperationsE2ETests : TestBase
     /// <param name="accessToken"></param>
     /// <returns></returns>
     private async Task<List<PermissionsOperationStatusResponse>> RevokePermissionsAsync(
-        IEnumerable<PersonPermission> grantedPermissions, string accessToken)
+        IEnumerable<Client.Core.Models.Permissions.PersonPermission> grantedPermissions, string accessToken)
     {
-        List<OperationResponse> revokeResponses = new();
+        List<OperationResponse> revokeResponses = [];
 
-        foreach (PersonPermission permission in grantedPermissions)
+        foreach (Client.Core.Models.Permissions.PersonPermission permission in grantedPermissions)
         {
             OperationResponse response = await KsefClient
                 .RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
             revokeResponses.Add(response);
         }
 
-        List<PermissionsOperationStatusResponse> statuses = new();
+        List<PermissionsOperationStatusResponse> statuses = [];
         foreach (OperationResponse revokeResponse in revokeResponses)
         {
             PermissionsOperationStatusResponse status = await AsyncPollingUtils.PollAsync(
                 action: () => KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken),
-                condition: s => s is not null && s.Status is not null && s.Status.Code == OperationSuccessfulStatusCode,
+                condition: s => s is not null && s.Status is not null && s.Status.Code == OperationStatusCodeResponse.Success,
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 60,
                 cancellationToken: CancellationToken);

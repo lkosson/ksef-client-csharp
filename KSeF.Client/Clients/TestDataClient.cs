@@ -7,11 +7,8 @@ using KSeF.Client.Core.Models.TestData;
 namespace KSeF.Client.Clients
 {
     /// <inheritdoc />
-    public sealed class TestDataClient : ClientBase, ITestDataClient
+    public sealed class TestDataClient(IRestClient rest, IRouteBuilder routeBuilder) : ClientBase(rest, routeBuilder), ITestDataClient
     {
-        public TestDataClient(IRestClient rest, IRouteBuilder routeBuilder) : base(rest, routeBuilder)
-        {
-        }
 
         /// <inheritdoc />
         public Task CreateSubjectAsync(SubjectCreateRequest request, CancellationToken cancellationToken = default) =>

@@ -1,7 +1,7 @@
 ﻿using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 
-namespace KSeF.Client.Api.Builders.AuthorizationPermissions
+namespace KSeF.Client.Api.Builders.AuthorizationEntityPermissions
 {
     /// <summary>
     /// Buduje zapytanie o OTRZYMANE uprawnienia podmiotowe jako WŁAŚCICIEL w kontekście NIP.
@@ -23,13 +23,13 @@ namespace KSeF.Client.Api.Builders.AuthorizationPermissions
 
         private sealed class Impl : IOwnerNipStep, IOptionalStep
         {
-            private readonly EntityAuthorizationsQueryRequest _request = new EntityAuthorizationsQueryRequest();
+            private readonly EntityAuthorizationsQueryRequest _request = new();
 
             public IOptionalStep ReceivedForOwnerNip(string ownerNip)
             {
                 if (string.IsNullOrWhiteSpace(ownerNip))
                 {
-                    throw new ArgumentException("ownerNip is required.", nameof(ownerNip));
+                    throw new ArgumentException("Parametr ownerNip jest wymagany.", nameof(ownerNip));
                 }
 
                 _request.AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier
@@ -44,7 +44,7 @@ namespace KSeF.Client.Api.Builders.AuthorizationPermissions
 
             public IOptionalStep WithPermissionTypes(IEnumerable<InvoicePermissionType> types)
             {
-                _request.PermissionTypes = types is null ? null : new List<InvoicePermissionType>(types);
+                _request.PermissionTypes = types is null ? null : [.. types];
                 return this;
             }
 

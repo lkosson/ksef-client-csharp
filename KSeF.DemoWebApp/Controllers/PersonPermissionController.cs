@@ -5,7 +5,7 @@ using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 
-namespace WebApplication.Controllers;
+namespace KSeF.DemoWebApp.Controllers;
 
 [ApiController]
 [Route("[controller]")]

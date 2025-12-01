@@ -70,7 +70,7 @@ Opis paczek:
 
 Należy najpierw skonfigurować dostęp do paczek NuGet opublikowanych w GitHub Packages organizacji CIRFMF.
 Wymaga to autoryzacji przy pomocy osobistego tokena dostępu (Personal Access Token – PAT) z uprawnieniem read:packages.
-Dokładny poradnik jest dostępny w pliku [*nuget-packege.md*](https://github.com/CIRFMF/ksef-client-csharp/blob/main/nuget-packege.md).
+Dokładny poradnik jest dostępny w pliku [*nuget-package.md*](https://github.com/CIRFMF/ksef-client-csharp/blob/main/nuget-package.md).
 
 ### Przykładowa rejestracja klienta KSeF w kontenerze DI
 
@@ -88,10 +88,7 @@ builder.Services.AddKSeFClient(options =>
 });
 
 // Rejestracja serwisu kryptograficznego (wymagane dla operacji wymagających szyfrowania)
-builder.Services.AddCryptographyClient(options =>
-{
-    options.WarmupOnStart = WarmupMode.NonBlocking;
-});
+builder.Services.AddCryptographyClient();
 ```
 
 #### Pełna konfiguracja z dodatkowymi opcjami
@@ -125,22 +122,37 @@ builder.Services.AddKSeFClient(options =>
     options.WebProxy = apiSettings?.WebProxy; // opcjonalnie: konfiguracja proxy
     options.CustomHeaders = apiSettings?.CustomHeaders ?? new Dictionary<string, string>();
 });
-
-// Rejestracja klienta kryptograficznego z custom fetcher
-builder.Services.AddCryptographyClient(
-    options =>
-    {
-        options.WarmupOnStart = WarmupMode.NonBlocking;
-    },
-    // Delegat pobierający certyfikaty - będzie wywołany przez bibliotekę, nie od razu
-    pemCertificatesFetcher: async (serviceProvider, cancellationToken) =>
-    {
-        KSeF.Client.Core.Interfaces.Services.ICryptographyClient cryptographyClient = serviceProvider.GetRequiredService<ICryptographyClient>();
-        return await cryptographyClient.GetPublicCertificatesAsync(cancellationToken);
-    });
+// Rejestracja własnej implementacji ICertificateFetcher.
+builder.Services.AddSingleton<ICertificateFetcher, MyCertificateFetcher>();
+// Rejestracja klienta kryptograficznego KSeF w trybie NonBlocking.
+// (automatycznie użyje powyższego MyCertificateFetcher).
+builder.Services.AddCryptographyClient(CryptographyServiceWarmupMode.NonBlocking);
 ```
 
-**Uwaga:** `AddCryptographyClient` jest wymagany jeśli planujesz używać operacji wymagających szyfrowania (np. sesje wsadowe, eksport faktur).
+**Uwaga:** `AddCryptographyClient` jest wymagany dla operacji wymagających szyfrowania (np. sesje wsadowe, eksport faktur).
+
+**Uwaga:** `AddCryptographyClient` rejestruje serwis kryptograficzny `CryptographyService` oraz zapewnia dodanie algorytmu kryptograficznego dla ECDSA z SHA-256 do klasy `CryptoConfig`.
+
+#### Użycie `AddCryptographyClient` z przekazaniem własnego delegata (np. `GetCertificates()`) z własnego serwisu (np. `MyCertificateService`); Ten sposób inicjalizacji nie jest polecany.
+```csharp
+// Rejestracja serwisu w kontenerze DI
+builder.Services.AddSingleton<IMyCCertificateService, MyCertificateService>();
+
+// Przekazanie delegata do AddCryptographyClient
+builder.Services.AddCryptographyClient(
+    pemCertificatesFetcher: async (cancellationToken) =>
+    {
+        // Pobranie serwisu z kontenera DI
+        using var scope = builder.Services.BuildServiceProvider().CreateScope();
+        var myFetcher = scope.ServiceProvider.GetRequiredService<IMyCertificateService>();
+        
+        // Wywołanie metody z pobranego serwisu
+        return await myFetcher.GetCertificates(cancellationToken);
+    },
+    warmupMode: CryptographyServiceWarmupMode.NonBlocking
+);
+```
+**Uwaga:** Sygnatura metody `GetCertificates()` musi zwracać `Task<ICollection<PemCertificateInfo>>` i przyjmować `CancellationToken` jako parametr. Tworzenie scope'a jest konieczne, ponieważ delegat będzie wywołany później, a nie od razu podczas konfiguracji. 
 
 ### Przykład użycia
 

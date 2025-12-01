@@ -17,7 +17,7 @@ public class IndirectPermissionsEntityController(IKSeFClient ksefClient) : Contr
             .Create()
             .WithSubject(grantPermissionsRequest.SubjectIdentifier)
             .WithContext(grantPermissionsRequest.TargetIdentifier)
-            .WithPermissions(grantPermissionsRequest.Permissions.ToArray())
+            .WithPermissions([.. grantPermissionsRequest.Permissions])
             .WithDescription(grantPermissionsRequest.Description)
             .Build();
 

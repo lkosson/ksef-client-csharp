@@ -1,7 +1,7 @@
 using KSeF.Client.Core.Models.Permissions.Authorizations;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 
-namespace KSeF.Client.Api.Builders.AuthorizationPermissions;
+namespace KSeF.Client.Api.Builders.AuthorizationEntityPermissions;
 
 public static class GrantAuthorizationPermissionsRequestBuilder
 {
@@ -58,7 +58,9 @@ public static class GrantAuthorizationPermissionsRequestBuilder
         public GrantPermissionsAuthorizationRequest Build()
         {
             if (_subject is null)
+            {
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
+            }
 
             return new GrantPermissionsAuthorizationRequest
             {

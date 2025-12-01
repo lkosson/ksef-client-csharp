@@ -1,4 +1,4 @@
-namespace WebApplication.Services;
+namespace KSeF.DemoWebApp.Services;
 
 public static class XadeSDummy
 {

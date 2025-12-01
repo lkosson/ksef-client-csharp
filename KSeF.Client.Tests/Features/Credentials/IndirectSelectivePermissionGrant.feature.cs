@@ -1,6 +1,7 @@
 ﻿using KSeF.Client.Api.Builders.EntityPermissions;
 using KSeF.Client.Api.Builders.IndirectEntityPermissions;
 using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Entity;
@@ -9,7 +10,7 @@ using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using KSeF.Client.Core.Models.Token;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Features;
+namespace KSeF.Client.Tests.Features.Credentials;
 
 /// <summary>
 /// Testy dla selektywnego nadawania uprawnień pośrednich w systemie KSeF.
@@ -20,8 +21,6 @@ namespace KSeF.Client.Tests.Features;
 [Trait("Features", "IndirectSelectivePermissionGrant.feature")]
 public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
 {
-    private const int OperationSuccessfulStatusCode = 200;
-
     private string _firstOwnerAccessToken { get; set; }
     private string _firstOwnerNip { get; set; }
 
@@ -59,17 +58,17 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
     /// 3. Weryfikacja dostępu w odpowiednich kontekstach oraz braku dostępu w pozostałych
     /// </summary>
     [Fact]
-    public async Task SelectiveIndirectPermission_GrantAndVerifySelectiveAccess()
+    public async Task SelectiveIndirectPermissionGrantAndVerifySelectiveAccess()
     {
         // Arrange: uwierzytelnienie pierwszego właściciela
         _firstOwnerAccessToken = (await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             _firstOwnerNip)).AccessToken.Token;
 
         // Arrange: uwierzytelnienie drugiego właściciela
         _secondOwnerAccessToken = (await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             _secondOwnerNip)).AccessToken.Token;
 
@@ -86,7 +85,7 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
             await WaitForOperationSuccessAsync(firstOwnerGrantResponse.ReferenceNumber, _firstOwnerAccessToken);
 
         Assert.NotNull(firstOwnerGrantStatus);
-        Assert.Equal(OperationSuccessfulStatusCode, firstOwnerGrantStatus.Status.Code);
+        Assert.Equal(OperationStatusCodeResponse.Success, firstOwnerGrantStatus.Status.Code);
 
         // Act: nadanie uprawnień dla pośrednika przez drugiego właściciela
         OperationResponse secondOwnerGrantResponse =
@@ -100,11 +99,11 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
             await WaitForOperationSuccessAsync(secondOwnerGrantResponse.ReferenceNumber, _secondOwnerAccessToken);
 
         Assert.NotNull(secondOwnerGrantStatus);
-        Assert.Equal(OperationSuccessfulStatusCode, secondOwnerGrantStatus.Status.Code);
+        Assert.Equal(OperationStatusCodeResponse.Success, secondOwnerGrantStatus.Status.Code);
 
         // Arrange: Uwierzytelnienie pośrednika
         _intermediaryAccessToken = (await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             _intermediaryNip)).AccessToken.Token;
 
@@ -121,7 +120,7 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
             await WaitForOperationSuccessAsync(peselGrantResponse.ReferenceNumber, _intermediaryAccessToken);
 
         Assert.NotNull(peselGrantStatus);
-        Assert.Equal(OperationSuccessfulStatusCode, peselGrantStatus.Status.Code);
+        Assert.Equal(OperationStatusCodeResponse.Success, peselGrantStatus.Status.Code);
 
         // Act: nadanie selektywnych uprawnień pośrednich dla NIP w kontekście secondOwner
         OperationResponse nipGrantResponse =
@@ -135,12 +134,12 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
             await WaitForOperationSuccessAsync(nipGrantResponse.ReferenceNumber, _intermediaryAccessToken);
 
         Assert.NotNull(nipGrantStatus);
-        Assert.Equal(OperationSuccessfulStatusCode, nipGrantStatus.Status.Code);
+        Assert.Equal(OperationStatusCodeResponse.Success, nipGrantStatus.Status.Code);
 
         // Act: uwierzytelnienie PESEL w kontekście firstOwner
         AuthenticationOperationStatusResponse peselAuthInFirstContext =
             await AuthenticationUtils.AuthenticateAsync(
-                KsefClient,
+                AuthorizationClient,
                 SignatureService,
                 _subjectWithPesel.Value,
                 _firstOwnerNip);
@@ -160,10 +159,10 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
             "Token powinien zawierać uprawnienie InvoiceWrite");
 
         // Act & Assert: próba uwierzytelnienia PESEL w kontekście secondOwner - oczekiwany błąd
-        await Assert.ThrowsAsync<Exception>(async () =>
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
             await AuthenticationUtils.AuthenticateAsync(
-                KsefClient,
+                AuthorizationClient,
                 SignatureService,
                 _subjectWithPesel.Value,
                 _secondOwnerNip);
@@ -171,7 +170,7 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
 
         // Act: uwierzytelnienie NIP w kontekście secondOwner
         AuthenticationOperationStatusResponse nipInSecondContext = await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             _subjectWithNip.Value,
             _secondOwnerNip);
@@ -190,10 +189,10 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
             "Token powinien zawierać uprawnienie InvoiceWrite");
 
         // Act & Assert: próba uwierzytelnienia NIP w kontekście firstOwner - oczekiwany błąd
-        await Assert.ThrowsAsync<Exception>(async () =>
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
             await AuthenticationUtils.AuthenticateAsync(
-                KsefClient,
+                AuthorizationClient,
                 SignatureService,
                 _subjectWithNip.Value,
                 _firstOwnerNip);
@@ -268,7 +267,7 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
         string accessToken)
         => AsyncPollingUtils.PollAsync(
             action: () => KsefClient.OperationsStatusAsync(operationReferenceNumber, accessToken),
-            condition: r => r.Status.Code == OperationSuccessfulStatusCode,
+            condition: r => r.Status.Code == OperationStatusCodeResponse.Success,
             delay: TimeSpan.FromSeconds(1),
             maxAttempts: 60,
             cancellationToken: CancellationToken.None

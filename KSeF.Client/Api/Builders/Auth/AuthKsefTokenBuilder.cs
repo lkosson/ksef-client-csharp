@@ -48,7 +48,9 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
     public IAuthKsefTokenRequestBuilderWithChallenge WithChallenge(string challenge)
     {
         if (string.IsNullOrWhiteSpace(challenge))
-            throw new ArgumentException(nameof(challenge));
+        {
+            throw new ArgumentNullException(nameof(challenge));
+        }
 
         _challenge = challenge;
         return this;
@@ -57,7 +59,9 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
     public IAuthKsefTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifierType type, string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException(nameof(value));
+        {
+            throw new ArgumentNullException(nameof(value));
+        }
 
         _contextIdentifier = new AuthenticationTokenContextIdentifier { Type = type, Value = value };
         return this;
@@ -66,7 +70,9 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
     public IAuthKsefTokenRequestBuilderWithEncryptedToken WithEncryptedToken(string encryptedToken)
     {
         if (string.IsNullOrWhiteSpace(encryptedToken))
-            throw new ArgumentException(nameof(encryptedToken));
+        {
+            throw new ArgumentNullException(nameof(encryptedToken));
+        }
 
         _encryptedToken = encryptedToken;
         return this;
@@ -81,7 +87,9 @@ internal sealed class AuthKsefTokenRequestBuilderImpl :
     public AuthenticationKsefTokenRequest Build()
     {
         if (_challenge is null || _contextIdentifier is null || _encryptedToken is null)
+        {
             throw new InvalidOperationException("Brak wymaganych pól.");
+        }
 
         return new AuthenticationKsefTokenRequest
         {

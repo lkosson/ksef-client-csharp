@@ -31,7 +31,7 @@ public static class PermissionsUtils
         PersonPermissionState state,
         int pageOffset = 0, int pageSize = 10)
     {
-        PersonPermissionsQueryRequest query = new PersonPermissionsQueryRequest
+        PersonPermissionsQueryRequest query = new()
         {
             QueryType = queryType,
             PermissionState = state
@@ -77,13 +77,13 @@ public static class PermissionsUtils
         string accessToken,
         GrantPermissionsPersonSubjectIdentifier subject,
         PersonPermissionType[] permissions,
-        string? description = null)
+        string description = "")
     {
         GrantPermissionsPersonRequest request = GrantPersonPermissionsRequestBuilder
             .Create()
             .WithSubject(subject)
             .WithPermissions(permissions)
-            .WithDescription(description ?? $"Grant {string.Join(", ", permissions)} to {subject.Type}:{subject.Value}")
+            .WithDescription(!string.IsNullOrEmpty(description) ? description : $"Grant {string.Join(", ", permissions)} to {subject.Type}:{subject.Value}")
             .Build();
 
         return await client.GrantsPermissionPersonAsync(request, accessToken);
@@ -105,14 +105,14 @@ public static class PermissionsUtils
         IndirectEntitySubjectIdentifier subject,
         IndirectEntityTargetIdentifier context,
         IndirectEntityStandardPermissionType[] permissions,
-        string? description = null)
+        string description = "")
     {
         GrantPermissionsIndirectEntityRequest request = GrantIndirectEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(subject)
             .WithContext(context)
             .WithPermissions(permissions)
-            .WithDescription(description ?? $"Grant {string.Join(", ", permissions)} to {subject.Type}:{subject.Value} @ {context.Value}")
+            .WithDescription(!string.IsNullOrEmpty(description) ? description : $"Grant {string.Join(", ", permissions)} to {subject.Type}:{subject.Value} @ {context.Value}")
             .Build();
 
         return await client.GrantsPermissionIndirectEntityAsync(request, accessToken);
@@ -140,7 +140,9 @@ public static class PermissionsUtils
         IKSeFClient client, OperationResponse operationResponse, string accessToken)
     {
         if (string.IsNullOrWhiteSpace(operationResponse?.ReferenceNumber))
+        {
             return false;
+        }
 
         await Task.Delay(2000);
 

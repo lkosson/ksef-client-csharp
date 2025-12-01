@@ -9,13 +9,16 @@ public static class JsonUtil
     {
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
+
+#if NET10_0_OR_GREATER
         AllowOutOfOrderMetadataProperties = true,
+#endif
+
         WriteIndented = false,
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters = { new JsonStringEnumConverter() }
     };
-
     public static string Serialize<T>(T obj)
     {
         try
@@ -59,11 +62,9 @@ public static class JsonUtil
         try
         {
             T result = await JsonSerializer.DeserializeAsync<T>(input, _settings);
-            if (result == null)
-            {
-                throw new InvalidOperationException($"[DeserializeAsync] Zdeserializowana wartość jest pusta (null) dla typu {typeof(T).Name}.");
-            }
-            return result;
+            return result == null
+                ? throw new InvalidOperationException($"[DeserializeAsync] Zdeserializowana wartość jest pusta (null) dla typu {typeof(T).Name}.")
+                : result;
         }
         catch (Exception ex)
         {
@@ -74,7 +75,7 @@ public static class JsonUtil
                 if (input.CanSeek)
                 {
                     input.Seek(0, SeekOrigin.Begin);
-                    using StreamReader reader = new StreamReader(input, leaveOpen: true);
+                    using StreamReader reader = new(input, leaveOpen: true);
                     jsonFragment = await reader.ReadToEndAsync();
                 }
             }
@@ -89,8 +90,16 @@ public static class JsonUtil
 
     private static string Shorten(string input, int maxLen = 512)
     {
-        if (string.IsNullOrEmpty(input)) return string.Empty;
-        if (input.Length <= maxLen) return input;
-        return input.Substring(0, maxLen) + "...";
+        if (string.IsNullOrEmpty(input))
+        {
+            return string.Empty;
+        }
+
+        if (input.Length <= maxLen)
+        {
+            return input;
+        }
+
+        return string.Concat(input.AsSpan(0, maxLen), "...");
     }
 }

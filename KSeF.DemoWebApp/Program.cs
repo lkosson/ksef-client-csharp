@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-WebApplicationBuilder builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddKSeFClient(options =>
 {
@@ -17,10 +17,20 @@ builder.Services.AddKSeFClient(options =>
                 .GetSection("ApiSettings:customHeaders")
                 .Get<Dictionary<string, string>>()
               ?? new Dictionary<string, string>();
+
+    options.ResourcesPath = builder.Configuration.GetSection("ApiSettings")
+                .GetValue<string>("ResourcesPath") ?? null;
+
+    options.DefaultCulture = builder.Configuration.GetSection("ApiSettings")
+            .GetValue<string>("DefaultCulture") ?? null;
+
+    options.SupportedCultures = builder.Configuration.GetSection("ApiSettings").GetSection("SupportedCultures").Get<string[]>() ?? null;
+
+    options.SupportedUICultures = builder.Configuration.GetSection("ApiSettings").GetSection("SupportedUICultures").Get<string[]>() ?? null;
 });
 
 // UWAGA: w aplikacji webowej używamy AddCryptographyClient do rejestracji CryptographyClient i powiązanych serwisów
-// tutaj z domyślnym delegatem pobierającym certyfikaty, zobacz dostępne parametry w dokumentacji metody rozszerzającej
+// tutaj z domyślnym DefaultCertificateFetcher pobierającym certyfikaty, zobacz dostępne parametry w dokumentacji metody rozszerzającej
 builder.Services.AddCryptographyClient();
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
@@ -47,13 +57,16 @@ builder.Services.Configure<JsonOptions>(options =>
 {
     options.SerializerOptions.ReadCommentHandling = JsonCommentHandling.Skip;
     options.SerializerOptions.AllowTrailingCommas = true;
-    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-    options.SerializerOptions.AllowOutOfOrderMetadataProperties = true;
 
+#if NET10_0_OR_GREATER
+    options.SerializerOptions.AllowOutOfOrderMetadataProperties = true;
+#endif
+
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-Microsoft.AspNetCore.Builder.WebApplication app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

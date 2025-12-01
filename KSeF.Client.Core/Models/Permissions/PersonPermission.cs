@@ -1,4 +1,5 @@
 using KSeF.Client.Core.Models.Permissions.Identifiers;
+using KSeF.Client.Core.Models.Permissions.Person;
 using System;
 
 namespace KSeF.Client.Core.Models.Permissions
@@ -10,9 +11,9 @@ namespace KSeF.Client.Core.Models.Permissions
         public PersonPermissionContextIdentifier ContextIdentifier { get; set; }
         public PersonPermissionTargetIdentifier TargetIdentifier { get; set; }
         public AuthorIdentifier AuthorIdentifier { get; set; }
-        public string PermissionScope { get; set; }
+        public PersonPermissionType PermissionScope { get; set; }
         public string Description { get; set; }
-        public string PermissionState { get; set; }
+        public PersonPermissionState PermissionState { get; set; }
         public DateTime StartDate { get; set; }
         public bool CanDelegate { get; set; }
     }

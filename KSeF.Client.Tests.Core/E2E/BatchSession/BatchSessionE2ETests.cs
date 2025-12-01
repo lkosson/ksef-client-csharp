@@ -16,12 +16,12 @@ public partial class BatchSessionE2ETests : TestBase
     private const int ExpectedFailedInvoiceCount = 0;
     private const int ExpectedSessionStatusCode = 200;
 
-    private string accessToken = string.Empty;
-    private string sellerNip = string.Empty;
+    private readonly string accessToken = string.Empty;
+    private readonly string sellerNip = string.Empty;
 
-    private string? batchSessionReferenceNumber;
-    private string? ksefNumber;
-    private string? upoReferenceNumber;
+    private string batchSessionReferenceNumber;
+    private string ksefNumber;
+    private string upoReferenceNumber;
     private OpenBatchSessionResponse? openBatchSessionResponse;
     private List<BatchPartSendingInfo>? encryptedParts;
 
@@ -30,7 +30,7 @@ public partial class BatchSessionE2ETests : TestBase
         // Autoryzacja do testów – jednorazowa, dane zapisane w readonly properties
         string nip = MiscellaneousUtils.GetRandomNip();
         AuthenticationOperationStatusResponse authInfo = AuthenticationUtils
-            .AuthenticateAsync(KsefClient, SignatureService, nip)
+            .AuthenticateAsync(AuthorizationClient, SignatureService, nip)
             .GetAwaiter().GetResult();
 
         accessToken = authInfo.AccessToken.Token;
@@ -56,7 +56,7 @@ public partial class BatchSessionE2ETests : TestBase
     [Theory]
     [InlineData(SystemCode.FA2, "invoice-template-fa-2.xml")]
     [InlineData(SystemCode.FA3, "invoice-template-fa-3.xml")]
-    public async Task BatchSession_FullIntegrationFlow_ReturnsUpo(SystemCode systemCode, string invoiceTemplatePath)
+    public async Task BatchSessionFullIntegrationFlowReturnsUpo(SystemCode systemCode, string invoiceTemplatePath)
     {
         // 1. Przygotowanie paczki i otwarcie sesji
         OpenBatchSessionResult openResult = await PrepareAndOpenBatchSessionAsync(

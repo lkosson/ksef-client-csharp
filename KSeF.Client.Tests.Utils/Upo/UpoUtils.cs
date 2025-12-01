@@ -1,5 +1,6 @@
 using KSeF.Client.Core.Interfaces.Clients;
 using System.Xml.Serialization;
+using System.Xml;
 
 namespace KSeF.Client.Tests.Utils.Upo;
 
@@ -14,10 +15,16 @@ public static class UpoUtils
     /// <exception cref="InvalidOperationException">Gdy deserializacja się nie powiedzie (np. niezgodność elementów/namespaces).</exception>
     public static T UpoParse<T>(string xml) where T : IUpoParsable
     {
-        XmlSerializer serializer = new XmlSerializer(typeof(T));
-        using StringReader reader = new StringReader(xml);
+        XmlSerializer serializer = new(typeof(T));
+        using StringReader stringReader = new(xml);
+        XmlReaderSettings settings = new()
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null
+        };
+        using XmlReader xmlReader = XmlReader.Create(stringReader, settings);
 
-        return (T)serializer.Deserialize(reader)!;
+        return (T)serializer.Deserialize(xmlReader)!;
     }
 
     /// <summary>

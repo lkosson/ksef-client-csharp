@@ -1,5 +1,6 @@
 ﻿using KSeF.Client.Api.Builders.EntityPermissions;
 using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Entity;
@@ -8,7 +9,7 @@ using KSeF.Client.Core.Models.Permissions.IndirectEntity;
 using KSeF.Client.Core.Models.Token;
 using KSeF.Client.Tests.Utils;
 
-namespace KSeF.Client.Tests.Features;
+namespace KSeF.Client.Tests.Features.Credentials;
 
 [CollectionDefinition("GrantPermissionsInAGeneralIndirectMannerTests.feature")]
 [Trait("Category", "Features")]
@@ -18,7 +19,7 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
 
     [Fact]
     [Trait("Scenario", "Nadanie pośrednich uprawnień przez dwa podmioty pośrednikowi i dalszemu podmiotowi końcowemu")]
-    public async Task GivenGrantPermissionsToIntermediary_WhenIntermediaryGrantsIndirectPermissions_ThenFinalSubjectsHasSinglePermissionInEachContext()
+    public async Task GivenGrantPermissionsToIntermediaryWhenIntermediaryGrantsIndirectPermissionsThenFinalSubjectsHasSinglePermissionInEachContext()
     {
         //Arrange
         string firstSubject = MiscellaneousUtils.GetRandomNip();
@@ -32,7 +33,7 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
         await GrantPermissionsToIntermediaryByTwoCompanies(firstSubject, secondSubject, intermediaryNip);
 
         AuthenticationOperationStatusResponse intermediaryAuthOperationStatusResponse = await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             intermediaryNip);
 
@@ -60,13 +61,13 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
             delay: TimeSpan.FromSeconds(1),
             maxAttempts: 60,
             cancellationToken: CancellationToken.None);
-        Assert.True(grantIndirectPermissionsForNipOperationStatus.Status.Code == 200);
+        Assert.True(grantIndirectPermissionsForNipOperationStatus.Status.Code == OperationStatusCodeResponse.Success);
         #endregion
 
         //Assert
         #region logowanie jako NIP podmiot końcowy w kontekście podmiotu pierwszego
         AuthenticationOperationStatusResponse lastManNipAuthOperationStatusResponseInFirstContext = await AuthenticationUtils.AuthenticateAsync(
-          KsefClient,
+          AuthorizationClient,
           SignatureService,
           lastIdentifierInTheChainNip, firstSubject);
 
@@ -75,7 +76,7 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
         #endregion
         # region logowanie jako NIP podmiot końcowy w kontekście podmiotu drugiego
         AuthenticationOperationStatusResponse lastManNipAuthOperationStatusResponseInSecondContext = await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             lastIdentifierInTheChainNip, secondSubject);
 
@@ -85,7 +86,7 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
 
         #region logowanie jako PESEL podmiot końcowy w kontekście podmiotu pierwszego
         AuthenticationOperationStatusResponse lastManPeselAuthOperationStatusResponseInFirstContext = await AuthenticationUtils.AuthenticateAsync(
-          KsefClient,
+          AuthorizationClient,
           SignatureService,
           lastIdentifierInTheChainNip, firstSubject);
 
@@ -95,7 +96,7 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
 
         # region logowanie jako PESEL podmiot końcowy w kontekście podmiotu drugiego
         AuthenticationOperationStatusResponse lastManAuthOperationStatusResponseInSecondContext = await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             lastIdentifierInTheChainNip, secondSubject);
 
@@ -107,12 +108,12 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
     private async Task GrantPermissionsToIntermediaryByTwoCompanies(string subjectNip, string secondSubjectNip, string intermediaryNIP)
     {
         AuthenticationOperationStatusResponse authOperationStatusResponse = await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             subjectNip);
 
         AuthenticationOperationStatusResponse secondAuthOperationStatusResponse = await AuthenticationUtils.AuthenticateAsync(
-            KsefClient,
+            AuthorizationClient,
             SignatureService,
             secondSubjectNip);
 
@@ -133,7 +134,7 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
             async () => await KsefClient.OperationsStatusAsync(firstActionStatusResponse.ReferenceNumber, authOperationStatusResponse.AccessToken.Token),
             status => status is not null &&
                      status.Status is not null &&
-                     status.Status.Code == 200,
+                     status.Status.Code == OperationStatusCodeResponse.Success,
             delay: TimeSpan.FromSeconds(1),
             maxAttempts: 60,
             cancellationToken: CancellationToken.None);
@@ -145,7 +146,7 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
             async () => await KsefClient.OperationsStatusAsync(secondActionStatusResponse.ReferenceNumber, secondAuthOperationStatusResponse.AccessToken.Token),
             status => status is not null &&
                      status.Status is not null &&
-                     status.Status.Code == 200,
+                     status.Status.Code == OperationStatusCodeResponse.Success,
             delay: TimeSpan.FromSeconds(1),
             maxAttempts: 60,
             cancellationToken: CancellationToken.None);
@@ -153,15 +154,15 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
 
     private async Task<OperationResponse> GrantIndirectPermissions(string identifier, IndirectEntitySubjectIdentifierType type , string authToken)
     {
-        IndirectEntitySubjectIdentifier subject = new IndirectEntitySubjectIdentifier
+        IndirectEntitySubjectIdentifier subject = new()
         {
             Type = type,
             Value = identifier
         };
 
-        IndirectEntityTargetIdentifier target = new IndirectEntityTargetIdentifier { Type = IndirectEntityTargetIdentifierType.AllPartners };
+        IndirectEntityTargetIdentifier target = new() { Type = IndirectEntityTargetIdentifierType.AllPartners };
 
         return await PermissionsUtils.GrantIndirectPermissionsAsync(KsefClient, authToken,
-            subject, target, new[] { IndirectEntityStandardPermissionType.InvoiceRead });
+            subject, target, [IndirectEntityStandardPermissionType.InvoiceRead]);
     }
 }

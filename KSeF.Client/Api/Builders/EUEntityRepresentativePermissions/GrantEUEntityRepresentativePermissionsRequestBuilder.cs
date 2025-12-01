@@ -45,7 +45,9 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
         public IOptionalStep WithPermissions(params EuEntityRepresentativeStandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
+            {
                 throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));
+            }
 
             _permissions = permissions;
             return this;
@@ -60,9 +62,14 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
         public GrantPermissionsEuEntityRepresentativeRequest Build()
         {
             if (_subject is null)
+            {
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
+            }
+
             if (_permissions is null)
+            {
                 throw new InvalidOperationException("Metoda WithPermissions(...) musi zostać wywołana po ustawieniu podmiotu.");
+            }
 
             return new GrantPermissionsEuEntityRepresentativeRequest
             {

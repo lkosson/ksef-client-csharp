@@ -1,3 +1,4 @@
+using KSeF.Client.Api.Builders.Batch;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Invoices;
@@ -99,8 +100,8 @@ public static class BatchUtils
         IEnumerable<(string FileName, byte[] Content)> files,
         ICryptographyService cryptographyService)
     {
-        using MemoryStream zipStream = new MemoryStream();
-        using ZipArchive archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true);
+        using MemoryStream zipStream = new();
+        using ZipArchive archive = new(zipStream, ZipArchiveMode.Create, leaveOpen: true);
 
         foreach ((string fileName, byte[] content) in files)
         {
@@ -146,14 +147,17 @@ public static class BatchUtils
         ArgumentNullException.ThrowIfNull(input);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(partCount);
 
-        List<byte[]> result = new List<byte[]>(partCount);
+        List<byte[]> result = new(partCount);
         int partSize = (int)Math.Ceiling((double)input.Length / partCount);
 
         for (int i = 0; i < partCount; i++)
         {
             int start = i * partSize;
             int size = Math.Min(partSize, input.Length - start);
-            if (size <= 0) break;
+            if (size <= 0)
+            {
+                break;
+            }
 
             byte[] part = new byte[size];
             Array.Copy(input, start, part, 0, size);
@@ -187,10 +191,10 @@ public static class BatchUtils
         int actualPartCount = partCount ?? CalculateBatchPartQuantity(zipBytes.Length);
 
         List<byte[]> rawParts = actualPartCount <= 1
-            ? new List<byte[]> { zipBytes }
+            ? [zipBytes]
             : Split(zipBytes, actualPartCount);
 
-        List<BatchPartSendingInfo> result = new List<BatchPartSendingInfo>(rawParts.Count);
+        List<BatchPartSendingInfo> result = new(rawParts.Count);
 
         for (int i = 0; i < rawParts.Count; i++)
         {
@@ -302,7 +306,9 @@ public static class BatchUtils
     {
         string path = Path.Combine(AppContext.BaseDirectory, "Templates", templatePath);
         if (!File.Exists(path))
+        {
             throw new FileNotFoundException($"Template not found at: {path}");
+        }
 
         string template = File.ReadAllText(path, Encoding.UTF8);
 
@@ -397,7 +403,7 @@ public static class BatchUtils
                 byte[] encryptedBytes = await DownloadPackagePartAsync(part, httpClientFactory, cancellationToken);
                 byte[] decryptedBytes = crypto.DecryptBytesWithAES256(encryptedBytes, encryptionData.CipherKey, encryptionData.CipherIv);
 
-                await decryptedStream.WriteAsync(decryptedBytes, 0, decryptedBytes.Length, cancellationToken);
+                await decryptedStream.WriteAsync(decryptedBytes, cancellationToken);
             }
 
             decryptedStream.Position = 0;

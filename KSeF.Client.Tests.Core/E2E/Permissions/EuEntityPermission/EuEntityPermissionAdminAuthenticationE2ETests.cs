@@ -1,5 +1,6 @@
 using KSeF.Client.Api.Builders.EuEntityPermissions;
 using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
@@ -7,16 +8,15 @@ using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Tests.Utils;
 using System.Security.Cryptography.X509Certificates;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
+namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
 {
     /// <summary>
-    /// Testy E2E dla nadawania uprawnień administracyjnych jednostkom UE i uwierzytelniania w ich kontekście.
+    /// Testy E2E nadawania uprawnień administracyjnych jednostkom UE i uwierzytelniania w ich kontekście.
     /// </summary>
     public class EuEntityPermissionAdminAuthenticationE2ETests : TestBase
     {
         private const string AdminSubjectName = "EU Admin Entity";
         private const string AdminPermissionDescription = "E2E EU Entity Admin Permission Test";
-        private const int SuccessStatusCode = 200;
 
         /// <summary>
         /// Test kompletnego scenariusza nadania uprawnień administracyjnych:
@@ -33,15 +33,14 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
 
             // Generowanie danych właściciela (główny podmiot nadający uprawnienia)
             string ownerNip = MiscellaneousUtils.GetRandomNip();
-            string ownerVatEu = MiscellaneousUtils.GetRandomVatEU(ownerNip);
-            string ownerNipVatEu = MiscellaneousUtils.GetNipVatEU(ownerNip, ownerVatEu);
+            string ownerVatEu = MiscellaneousUtils.GetRandomNipVatEU(ownerNip);
 
             // Generowanie danych jednostki UE (przyszły administrator)
             string euAdminNip = MiscellaneousUtils.GetRandomNip();
-            string euAdminVatEu = MiscellaneousUtils.GetRandomVatEU(euAdminNip);
-            string euAdminNipVatEu = MiscellaneousUtils.GetNipVatEU(euAdminNip, euAdminVatEu);
+            string euAdminVatEu = MiscellaneousUtils.GetRandomNipVatEU(euAdminNip);
 
-            // Tworzenie certyfikatów dla właściciela i administratora
+
+            // Tworzenie certyfikatów właścicielowi i administratorowi
             X509Certificate2 ownerCertificate = CertificateUtils.GetPersonalCertificate(
                 givenName: "Jan",
                 surname: "Kowalski",
@@ -64,7 +63,7 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
 
             // Uwierzytelnienie właściciela w kontekście NIP
             AuthenticationOperationStatusResponse ownerAuthResponse = await AuthenticationUtils.AuthenticateAsync(
-                KsefClient,
+                AuthorizationClient,
                 SignatureService,
                 ownerNip,
                 AuthenticationTokenContextIdentifierType.Nip,
@@ -93,7 +92,7 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
                 .WithContext(new EuEntityContextIdentifier
                 {
                     Type = EuEntityContextIdentifierType.NipVatUe,
-                    Value = ownerNipVatEu
+                    Value = ownerVatEu
                 })
                 .WithDescription(AdminPermissionDescription)
                 .Build();
@@ -116,7 +115,7 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
                 async () => await KsefClient.OperationsStatusAsync(grantOperationResponse.ReferenceNumber, ownerAccessToken),
                 status => status is not null &&
                          status.Status is not null &&
-                         status.Status.Code == SuccessStatusCode,
+                         status.Status.Code == OperationStatusCodeResponse.Success,
                 delay: TimeSpan.FromSeconds(1),
                 maxAttempts: 60,
                 cancellationToken: CancellationToken.None);
@@ -124,8 +123,8 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
             Assert.NotNull(grantOperationStatus);
             Assert.NotNull(grantOperationStatus.Status);
             Assert.True(
-                SuccessStatusCode == grantOperationStatus.Status.Code,
-                $"Operacja nadania uprawnień powinna zakończyć się sukcesem (kod {SuccessStatusCode}), otrzymano {grantOperationStatus.Status.Code}. " +
+                OperationStatusCodeResponse.Success == grantOperationStatus.Status.Code,
+                $"Operacja nadania uprawnień powinna zakończyć się sukcesem (kod {OperationStatusCodeResponse.Success}), otrzymano {grantOperationStatus.Status.Code}. " +
                 $"Opis: {grantOperationStatus.Status.Description}"
             );
 
@@ -134,7 +133,7 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
             #region Wyszukanie nadanych uprawnień
 
             // Wyszukanie nadanych uprawnień w systemie
-            EuEntityPermissionsQueryRequest queryRequest = new EuEntityPermissionsQueryRequest();
+            EuEntityPermissionsQueryRequest queryRequest = new();
 
             PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> grantedPermissionsResponse =
                 await AsyncPollingUtils.PollAsync(
@@ -158,9 +157,9 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
 
             // Uwierzytelnienie jako administrator w kontekście NipVatUe właściciela
             AuthenticationOperationStatusResponse euAdminAuthResponse = await AuthenticationUtils.AuthenticateAsync(
-                KsefClient,
+                AuthorizationClient,
                 SignatureService,
-                ownerNipVatEu, 
+                ownerVatEu, 
                 AuthenticationTokenContextIdentifierType.NipVatUe,
                 euAdminCertificate, 
                 AuthenticationTokenSubjectIdentifierTypeEnum.CertificateFingerprint);
@@ -179,13 +178,13 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions
             // Weryfikacja pełnego zestawu uprawnień administratora
             HashSet<string> expectedAdminPermissions = new HashSet<string>
             {
-                EuEntityPermissionsQueryPermissionType.VatUeManage.ToString(),
-                EuEntityPermissionsQueryPermissionType.InvoiceWrite.ToString(),
-                EuEntityPermissionsQueryPermissionType.InvoiceRead.ToString(),
-                EuEntityPermissionsQueryPermissionType.Introspection.ToString()
+                EuEntityPermissionType.VatUeManage.ToString(),
+                EuEntityPermissionType.InvoiceWrite.ToString(),
+                EuEntityPermissionType.InvoiceRead.ToString(),
+                EuEntityPermissionType.Introspection.ToString()
             };
 
-            HashSet<string> actualAdminPermissions = new HashSet<string>(adminTokenInfo.Permissions);
+            HashSet<string> actualAdminPermissions = [.. adminTokenInfo.Permissions];
 
             Assert.True(
                 expectedAdminPermissions.OrderBy(x => x).SequenceEqual(actualAdminPermissions.OrderBy(x => x)),

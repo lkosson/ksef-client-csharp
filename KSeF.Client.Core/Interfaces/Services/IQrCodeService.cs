@@ -7,6 +7,7 @@ namespace KSeF.Client.Core.Interfaces.Services
         /// </summary>
         /// <param name="payloadUrl">URL/link do zakodowania.</param>
         /// <param name="pixelsPerModule">Rozmiar modułu w pikselach (domyślnie 20).</param>
+        /// <param name="qrCodeResolutionInPx"></param>
         byte[] GenerateQrCode(
             string payloadUrl,
             int pixelsPerModule = 20,

@@ -1,12 +1,15 @@
 using KSeF.Client.Api.Builders.EuEntityPermissions;
-using KSeF.Client.Core.Models.Permissions.EUEntity;
-using KSeF.Client.Tests.Utils;
-using KSeF.Client.Core.Models.Permissions;
-using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models;
+using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models.Permissions;
+using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
+using KSeF.Client.Tests.Utils;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
-namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermissions;
+namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission;
 
 [Collection("EuEntityPermissionE2EScenarioCollection")]
 public class EuEntityPermissionE2ETests : TestBase
@@ -16,19 +19,22 @@ public class EuEntityPermissionE2ETests : TestBase
     private const int OperationSuccessfulStatusCode = 200;
 
     private readonly EuEntityPermissionsQueryRequest EuEntityPermissionsQueryRequest =
-            new EuEntityPermissionsQueryRequest { /* e.g. filtrowanie */ };
+            new()
+            { /* e.g. filtrowanie */ };
     private readonly EuEntityPermissionScenarioE2EFixture TestFixture;
-    private string accessToken = string.Empty;
+    private readonly string accessToken = string.Empty;
 
     public EuEntityPermissionE2ETests()
     {
-        TestFixture = new EuEntityPermissionScenarioE2EFixture();
         string nip = MiscellaneousUtils.GetRandomNip();
-        TestFixture.NipVatUe = MiscellaneousUtils.GetRandomNipVatEU(nip, "CZ");
+        X509Certificate2 certificate = CertificateUtils.GetPersonalCertificate("A", "R", "TINPL", nip, "A R");
+        string fingerprint = EuEntityPermissionE2ETests.GetFingerprintWithSeparators(certificate, "SHA256", "");
+        TestFixture = new EuEntityPermissionScenarioE2EFixture();
+        TestFixture.NipVatUe = MiscellaneousUtils.GetRandomNipVatEU(nip);
         AuthenticationOperationStatusResponse authOperationStatusResponse =
-            AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, nip).GetAwaiter().GetResult();
+            AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, nip).GetAwaiter().GetResult();
         accessToken = authOperationStatusResponse.AccessToken.Token;
-        TestFixture.EuEntity.Value = MiscellaneousUtils.GetRandomNipVatEU("CZ");
+        TestFixture.EuEntity.Value = fingerprint;
     }
 
     /// <summary>
@@ -39,7 +45,7 @@ public class EuEntityPermissionE2ETests : TestBase
     {
         #region Nadaj uprawnienia jednostce EU
         // Arrange
-        EuEntityContextIdentifier contextIdentifier = new EuEntityContextIdentifier
+        EuEntityContextIdentifier contextIdentifier = new()
         {
             Type = EuEntityContextIdentifierType.NipVatUe,
             Value = TestFixture.NipVatUe
@@ -56,7 +62,7 @@ public class EuEntityPermissionE2ETests : TestBase
 
         #region Wyszukaj nadane uprawnienia
         // Act
-        PagedPermissionsResponse<EuEntityPermission> grantedPermissionsPaged =
+        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> grantedPermissionsPaged =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchPermissionsAsync(EuEntityPermissionsQueryRequest),
                 result => result is not null && result.Permissions is { Count: > 0 },
@@ -85,7 +91,7 @@ public class EuEntityPermissionE2ETests : TestBase
 
         #region Sprawdź czy po odwołaniu uprawnienia już nie występują
         // Act
-        PagedPermissionsResponse<EuEntityPermission> euEntityPermissionsWhenRevoked =
+        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> euEntityPermissionsWhenRevoked =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchPermissionsAsync(EuEntityPermissionsQueryRequest),
                 result => result is not null && (result.Permissions is null || result.Permissions.Count == 0),
@@ -126,9 +132,9 @@ public class EuEntityPermissionE2ETests : TestBase
     /// </summary>
     /// <param name="expectAny"></param>
     /// <returns>Stronicowana lista wyszukanych uprawnień</returns>
-    private async Task<PagedPermissionsResponse<EuEntityPermission>> SearchPermissionsAsync(EuEntityPermissionsQueryRequest euEntityPermissionsQueryRequest)
+    private async Task<PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission>> SearchPermissionsAsync(EuEntityPermissionsQueryRequest euEntityPermissionsQueryRequest)
     {
-        PagedPermissionsResponse<EuEntityPermission> response =
+        PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> response =
             await KsefClient
             .SearchGrantedEuEntityPermissionsAsync(
                 euEntityPermissionsQueryRequest,
@@ -145,9 +151,9 @@ public class EuEntityPermissionE2ETests : TestBase
     /// </summary>
     private async Task RevokePermissionsAsync()
     {
-        List<OperationResponse> revokeResponses = new List<OperationResponse>();
+        List<OperationResponse> revokeResponses = [];
 
-        foreach (EuEntityPermission permission in TestFixture.SearchResponse.Permissions)
+        foreach (Client.Core.Models.Permissions.EuEntityPermission permission in TestFixture.SearchResponse.Permissions)
         {
             OperationResponse operationResponse = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
             revokeResponses.Add(operationResponse);
@@ -165,5 +171,29 @@ public class EuEntityPermissionE2ETests : TestBase
 
             TestFixture.RevokeStatusResults.Add(status);
         }
+    }
+
+    /// <summary>
+    /// Zwraca fingerprint certyfikatu.
+    /// </summary>
+    /// <param name="certificate">Certyfikat typu X509Certificate2</param>
+    /// <param name="algorithmName">Algorytm certyfikatu</param>
+    /// <param name="separator">Separator fingerprint</param>
+    /// <returns></returns>
+    private static string GetFingerprintWithSeparators(X509Certificate2 certificate, string algorithmName = "SHA256", string separator = ":")
+    {
+        byte[] raw = certificate.RawData;
+        #pragma warning disable SYSLIB0045 // Type or member is obsolete
+        using HashAlgorithm hash = algorithmName.ToUpperInvariant() switch
+        {
+            "SHA1" => SHA1.Create(),
+            "SHA256" => SHA256.Create(),
+            "SHA384" => SHA384.Create(),
+            "SHA512" => SHA512.Create(),
+            _ => HashAlgorithm.Create(algorithmName) ?? SHA256.Create()
+        };
+        #pragma warning restore SYSLIB0045 // Type or member is obsolete
+        byte[] digest = hash.ComputeHash(raw);
+        return string.Join(separator, digest.Select(b => b.ToString("X2", CultureInfo.InvariantCulture))); // wielkie litery
     }
 }

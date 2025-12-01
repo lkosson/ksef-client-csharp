@@ -1,4 +1,73 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
+## Changelog zmian – ## Wersja 2.0.0 RC5.7.2
+
+### Nowe
+- `EntityRoleType` → nowy enum (`CourtBailiff`, `EnforcementAuthority`, `LocalGovernmentUnit`, `LocalGovernmentSubUnit`, `VatGroupUnit`, `VatGroupSubUnit`) używany w `EntityRole`
+- `SubordinateEntityRoleType` → nowy enum (`LocalGovernmentSubUnit`, `VatGroupSubUnit`) używany w `SubordinateEntityRole`
+- Rozdzielono zależności na poszczególne wersje .NET SDK.
+- EditorConfig: C# 7.3, NRT off, wymuszenie jawnych typów, Async*…Async, _underscore dla pól prywatnych i chronionych.
+- KSeF.Client.Api: Opisy w języku polskim dla publicznych interfejsów/typów.
+- Utils: ToVatEuFromDomestic(...) – poprawiona heurystyka i komunikaty w języku polskim.
+
+### Zmodyfikowane
+- Zmieniono nazwę `EuEntityPermissionsQueryPermissionType` → `EuEntityPermissionType`
+- `PersonPermission` pole `PermissionScope` zmieniono typ ze `string` na enum `PersonPermissionType`  
+  (zgłoszenie: https://github.com/CIRFMF/ksef-client-csharp/issues/131)
+- `PersonPermission` pole `PermissionState` zmieniono typ ze `string` na  enum `PersonPermissionState`
+- `EntityRole` pole `Role` zmieniono typ ze `string` na  enum `EntityRoleType`
+- `SubordinateEntityRole` pole `Role` zmieniono typ ze `string` na  enum `SubordinateEntityRoleType`
+- `AuthorizationGrant` pole `PermissionScope` zmieniono typ ze `string` na  enum `AuthorizationPermissionType`
+- `EuEntityPermission` pole `PermissionScope` zmieniono typ ze `string` na  enum `EuEntityPermissionType`
+
+## Changelog zmian – ## Wersja 2.0.0 RC5.7.1
+
+### Nowe
+- **KSeF.Client** 🔧➕
+  - Podzielono `IKSefClient` na mniejsze interfejsy:
+    - `IActiveSessionsClient`
+    - `IAuthorizationClient`
+    - `IBatchSessionClient`
+    - `ICertificateClient`
+    - `ICryptographyClient`
+    - `IGrantPermissionClient`
+    - `IInvoiceDownloadClient`
+    - `IKSeFClient`
+    - `IKsefTokenClient`
+    - `ILimitsClient`
+    - `IOnlineSessionClient`
+    - `IPeppolClient`
+    - `IPermissionOperationClient`
+    - `IRevokePermissionClient`
+    - `ISearchPermissionClient`
+    - `ISessionStatusClient`
+
+    oraz dodano ich mniejsze implementacje.
+
+### Zmodyfikowane
+➖ Usunięto klasę `ApiException` i zastąpiono użycie jej w summary klasą `KsefApiException`
+
+## Changelog zmian – ## Wersja 2.0.0 RC5.7 
+
+### Nowe
+- **API Responses** — dodano zestaw klas reprezentujących odpowiedzi statusów operacji:
+  - `AuthenticationStatusCodeResponse`
+  - `CertificateStatusCodeResponse`
+  - `InvoiceExportStatusCodeResponse`
+  - `InvoiceInSessionStatusCodeResponse`
+  - `OperationStatusCodeResponse`
+- **Operation Status Codes** — dodano nowy kod statusu **550 – "OperationCancelled"**  
+
+### Zmodyfikowane
+- `BatchFilePartInfo` — pole `FileName` oznaczono jako **Obsolete** (planowane usunięcie w przyszłych wersjach).
+
+## Changelog zmian – ## Wersja 2.0.0 RC5.6 
+
+### Nowe
+- **PdfTestApp** ➕
+  - Dodano aplikację konsolową `KSeF.Client.Tests.PdfTestApp` do automatycznego generowania wizualizacji PDF faktur KSeF i dokumentów UPO.
+  - Obsługuje generowanie PDF zarówno dla faktur (`faktura`, `invoice`) jak i dokumentów UPO (`upo`).
+  - Automatyczna instalacja zależności: npm packages, Chromium (Playwright).
+  - Dokumentacja w README.md z instrukcjami instalacji i przykładami użycia.
 
 ## Changelog zmian – ## Wersja 2.0.0 RC5.5 
 
@@ -493,7 +562,6 @@ Wybrane: **Authorization.cs**, `EntityPermission*.cs`, **OnlineSession.cs**, **T
 
 ```
 ```
-> • 🔀 przeniesione
 
 ## Rozwiązania zgłoszonych  - `2025-07-21`
 
@@ -545,6 +613,3 @@ po
   🔧 Zmiana kodu statusu dla zamknięcia sesji interaktywnej z 300 na 170.
   🔧 Zmiana kodu statusu dla zamknięcia sesji wsadowej z 300 na 150.
 ---
-
-```
-```
