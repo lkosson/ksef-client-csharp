@@ -9,9 +9,6 @@ using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Certificates;
 using KSeF.Client.Extensions;
 using KSeF.Client.Http;
-#if !LW
-using Microsoft.AspNetCore.Builder;
-#endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net.Http.Headers;
@@ -77,37 +74,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthorizationClient, AuthorizationClient>();
 
         services.AddScoped<ISignatureService, SignatureService>();
-#if QR
-        services.AddScoped<IQrCodeService, QrCodeService>();
-#endif
         services.AddSingleton<IPersonTokenService, PersonTokenService>();
         services.AddScoped<IVerificationLinkService, VerificationLinkService>();
-
-        if(!string.IsNullOrEmpty( options.ResourcesPath))
-        {
-            services.AddLocalization(localizationOptions =>
-            {
-                localizationOptions.ResourcesPath = options.ResourcesPath;
-            });
-
-            if (!string.IsNullOrEmpty(options.DefaultCulture))
-            {
-                services.Configure<RequestLocalizationOptions>(localizationOptions =>
-                {
-                    localizationOptions.SetDefaultCulture(options.DefaultCulture);
-
-                    if (options.SupportedCultures != null && options.SupportedCultures.Length > 0)
-                    {
-                        localizationOptions.AddSupportedCultures(options.SupportedCultures);
-                    }
-
-                    if (options.SupportedUICultures != null && options.SupportedUICultures.Length > 0)
-                    {
-                        localizationOptions.AddSupportedUICultures(options.SupportedUICultures);
-                    }
-                });
-            }
-        }
 
         return services;
     }
