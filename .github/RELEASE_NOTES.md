@@ -1,5 +1,59 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
 
+## Changelog zmian – Wersja 2.0.0 RC6.0
+
+### Nowe
+- **Dodano parametr `upoVersion`** w metodach `OpenBatchSessionAsync` i `OpenOnlineSessionAsync`
+  - Pozwala wybrać wersję UPO (dostępne wartości: `"upo-v4-3"`)
+  - Ustawia nagłówek `X-KSeF-Feature` z odpowiednią wersją
+  - Domyślnie: v4-2, od 5.01.2026 → v4-3
+- **Dodano możliwość przywrócenia na środowisku TE domyślnych limitów produkcyjnych API**
+
+### Zmodyfikowane
+- **Dodano `SubjectDetail` w** 
+ - `GrantPermissionsAuthorizationRequest`
+ - `GrantPermissionsPersonRequest`
+ - `GrantPermissionsEuEntityRequest`
+ - `GrantPermissionsIndirectEntityRequest`
+ - `GrantPermissionsEntityRequest`
+ - `GrantPermissionsSubunitRequest`
+ - `GrantPermissionsEuEntityRepresentativeRequest`
+ zgodnie z nowym kontraktem API
+ - **Dodano właściwość `Extensions` w obiekcie `StatusInfo`**
+
+## Changelog zmian – ## Wersja 2.0.0 RC5.7.2
+
+### Nowe
+➖ Dodano walidację parametrów przekazywanych w metodach klas `(...)RequestBuilder` zgodnie z dokumentacją API. 
+➖ Dodano klasę `TypeValueValidator`, która umożliwia weryfikację wartości przypisanych do identyfikatorów `Type - Value` jak `ContextIdentifier`, `PersonTargetIdentifier` itp. 
+
+### Zmodyfikowane
+➖ Oznaczono klasę `TestDataSessionLimitsBase` jako 'obsolete' i zastąpiono ją klasą `SessionLimits`
+➖ Dodano brakującą metodę w interfejsie `IOpenBatchSessionRequestBuilderBatchFile`.
+➖ Dodano test E2E prezentujący możliwość użycia pobranego i zapisanego na dysku certyfikatu wraz z kluczem publicznym do obsługi sesji i wysyłki faktury.
+➖ Dodano metody do klasy CertificateUtils.
+➕ W klasie `IncrementalInvoiceRetrievalE2ETests` - dodano obsługę HWM jako wzorcowego sposobu przyrostowego pobierania faktur (test `IncrementalInvoiceRetrieval_E2E_WithHwmShift`)
+
+## Changelog zmian – ## Wersja 2.0.0 RC5.7.2
+
+### Nowe
+- `EntityRoleType` → nowy enum (`CourtBailiff`, `EnforcementAuthority`, `LocalGovernmentUnit`, `LocalGovernmentSubUnit`, `VatGroupUnit`, `VatGroupSubUnit`) używany w `EntityRole`
+- `SubordinateEntityRoleType` → nowy enum (`LocalGovernmentSubUnit`, `VatGroupSubUnit`) używany w `SubordinateEntityRole`
+- Rozdzielono zależności na poszczególne wersje .NET SDK.
+- EditorConfig: C# 7.3, NRT off, wymuszenie jawnych typów, Async*…Async, _underscore dla pól prywatnych i chronionych.
+- KSeF.Client.Api: Opisy w języku polskim dla publicznych interfejsów/typów.
+- Utils: ToVatEuFromDomestic(...) – poprawiona heurystyka i komunikaty w języku polskim.
+
+### Zmodyfikowane
+- Zmieniono nazwę `EuEntityPermissionsQueryPermissionType` → `EuEntityPermissionType`
+- `PersonPermission` pole `PermissionScope` zmieniono typ ze `string` na enum `PersonPermissionType`  
+  (zgłoszenie: https://github.com/CIRFMF/ksef-client-csharp/issues/131)
+- `PersonPermission` pole `PermissionState` zmieniono typ ze `string` na  enum `PersonPermissionState`
+- `EntityRole` pole `Role` zmieniono typ ze `string` na  enum `EntityRoleType`
+- `SubordinateEntityRole` pole `Role` zmieniono typ ze `string` na  enum `SubordinateEntityRoleType`
+- `AuthorizationGrant` pole `PermissionScope` zmieniono typ ze `string` na  enum `AuthorizationPermissionType`
+- `EuEntityPermission` pole `PermissionScope` zmieniono typ ze `string` na  enum `EuEntityPermissionType`
+
 ## Changelog zmian – ## Wersja 2.0.0 RC5.7.1
 
 ### Nowe

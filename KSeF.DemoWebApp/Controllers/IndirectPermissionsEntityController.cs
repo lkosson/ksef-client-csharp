@@ -17,11 +17,11 @@ public class IndirectPermissionsEntityController(IKSeFClient ksefClient) : Contr
             .Create()
             .WithSubject(grantPermissionsRequest.SubjectIdentifier)
             .WithContext(grantPermissionsRequest.TargetIdentifier)
-            .WithPermissions(grantPermissionsRequest.Permissions.ToArray())
+            .WithPermissions([.. grantPermissionsRequest.Permissions])
             .WithDescription(grantPermissionsRequest.Description)
             .Build();
 
-        return await ksefClient.GrantsPermissionIndirectEntityAsync(request, accessToken, cancellationToken);
+        return await ksefClient.GrantsPermissionIndirectEntityAsync(request, accessToken, cancellationToken).ConfigureAwait(false);
     }
 
     [HttpPost("revoke-indirect-permissions-for-entity")]
@@ -30,6 +30,6 @@ public class IndirectPermissionsEntityController(IKSeFClient ksefClient) : Contr
     string accessToken,
     CancellationToken cancellationToken)
     {
-        return await ksefClient.RevokeAuthorizationsPermissionAsync(permissionId, accessToken, cancellationToken);
+        return await ksefClient.RevokeAuthorizationsPermissionAsync(permissionId, accessToken, cancellationToken).ConfigureAwait(false);
     }
 }

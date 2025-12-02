@@ -1,4 +1,5 @@
 using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Validation;
 
 namespace KSeF.Client.Api.Builders.Auth;
 
@@ -17,6 +18,7 @@ public interface IAuthTokenRequestBuilder
 public interface IAuthTokenRequestBuilderWithChallenge
 {
     IAuthTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifierType type, string value);
+    IAuthTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifier contextIdentifier);
 }
 public interface IAuthTokenRequestBuilderWithContext
 {
@@ -36,7 +38,7 @@ internal sealed class AuthTokenRequestBuilderImpl :
     IAuthTokenRequestBuilderWithContext
 {
     private string _challenge;
-    private AuthenticationTokenContextIdentifier  _context;
+    private AuthenticationTokenContextIdentifier _context;
     private AuthenticationTokenAuthorizationPolicy _authorizationPolicy;
     private AuthenticationTokenSubjectIdentifierTypeEnum _authIdentifierType;
 
@@ -45,7 +47,13 @@ internal sealed class AuthTokenRequestBuilderImpl :
     public IAuthTokenRequestBuilderWithChallenge WithChallenge(string challenge)
     {
         if (string.IsNullOrWhiteSpace(challenge))
-            throw new ArgumentException(nameof(challenge));
+        {
+            throw new ArgumentNullException(nameof(challenge));
+        }
+        if (challenge.Length != ValidValues.RequiredChallengeLength)
+        {
+            throw new ArgumentException($"Podany parametr: {nameof(challenge)} nie ma wymaganej liczby {ValidValues.RequiredChallengeLength} znaków", nameof(challenge));
+        }
 
         _challenge = challenge;
         return this;
@@ -53,10 +61,19 @@ internal sealed class AuthTokenRequestBuilderImpl :
 
     public IAuthTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifierType type, string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException(nameof(value));
+        AuthenticationTokenContextIdentifier context = new() { Type = type, Value = value };
+        return WithContext(context);
+    }
 
-        _context = new AuthenticationTokenContextIdentifier  {  Type = type, Value = value };
+    public IAuthTokenRequestBuilderWithContext WithContext(AuthenticationTokenContextIdentifier contextIdentifier)
+    {
+        ArgumentNullException.ThrowIfNull(contextIdentifier);
+        if (!TypeValueValidator.Validate(contextIdentifier))
+        {
+            throw new ArgumentException($"Nieprawidłowa wartość dla typu {contextIdentifier.Type}", nameof(contextIdentifier));
+        }
+
+        _context = contextIdentifier;
         return this;
     }
 
@@ -68,17 +85,54 @@ internal sealed class AuthTokenRequestBuilderImpl :
 
     public IAuthTokenRequestBuilderReady WithAuthorizationPolicy(AuthenticationTokenAuthorizationPolicy authorizationPolicy)
     {
-        if (authorizationPolicy is null) return this;
-        _authorizationPolicy = authorizationPolicy ?? throw new ArgumentNullException(nameof(authorizationPolicy));
+        if (authorizationPolicy is null)
+        {
+            return this;
+        }
+
+        AuthenticationTokenAllowedIps allowedIps = authorizationPolicy.AllowedIps;
+        if (allowedIps is null)
+        {
+            return this;
+        }
+
+        foreach (string ipAddress in allowedIps.Ip4Addresses ?? Enumerable.Empty<string>())
+        {
+            if (!RegexPatterns.Ip4Address.IsMatch(ipAddress))
+            {
+                throw new ArgumentException($"Nieprawidłowy adres IP: {ipAddress}", nameof(authorizationPolicy));
+            }
+        }
+        foreach (string ipRange in allowedIps.Ip4Ranges ?? Enumerable.Empty<string>())
+        {
+            if (!RegexPatterns.Ip4Range.IsMatch(ipRange))
+            {
+                throw new ArgumentException($"Nieprawidłowy zakres adresów IP: {ipRange}", nameof(authorizationPolicy));
+            }
+        }
+        foreach (string ipMask in allowedIps.Ip4Masks ?? Enumerable.Empty<string>())
+        {
+            if (!RegexPatterns.Ip4Mask.IsMatch(ipMask))
+            {
+                throw new ArgumentException($"Nieprawidłowy adres IP/maska: {ipMask}", nameof(authorizationPolicy));
+            }
+        }
+
+        _authorizationPolicy = authorizationPolicy;
         return this;
     }
 
     public AuthenticationTokenRequest Build()
     {
         if (_challenge is null)
+        {
             throw new InvalidOperationException();
+        }
+
         if (_context is null)
+        {
             throw new InvalidOperationException();
+        }
 
         return new AuthenticationTokenRequest
         {

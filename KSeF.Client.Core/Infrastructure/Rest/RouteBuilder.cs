@@ -25,7 +25,9 @@ namespace KSeF.Client.Core.Infrastructure.Rest
         public string Build(string endpoint, string apiVersion = null)
         {
             if (string.IsNullOrWhiteSpace(endpoint))
+            {
                 throw new ArgumentException("Endpoint cannot be empty", nameof(endpoint));
+            }
 
             string version = string.IsNullOrWhiteSpace(apiVersion) ? _defaultVersion : apiVersion;
             string clean = endpoint.TrimStart('/');

@@ -27,7 +27,7 @@ public class InvoiceE2ETests : TestBase
         _sellerNip = MiscellaneousUtils.GetRandomNip();
 
         AuthenticationOperationStatusResponse authOperationStatusResponse =
-            AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, _sellerNip).GetAwaiter().GetResult();
+            AuthenticationUtils.AuthenticateAsync(AuthorizationClient, _sellerNip).GetAwaiter().GetResult();
         _accessToken = authOperationStatusResponse.AccessToken.Token;
     }
 
@@ -38,7 +38,7 @@ public class InvoiceE2ETests : TestBase
     public async Task Invoice_GetInvoiceMetadataAsync_ReturnsMetadata()
     {
         // Arrange
-        InvoiceQueryFilters invoiceMetadataQueryRequest = new InvoiceQueryFilters
+        InvoiceQueryFilters invoiceMetadataQueryRequest = new()
         {
             SubjectType = InvoiceSubjectType.Subject1,
             DateRange = new DateRange
@@ -94,7 +94,7 @@ public class InvoiceE2ETests : TestBase
             async () => await OnlineSessionUtils.GetOnlineSessionStatusAsync(
                 KsefClient,
                 openSessionResponse.ReferenceNumber,
-                _accessToken),
+                _accessToken).ConfigureAwait(false),
             result => result is not null && result.InvoiceCount == result.SuccessfulInvoiceCount,
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: MaxRetries,
@@ -113,7 +113,7 @@ public class InvoiceE2ETests : TestBase
             async () => await OnlineSessionUtils.GetSessionInvoicesMetadataAsync(
                 KsefClient,
                 openSessionResponse.ReferenceNumber,
-                _accessToken),
+                _accessToken).ConfigureAwait(false),
             result => result is not null && result.Invoices is { Count: > 0 },
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: MaxRetries,
@@ -128,7 +128,7 @@ public class InvoiceE2ETests : TestBase
 
         // 7. Pobierz fakturę po jej numerze KSeF - dostępne tylko dla wystawcy faktury (sprzedawcy)
         string invoice = await AsyncPollingUtils.PollAsync(
-            async () => await KsefClient.GetInvoiceAsync(ksefInvoiceNumber, _accessToken, CancellationToken),
+            async () => await KsefClient.GetInvoiceAsync(ksefInvoiceNumber, _accessToken, CancellationToken).ConfigureAwait(false),
             result => !string.IsNullOrWhiteSpace(result),
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: MaxRetries,
@@ -137,7 +137,7 @@ public class InvoiceE2ETests : TestBase
         Assert.False(string.IsNullOrWhiteSpace(invoice));
 
         // 8. Przygotuj zapytanie o faktury
-        InvoiceQueryFilters query = new InvoiceQueryFilters
+        InvoiceQueryFilters query = new()
         {
             DateRange = new DateRange
             {
@@ -153,7 +153,7 @@ public class InvoiceE2ETests : TestBase
         Assert.NotNull(invoicesMetadataForSeller);
 
         // 10. Zainicjuj eksport faktur
-        InvoiceExportRequest invoiceExportRequest = new InvoiceExportRequest
+        InvoiceExportRequest invoiceExportRequest = new()
         {
             Encryption = encryptionData.EncryptionInfo,
             Filters = query
@@ -162,7 +162,7 @@ public class InvoiceE2ETests : TestBase
         OperationResponse invoicesForSellerResponse = await KsefClient.ExportInvoicesAsync(
             invoiceExportRequest,
             _accessToken,
-            CancellationToken);
+            cancellationToken:CancellationToken);
 
         Assert.NotNull(invoicesForSellerResponse?.ReferenceNumber);
 
@@ -171,7 +171,7 @@ public class InvoiceE2ETests : TestBase
             async () => await KsefClient.GetInvoiceExportStatusAsync(
                 invoicesForSellerResponse.ReferenceNumber,
                 _accessToken,
-                CancellationToken),
+                CancellationToken).ConfigureAwait(false),
             result => result?.Status?.Code == InvoiceExportStatusCodeResponse.ExportSuccess,
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: MaxRetries * 10,

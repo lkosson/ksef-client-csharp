@@ -23,7 +23,7 @@ public interface ISelfSignedCertificateForSealBuilderReady
     X509Certificate2 Build();
 }
 
-internal class SelfSignedCertificateForSealBuilderImpl
+internal sealed class SelfSignedCertificateForSealBuilderImpl
     : ISelfSignedCertificateForSealBuilder
     , ISelfSignedCertificateForSealBuilderWithOrganizationName
     , ISelfSignedCertificateForSealBuilderWithOrganizationIdentifier

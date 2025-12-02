@@ -1,4 +1,5 @@
 using KSeF.Client.Core.Models.Certificates;
+using KSeF.Client.Validation;
 
 namespace KSeF.Client.Api.Builders.Certificates;
 
@@ -34,15 +35,25 @@ internal class SendCertificateEnrollmentRequestBuilderImpl :
     private string _csr;
     private DateTimeOffset? _validFrom;
     private CertificateType _certificateType;
-    private bool _certificateTypeSet = false;
+    private bool _certificateTypeSet;
 
     public static ISendCertificateEnrollmentRequestBuilder Create() =>
         new SendCertificateEnrollmentRequestBuilderImpl();
 
     public ISendCertificateEnrollmentRequestBuilderWithCertificateName WithCertificateName(string certificateName)
     {
-        if (string.IsNullOrWhiteSpace(certificateName))
-            throw new ArgumentException("CertificateName cannot be null or empty.");
+        if (!RegexPatterns.CertificateName.IsMatch(certificateName))
+        {
+            throw new ArgumentException("Nazwa certyfikatu zawiera niedozwolone znaki", nameof(certificateName));
+        }
+        if (certificateName.Length < ValidValues.CertificateNameMinLength)
+        {
+            throw new ArgumentException($"Nazwa certyfikatu za krótka, minimalna długość: {ValidValues.CertificateNameMinLength} znaków.", nameof(certificateName));
+        }
+        if (certificateName.Length > ValidValues.CertificateNameMaxLength)
+        {
+            throw new ArgumentException($"Nazwa certyfikatu za długa, maksymalna długość: {ValidValues.CertificateNameMaxLength} znaków.", nameof(certificateName));
+        }
 
         _certificateName = certificateName;
         return this;
@@ -58,7 +69,9 @@ internal class SendCertificateEnrollmentRequestBuilderImpl :
     public ISendCertificateEnrollmentRequestBuilderWithCsr WithCsr(string csr)
     {
         if (string.IsNullOrWhiteSpace(csr))
-            throw new ArgumentException("CSR cannot be null or empty.");
+        {
+            throw new ArgumentNullException(nameof(csr));
+        }
 
         _csr = csr;
         return this;
@@ -73,12 +86,17 @@ internal class SendCertificateEnrollmentRequestBuilderImpl :
     public SendCertificateEnrollmentRequest Build()
     {
         if (string.IsNullOrWhiteSpace(_certificateName))
-            throw new InvalidOperationException("CertificateName is required.");
-            
+        {
+            throw new InvalidOperationException("Najpierw należy wywołać WithCertificateName(...).");
+        }
         if (!_certificateTypeSet)
-            throw new InvalidOperationException("CertificateType is required.");
+        {
+            throw new InvalidOperationException("Najpierw należy wywołać WithCertificateType(...).");
+        }
         if (string.IsNullOrWhiteSpace(_csr))
-            throw new InvalidOperationException("CSR is required.");
+        {
+            throw new InvalidOperationException("Najpierw należy wywołać WithCsr(...).");
+        }
 
         return new SendCertificateEnrollmentRequest
         {

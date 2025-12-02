@@ -1,5 +1,6 @@
 using KSeF.Client.Core.Models.Permissions.EuEntityRepresentative;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
+using KSeF.Client.Validation;
 
 namespace KSeF.Client.Api.Builders.EUEntityRepresentativePermissions;
 
@@ -20,6 +21,7 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
     public interface IOptionalStep
     {
         IOptionalStep WithDescription(string description);
+        IOptionalStep WithSubjectDetails(EuEntityRepresentativeSubjectDetails subjectDetails);
         GrantPermissionsEuEntityRepresentativeRequest Build();
     }
 
@@ -31,6 +33,7 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
         private EuEntityRepresentativeSubjectIdentifier _subject;
         private ICollection<EuEntityRepresentativeStandardPermissionType> _permissions;
         private string _description;
+        private EuEntityRepresentativeSubjectDetails _subjectDetails;
 
         private GrantPermissionsRequestBuilderImpl() { }
 
@@ -38,14 +41,21 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
 
         public IPermissionsStep WithSubject(EuEntityRepresentativeSubjectIdentifier subject)
         {
-            _subject = subject ?? throw new ArgumentNullException(nameof(subject));
+            ArgumentNullException.ThrowIfNull(subject);
+            if (!TypeValueValidator.Validate(subject))
+            {
+                throw new ArgumentException($"Nieprawidłowa wartość dla typu {subject.Type}", nameof(subject));
+            }
+            _subject = subject;
             return this;
         }
 
         public IOptionalStep WithPermissions(params EuEntityRepresentativeStandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
+            {
                 throw new ArgumentException("Należy podać co najmniej jedno uprawnienie.", nameof(permissions));
+            }
 
             _permissions = permissions;
             return this;
@@ -53,22 +63,41 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
 
         public IOptionalStep WithDescription(string description)
         {
-            _description = description ?? throw new ArgumentNullException(nameof(description));
+            ArgumentNullException.ThrowIfNull(description);
+            if (description.Length < ValidValues.PermissionDescriptionMinLength)
+            {
+                throw new ArgumentException($"Opis uprawnienia za krótki, minimalna długość: {ValidValues.PermissionDescriptionMinLength} znaków.", nameof(description));
+            }
+            if (description.Length > ValidValues.PermissionDescriptionMaxLength)
+            {
+                throw new ArgumentException($"Opis uprawnienia za długi, maksymalna długość: {ValidValues.PermissionDescriptionMaxLength} znaków.", nameof(description));
+            }
+            _description = description;
+            return this;
+        }
+
+        public IOptionalStep WithSubjectDetails(EuEntityRepresentativeSubjectDetails subjectDetails)
+        {
+            _subjectDetails = subjectDetails ?? throw new ArgumentNullException(nameof(subjectDetails));
             return this;
         }
 
         public GrantPermissionsEuEntityRepresentativeRequest Build()
         {
             if (_subject is null)
+            {
                 throw new InvalidOperationException("Metoda WithSubject(...) musi zostać wywołana jako pierwsza.");
+            }
             if (_permissions is null)
+            {
                 throw new InvalidOperationException("Metoda WithPermissions(...) musi zostać wywołana po ustawieniu podmiotu.");
-
+            }
             return new GrantPermissionsEuEntityRepresentativeRequest
             {
                 SubjectIdentifier = _subject,
                 Permissions = _permissions,
                 Description = _description,
+                SubjectDetails = _subjectDetails,
             };
         }
     }

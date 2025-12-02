@@ -8,7 +8,7 @@ namespace KSeF.Client.Tests.Core.E2E.Authorization;
 public class AuthorizationE2ETests : TestBase
 {
     private const string OwnerRole = "owner";
-    private const string ChallengeToken = "samplechallengeToken!@#123";
+    private const string ChallengeToken = "samplechallengeToken!@#1231234567890";
 
     /// <summary>
     /// Uwierzytelnia klienta KSeF i sprawdza, czy zwrócony token dostępu jest poprawny
@@ -16,11 +16,11 @@ public class AuthorizationE2ETests : TestBase
     [Theory]
     [InlineData(EncryptionMethodEnum.Rsa)]
     [InlineData(EncryptionMethodEnum.ECDsa)]
-    public async Task AuthAsync_FullIntegrationFlow_ReturnsAccessToken(EncryptionMethodEnum encryptionMethodEnum)
+    public async Task AuthAsyncFullIntegrationFlowReturnsAccessToken(EncryptionMethodEnum encryptionMethodEnum)
     {
         // Arrange & Act
         AuthenticationOperationStatusResponse authResult =
-            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, default, encryptionMethodEnum);
+            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, default, encryptionMethodEnum);
 
         // Assert
         Assert.NotNull(authResult);
@@ -35,7 +35,7 @@ public class AuthorizationE2ETests : TestBase
     /// Budowanie żądania tokenu autoryzacyjnego.
     /// </summary>
     [Fact]
-    public void AuthTokenRequestBuilder_Create_ShouldReturnObject()
+    public void AuthTokenRequestBuilderCreateShouldReturnObject()
     {
         AuthenticationTokenContextIdentifierType contextIdentifierType = 
             AuthenticationTokenContextIdentifierType.Nip;

@@ -7,9 +7,12 @@ Repozytorium zawiera:
 - **Implementacja klienta KSeF 2.0**
   - **KSeF.Client** - główna biblioteka klienta z logiką biznesową
   - **KSeF.Client.Core** - modele, interfejsy i wyjątki (wydzielone dla zgodności z .NET Standard 2.0)
+  - **KSeF.Client.ClientFactory** - dodatkowa biblioteka klienta która umożliwia korzystanie z KSeFClient, CertificateFetcherServices oraz CryptographyServices w formie fabryk dla 3 niezależnych środowisk.
+
 - **Testy**
   - **KSeF.Client.Tests** - testy jednostkowe i funkcjonalne
   - **KSeF.Client.Tests.Core** - testy E2E i integracyjne
+  - **KSeF.Client.Tests.ClientFactory** - testy dla fabryk KSeFClient, CryptographyServices i CertificateFetcherServices
   - **KSeF.Client.Tests.Utils** - narzędzia pomocnicze do testów
   - **KSeF.Client.Tests.CertTestApp** - aplikacja konsolowa dla zobrazowania tworzenia przykładowego, testowego certyfikatu oraz podpisu XAdES
 - **Przykładowa aplikacja**

@@ -1,9 +1,9 @@
-using KSeF.Client.Api.Builders.AuthorizationPermissions;
 using Microsoft.AspNetCore.Mvc;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models.Permissions.Authorizations;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
+using KSeF.Client.Api.Builders.AuthorizationEntityPermissions;
 
 namespace KSeF.DemoWebApp.Controllers;
 
@@ -21,7 +21,7 @@ public class AuthorizationPermissionsEntityController(IKSeFClient ksefClient) : 
             .WithDescription("Access for quarterly review")
             .Build();
 
-        return await ksefClient.GrantsAuthorizationPermissionAsync(request, accessToken, cancellationToken);
+        return await ksefClient.GrantsAuthorizationPermissionAsync(request, accessToken, cancellationToken).ConfigureAwait(false);
     }
 
     [HttpPost("revoke-authorization-permissions-for-entity")]
@@ -31,6 +31,6 @@ public class AuthorizationPermissionsEntityController(IKSeFClient ksefClient) : 
     CancellationToken cancellationToken)
     {
 
-        return await ksefClient.RevokeAuthorizationsPermissionAsync(permissionId, accessToken, cancellationToken);
+        return await ksefClient.RevokeAuthorizationsPermissionAsync(permissionId, accessToken, cancellationToken).ConfigureAwait(false);
     }
 }

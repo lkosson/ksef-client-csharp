@@ -1,4 +1,5 @@
 using KSeF.Client.Core.Models.Certificates;
+using KSeF.Client.Validation;
 
 namespace KSeF.Client.Api.Builders.Certificates;
 
@@ -26,6 +27,18 @@ internal class GetCertificateListRequestBuilderImpl : IGetCertificateListRequest
 
     public IGetCertificateListRequestBuilder WithName(string name)
     {
+        if (!RegexPatterns.CertificateName.IsMatch(name))
+        {
+            throw new ArgumentException("Nazwa certyfikatu zawiera niedozwolone znaki", nameof(name));
+        }
+        if (name.Length < ValidValues.CertificateNameMinLength)
+        {
+            throw new ArgumentException($"Nazwa certyfikatu za krótka, minimalna długość: {ValidValues.CertificateNameMinLength} znaków.", nameof(name));
+        }
+        if (name.Length > ValidValues.CertificateNameMaxLength)
+        {
+            throw new ArgumentException($"Nazwa certyfikatu za długa, maksymalna długość: {ValidValues.CertificateNameMaxLength} znaków.", nameof(name));
+        }
         _request.Name = name;
         return this;
     }
