@@ -1,40 +1,128 @@
 using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Validation;
+using System;
+
 namespace KSeF.Client.Api.Builders.EuEntityPermissions;
 
+/// <summary>
+/// Buduje żądanie nadania uprawnień dla podmiotu z UE w KSeF.
+/// </summary>
 public static class GrantEuEntityPermissionsRequestBuilder
 {
+    /// <summary>
+    /// Rozpoczyna budowę żądania nadania uprawnień dla podmiotu z UE.
+    /// </summary>
+    /// <returns>
+    /// Interfejs pozwalający ustawić identyfikator podmiotu, któremu nadajemy uprawnienia.
+    /// </returns>
     public static ISubjectStep Create() => GrantPermissionsRequestBuilderImpl.Create();
 
+    /// <summary>
+    /// Etap budowy żądania, w którym ustawiany jest podmiot z UE.
+    /// </summary>
     public interface ISubjectStep
     {
+        /// <summary>
+        /// Ustawia identyfikator podmiotu z UE, dla którego nadawane są uprawnienia.
+        /// </summary>
+        /// <param name="subject">
+        /// Identyfikator podmiotu (np. numer VAT UE). Nie może być null
+        /// i musi przejść walidację <see cref="TypeValueValidator"/>.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający ustawić nazwę podmiotu.
+        /// </returns>
         ISubjectNameStep WithSubject(EuEntitySubjectIdentifier subject);
     }
 
+    /// <summary>
+    /// Etap budowy żądania, w którym ustawiana jest nazwa podmiotu z UE.
+    /// </summary>
     public interface ISubjectNameStep
     {
+        /// <summary>
+        /// Ustawia nazwę podmiotu z UE (np. nazwę firmy).
+        /// </summary>
+        /// <param name="subjectName">
+        /// Nazwa podmiotu. Nie może być pusta ani składać się wyłącznie z białych znaków.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający ustawić kontekst uprawnień.
+        /// </returns>
         IPermissionsStep WithSubjectName(string subjectName);
     }
 
+    /// <summary>
+    /// Etap budowy żądania, w którym ustawiany jest kontekst uprawnień.
+    /// </summary>
     public interface IPermissionsStep
     {
+        /// <summary>
+        /// Ustawia kontekst uprawnień (np. relację podmiotu z UE do właściciela).
+        /// </summary>
+        /// <param name="subject">
+        /// Identyfikator kontekstu uprawnień. Nie może być null
+        /// i musi przejść walidację <see cref="TypeValueValidator"/>.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający ustawić opis nadawanych uprawnień.
+        /// </returns>
         IDescriptionStep WithContext(EuEntityContextIdentifier subject);
     }
 
+    /// <summary>
+    /// Etap budowy żądania, w którym ustawiany jest opis nadawanych uprawnień.
+    /// </summary>
     public interface IDescriptionStep
     {
+        /// <summary>
+        /// Ustawia opis nadawanych uprawnień.
+        /// </summary>
+        /// <param name="description">
+        /// Opis uprawnienia. Nie może być pusty; długość musi mieścić się
+        /// w zakresie <see cref="ValidValues.PermissionDescriptionMinLength"/>
+        ///–<see cref="ValidValues.PermissionDescriptionMaxLength"/>.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający ustawić dane szczegółowe i zbudować żądanie.
+        /// </returns>
         IBuildStep WithDescription(string description);
     }
 
+    /// <summary>
+    /// Ostatni etap budowy żądania – ustawienie danych szczegółowych i utworzenie żądania.
+    /// </summary>
     public interface IBuildStep
     {
-        // Opcjonalne
+        /// <summary>
+        /// Ustawia dodatkowe dane podmiotu z UE (np. dane kontaktowe).
+        /// </summary>
+        /// <param name="subjectDetails">
+        /// Szczegóły podmiotu z UE. Mogą być null, jeśli brak dodatkowych danych.
+        /// </param>
+        /// <returns>Ten sam interfejs, umożliwiający dalsze ustawienia lub zbudowanie żądania.</returns>
         IBuildStep WithSubjectDetails(PermissionsEuEntitySubjectDetails subjectDetails);
+
+        /// <summary>
+        /// Ustawia dodatkowe dane o podmiocie UE, którego dotyczą uprawnienia.
+        /// </summary>
+        /// <param name="euEntityDetails">
+        /// Szczegóły podmiotu z UE, któremu nadawane są uprawnienia.
+        /// </param>
+        /// <returns>Ten sam interfejs, umożliwiający dalsze ustawienia lub zbudowanie żądania.</returns>
         IBuildStep WithEuEntityDetails(PermissionsEuEntityDetails euEntityDetails);
+
+        /// <summary>
+        /// Tworzy finalne żądanie nadania uprawnień dla podmiotu z UE.
+        /// </summary>
+        /// <returns>
+        /// Obiekt <see cref="GrantPermissionsEuEntityRequest"/> gotowy do wysłania do KSeF.
+        /// </returns>
         GrantPermissionsEuEntityRequest Build();
     }
 
+    /// <inheritdoc />
     private sealed class GrantPermissionsRequestBuilderImpl :
         ISubjectStep,
         ISubjectNameStep,
@@ -51,8 +139,13 @@ public static class GrantEuEntityPermissionsRequestBuilder
 
         private GrantPermissionsRequestBuilderImpl() { }
 
+        /// <summary>
+        /// Tworzy nową implementację buildera żądania nadania uprawnień dla podmiotu z UE.
+        /// </summary>
+        /// <returns>Interfejs startowy buildera.</returns>
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
+        /// <inheritdoc />
         public ISubjectNameStep WithSubject(EuEntitySubjectIdentifier subject)
         {
             ArgumentNullException.ThrowIfNull(subject);
@@ -60,10 +153,12 @@ public static class GrantEuEntityPermissionsRequestBuilder
             {
                 throw new ArgumentException($"Nieprawidłowa wartość dla typu {subject.Type}", nameof(subject));
             }
+
             _subject = subject;
             return this;
         }
 
+        /// <inheritdoc />
         public IPermissionsStep WithSubjectName(string subjectName)
         {
             if (string.IsNullOrWhiteSpace(subjectName))
@@ -75,6 +170,7 @@ public static class GrantEuEntityPermissionsRequestBuilder
             return this;
         }
 
+        /// <inheritdoc />
         public IDescriptionStep WithContext(EuEntityContextIdentifier context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -82,10 +178,12 @@ public static class GrantEuEntityPermissionsRequestBuilder
             {
                 throw new ArgumentException($"Nieprawidłowa wartość dla typu {context.Type}", nameof(context));
             }
+
             _context = context;
             return this;
         }
 
+        /// <inheritdoc />
         public IBuildStep WithDescription(string description)
         {
             ArgumentNullException.ThrowIfNull(description);
@@ -97,22 +195,26 @@ public static class GrantEuEntityPermissionsRequestBuilder
             {
                 throw new ArgumentException($"Opis uprawnienia za długi, maksymalna długość: {ValidValues.PermissionDescriptionMaxLength} znaków.", nameof(description));
             }
+
             _description = description;
             return this;
         }
 
+        /// <inheritdoc />
         public IBuildStep WithSubjectDetails(PermissionsEuEntitySubjectDetails subjectDetails)
         {
             _subjectDetails = subjectDetails;
             return this;
         }
 
+        /// <inheritdoc />
         public IBuildStep WithEuEntityDetails(PermissionsEuEntityDetails euEntityDetails)
         {
             _euEntityDetails = euEntityDetails;
             return this;
         }
 
+        /// <inheritdoc />
         public GrantPermissionsEuEntityRequest Build()
         {
             if (_subject is null)

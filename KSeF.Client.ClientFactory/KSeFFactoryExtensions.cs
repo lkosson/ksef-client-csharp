@@ -1,5 +1,4 @@
-﻿using KSeF.Client.DI;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Headers;
 
 namespace KSeF.Client.ClientFactory.DI

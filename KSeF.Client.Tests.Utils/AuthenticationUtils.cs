@@ -3,7 +3,6 @@ using KSeF.Client.Api.Builders.Auth;
 using KSeF.Client.Core.Models;
 using System.Security.Cryptography.X509Certificates;
 using KSeF.Client.Core.Interfaces.Clients;
-using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Api.Builders.X509Certificates;
 using KSeF.Client.Api.Services;
 

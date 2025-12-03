@@ -1,13 +1,7 @@
-﻿using KSeF.Client.Api.Services;
-using KSeF.Client.ClientFactory;
+﻿using KSeF.Client.ClientFactory;
 using KSeF.Client.ClientFactory.DI;
 using KSeF.Client.Core.Interfaces.Services;
-using KSeF.Client.DI;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace KSeF.Client.Tests.ClientFactory
 {

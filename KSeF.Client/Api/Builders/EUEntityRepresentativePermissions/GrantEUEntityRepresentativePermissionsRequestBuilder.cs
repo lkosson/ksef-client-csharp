@@ -4,27 +4,90 @@ using KSeF.Client.Validation;
 
 namespace KSeF.Client.Api.Builders.EUEntityRepresentativePermissions;
 
+/// <summary>
+/// Buduje żądanie nadania uprawnień przedstawicielowi podmiotu z UE w KSeF.
+/// </summary>
 public static class GrantEUEntityRepresentativePermissionsRequestBuilder
 {
+    /// <summary>
+    /// Rozpoczyna budowę żądania nadania uprawnień dla przedstawiciela podmiotu z UE.
+    /// </summary>
+    /// <returns>
+    /// Interfejs pozwalający ustawić przedstawiciela, któremu nadawane są uprawnienia.
+    /// </returns>
     public static ISubjectStep Create() => GrantPermissionsRequestBuilderImpl.Create();
 
+    /// <summary>
+    /// Etap budowy żądania, w którym ustawiany jest przedstawiciel podmiotu z UE.
+    /// </summary>
     public interface ISubjectStep
     {
+        /// <summary>
+        /// Ustawia identyfikator przedstawiciela podmiotu z UE, dla którego nadawane są uprawnienia.
+        /// </summary>
+        /// <param name="subject">
+        /// Identyfikator przedstawiciela (np. dane osoby). Nie może być null
+        /// i musi przejść walidację <see cref="TypeValueValidator"/>.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający określić listę nadawanych uprawnień.
+        /// </returns>
         IPermissionsStep WithSubject(EuEntityRepresentativeSubjectIdentifier subject);
     }
 
+    /// <summary>
+    /// Etap budowy żądania, w którym określane są uprawnienia przedstawiciela.
+    /// </summary>
     public interface IPermissionsStep
     {
+        /// <summary>
+        /// Ustawia listę uprawnień nadawanych przedstawicielowi podmiotu z UE.
+        /// </summary>
+        /// <param name="permissions">
+        /// Co najmniej jedno uprawnienie, które ma zostać nadane.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający opcjonalnie dodać opis i szczegóły przedstawiciela
+        /// lub od razu zbudować żądanie.
+        /// </returns>
         IOptionalStep WithPermissions(params EuEntityRepresentativeStandardPermissionType[] permissions);
     }
 
+    /// <summary>
+    /// Etap budowy żądania, w którym można dodać opis i dane szczegółowe przedstawiciela.
+    /// </summary>
     public interface IOptionalStep
     {
+        /// <summary>
+        /// Ustawia opis nadawanych uprawnień.
+        /// </summary>
+        /// <param name="description">
+        /// Opis uprawnienia. Nie może być pusty; długość musi mieścić się
+        /// w zakresie <see cref="ValidValues.PermissionDescriptionMinLength"/>
+        ///–<see cref="ValidValues.PermissionDescriptionMaxLength"/>.
+        /// </param>
+        /// <returns>Ten sam interfejs, umożliwiający dalsze ustawienia lub zbudowanie żądania.</returns>
         IOptionalStep WithDescription(string description);
+
+        /// <summary>
+        /// Ustawia dodatkowe dane przedstawiciela podmiotu z UE (np. dane kontaktowe).
+        /// </summary>
+        /// <param name="subjectDetails">
+        /// Szczegóły przedstawiciela. Nie mogą być null.
+        /// </param>
+        /// <returns>Ten sam interfejs, umożliwiający dalsze ustawienia lub zbudowanie żądania.</returns>
         IOptionalStep WithSubjectDetails(EuEntityRepresentativeSubjectDetails subjectDetails);
+
+        /// <summary>
+        /// Tworzy finalne żądanie nadania uprawnień dla przedstawiciela podmiotu z UE.
+        /// </summary>
+        /// <returns>
+        /// Obiekt <see cref="GrantPermissionsEuEntityRepresentativeRequest"/> gotowy do wysłania do KSeF.
+        /// </returns>
         GrantPermissionsEuEntityRepresentativeRequest Build();
     }
 
+    /// <inheritdoc />
     private sealed class GrantPermissionsRequestBuilderImpl :
         ISubjectStep,
         IPermissionsStep,
@@ -37,8 +100,13 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
 
         private GrantPermissionsRequestBuilderImpl() { }
 
+        /// <summary>
+        /// Tworzy nową implementację buildera żądania nadania uprawnień przedstawicielowi podmiotu z UE.
+        /// </summary>
+        /// <returns>Interfejs startowy buildera.</returns>
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
+        /// <inheritdoc />
         public IPermissionsStep WithSubject(EuEntityRepresentativeSubjectIdentifier subject)
         {
             ArgumentNullException.ThrowIfNull(subject);
@@ -46,10 +114,12 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
             {
                 throw new ArgumentException($"Nieprawidłowa wartość dla typu {subject.Type}", nameof(subject));
             }
+
             _subject = subject;
             return this;
         }
 
+        /// <inheritdoc />
         public IOptionalStep WithPermissions(params EuEntityRepresentativeStandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
@@ -61,6 +131,7 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
             return this;
         }
 
+        /// <inheritdoc />
         public IOptionalStep WithDescription(string description)
         {
             ArgumentNullException.ThrowIfNull(description);
@@ -72,16 +143,19 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
             {
                 throw new ArgumentException($"Opis uprawnienia za długi, maksymalna długość: {ValidValues.PermissionDescriptionMaxLength} znaków.", nameof(description));
             }
+
             _description = description;
             return this;
         }
 
+        /// <inheritdoc />
         public IOptionalStep WithSubjectDetails(EuEntityRepresentativeSubjectDetails subjectDetails)
         {
             _subjectDetails = subjectDetails ?? throw new ArgumentNullException(nameof(subjectDetails));
             return this;
         }
 
+        /// <inheritdoc />
         public GrantPermissionsEuEntityRepresentativeRequest Build()
         {
             if (_subject is null)
@@ -92,6 +166,7 @@ public static class GrantEUEntityRepresentativePermissionsRequestBuilder
             {
                 throw new InvalidOperationException("Metoda WithPermissions(...) musi zostać wywołana po ustawieniu podmiotu.");
             }
+
             return new GrantPermissionsEuEntityRepresentativeRequest
             {
                 SubjectIdentifier = _subject,

@@ -1,6 +1,4 @@
-﻿
-using KSeF.Client.Api.Services.Internal;
-using KSeF.Client.Core.Interfaces.Clients;
+﻿using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
 
 namespace KSeF.Client.ClientFactory

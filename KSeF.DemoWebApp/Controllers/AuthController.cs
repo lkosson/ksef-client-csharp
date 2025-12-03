@@ -1,7 +1,6 @@
 using KSeF.Client.Api.Builders.Auth;
 using KSeF.Client.Api.Builders.X509Certificates;
 using KSeF.Client.Core.Interfaces.Clients;
-using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Interfaces;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;

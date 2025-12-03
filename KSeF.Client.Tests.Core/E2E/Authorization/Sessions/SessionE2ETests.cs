@@ -60,18 +60,20 @@ public class SessionE2ETests : TestBase
     /// Unieważnia bieżącą sesję (po refresh tokenie) i weryfikuje, że odświeżenie tokenu
     /// kończy się błędem 21304: Brak uwierzytelnienia. - Nieprawidłowy token.
     /// </summary>
-    [Fact]
-    public async Task RevokeCurrentSessionAsyncRevokeByRefreshTokenRefreshFailsWth21304Code()
+    [Theory]
+    [InlineData($"{nameof(accessToken)}")]
+    [InlineData($"{nameof(refreshToken)}")]
+    public async Task RevokeCurrentSessionAsyncRevokeByRefreshTokenRefreshFailsWth21304Code(string tokenType)
     {
         // Arrange
-        string tokenToRevoke = refreshToken;
+        string tokenToRevoke = tokenType == nameof(accessToken) ? accessToken : refreshToken;
         
         // Act
         await ActiveSessionsClient.RevokeCurrentSessionAsync(tokenToRevoke, CancellationToken.None);
 
         // Assert
         KsefApiException exception = await Assert.ThrowsAsync<KsefApiException>(() =>
-            AuthorizationClient.RefreshAccessTokenAsync(tokenToRevoke, CancellationToken.None));
+            AuthorizationClient.RefreshAccessTokenAsync(refreshToken, CancellationToken.None));
         Assert.Equal(ExpectedErrorMessage, exception.Message);
     }
 

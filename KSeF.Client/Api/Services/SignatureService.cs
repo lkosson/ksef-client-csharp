@@ -1,4 +1,3 @@
-using KSeF.Client.Core.Interfaces.Services;
 using System.Globalization;
 using System.Numerics;
 using System.Security.Cryptography;

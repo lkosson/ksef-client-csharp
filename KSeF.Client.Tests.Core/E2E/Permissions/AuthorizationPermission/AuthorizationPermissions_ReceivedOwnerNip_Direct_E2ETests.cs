@@ -25,6 +25,10 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
             await AuthenticationUtils.AuthenticateAsync(AuthorizationClient);
         string grantorAccessToken = grantorAuth.AccessToken.Token;
 
+        PermissionsAuthorizationSubjectDetails subjectDetails = new PermissionsAuthorizationSubjectDetails
+        {
+            FullName = $"Właściciel {ownerNip}"
+        };
         // Nadajemy uprawnienie Authorization(SelfInvoicing) podmiotowi o wskazanym NIP (grantor context).
         GrantPermissionsAuthorizationRequest grantRequest =
             GrantAuthorizationPermissionsRequestBuilder
@@ -36,6 +40,7 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
                 })
                 .WithPermission(AuthorizationPermissionType.SelfInvoicing)
                 .WithDescription($"E2E-Received-Direct-{ownerNip}")
+                .WithSubjectDetails(subjectDetails)
                 .Build();
 
         OperationResponse grantOperation =
@@ -48,7 +53,6 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
                 result => result.Status.Code == OperationStatusCodeResponse.Success,
                 description: "Czekam na nadanie uprawnienia (200)",
                 delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
         #endregion
 
@@ -76,14 +80,14 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
                 page => page.AuthorizationGrants != null && page.AuthorizationGrants.Count > 0,
                 description: "Czekam aż Received zawiera nowy grant",
                 delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
 
         AuthorizationGrant? matching =
             receivedPage.AuthorizationGrants.FirstOrDefault(g =>
                 g.AuthorizedEntityIdentifier != null &&
                 g.AuthorizedEntityIdentifier.Value == ownerNip &&
-                g.AuthorizationScope == AuthorizationPermissionType.SelfInvoicing);
+                g.AuthorizationScope == AuthorizationPermissionType.SelfInvoicing &&
+                g.SubjectEntityDetails.FullName == subjectDetails.FullName);
         #endregion
 
         #region Assert
@@ -103,7 +107,6 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
                 result => result.Status.Code == OperationStatusCodeResponse.Success,
                 description: "Czekam na zakończenie REVOKE (200)",
                 delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(revokeStatus);
@@ -122,7 +125,10 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
         AuthenticationOperationStatusResponse grantorAuth =
             await AuthenticationUtils.AuthenticateAsync(AuthorizationClient);
         string grantorAccessToken = grantorAuth.AccessToken.Token;
-
+        PermissionsAuthorizationSubjectDetails subjectDetails = new PermissionsAuthorizationSubjectDetails
+        {
+            FullName = $"Właściciel {ownerNip}"
+        };
         GrantPermissionsAuthorizationRequest grantRequest =
             GrantAuthorizationPermissionsRequestBuilder
                 .Create()
@@ -133,6 +139,7 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
                 })
                 .WithPermission(AuthorizationPermissionType.SelfInvoicing)
                 .WithDescription($"E2E-Received-Builder-{ownerNip}")
+                .WithSubjectDetails(subjectDetails)
                 .Build();
 
         OperationResponse grantOperation =
@@ -143,8 +150,6 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
                 async () => await KsefClient.OperationsStatusAsync(grantOperation.ReferenceNumber, grantorAccessToken).ConfigureAwait(false),
                 result => result.Status.Code == OperationStatusCodeResponse.Success,
                 description: "Czekam na nadanie uprawnienia (200)",
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
         #endregion
 
@@ -166,14 +171,14 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
                 page => page.AuthorizationGrants != null && page.AuthorizationGrants.Count > 0,
                 description: "Czekam aż Received zawiera nowy grant",
                 delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
 
         AuthorizationGrant? matching =
             receivedPage.AuthorizationGrants.FirstOrDefault(g =>
                 g.AuthorizedEntityIdentifier != null &&
                 g.AuthorizedEntityIdentifier.Value == ownerNip &&
-                g.AuthorizationScope == AuthorizationPermissionType.SelfInvoicing);
+                g.AuthorizationScope == AuthorizationPermissionType.SelfInvoicing &&
+                g.SubjectEntityDetails.FullName == subjectDetails.FullName);
         #endregion
 
         #region Assert
@@ -192,7 +197,6 @@ public class AuthorizationPermissions_ReceivedOwnerNip_E2ETests : TestBase
                 result => result.Status.Code == OperationStatusCodeResponse.Success,
                 description: "Czekam na zakończenie REVOKE (200)",
                 delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(revokeStatus);

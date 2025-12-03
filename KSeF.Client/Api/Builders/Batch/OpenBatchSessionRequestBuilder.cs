@@ -97,26 +97,24 @@ namespace KSeF.Client.Api.Builders.Batch
         OpenBatchSessionRequest Build();
     }
 
-/// <summary>
-/// Domyślna implementacja buildera żądania otwarcia sesji wsadowej.
-/// </summary>
-internal class OpenBatchSessionRequestBuilderImpl
-    : IOpenBatchSessionRequestBuilder
-    , IOpenBatchSessionRequestBuilderWithFormCode
-    , IOpenBatchSessionRequestBuilderBatchFile
-    , IOpenBatchSessionRequestBuilderEncryption
-    , IOpenBatchSessionRequestBuilderBuild
-{
-    private FormCode _formCode;
-    private readonly List<BatchFilePartInfo> _parts = new();
-    private long _batchFileSize;
-    private string _batchFileHash = "";
-    private bool _offlineMode;
-    private readonly EncryptionInfo _encryption = new();
+    /// <inheritdoc />
+    internal class OpenBatchSessionRequestBuilderImpl
+        : IOpenBatchSessionRequestBuilder
+        , IOpenBatchSessionRequestBuilderWithFormCode
+        , IOpenBatchSessionRequestBuilderBatchFile
+        , IOpenBatchSessionRequestBuilderEncryption
+        , IOpenBatchSessionRequestBuilderBuild
+    {
+        private FormCode _formCode;
+        private readonly List<BatchFilePartInfo> _parts = new();
+        private long _batchFileSize;
+        private string _batchFileHash = "";
+        private bool _offlineMode;
+        private readonly EncryptionInfo _encryption = new();
 
         /// <summary>
         /// Tworzy nową instancję buildera.
-        /// Użyj metody Create, aby z niego skorzystać.
+        /// Użyj metody <see cref="Create"/>, aby z niego skorzystać.
         /// </summary>
         private OpenBatchSessionRequestBuilderImpl() { }
 
@@ -126,13 +124,13 @@ internal class OpenBatchSessionRequestBuilderImpl
         /// <returns>Builder gotowy do ustawienia kodu formularza.</returns>
         public static IOpenBatchSessionRequestBuilder Create() => new OpenBatchSessionRequestBuilderImpl();
 
-    /// <inheritdoc />
-    public IOpenBatchSessionRequestBuilderWithFormCode WithFormCode(string systemCode, string schemaVersion, string value)
-    {
-        if (string.IsNullOrWhiteSpace(systemCode) || string.IsNullOrWhiteSpace(schemaVersion) || string.IsNullOrWhiteSpace(value))
+        /// <inheritdoc />
+        public IOpenBatchSessionRequestBuilderWithFormCode WithFormCode(string systemCode, string schemaVersion, string value)
         {
-            throw new ArgumentException("Parametry FormCode nie mogą być puste ani null.");
-        }
+            if (string.IsNullOrWhiteSpace(systemCode) || string.IsNullOrWhiteSpace(schemaVersion) || string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException("Parametry FormCode nie mogą być puste ani null.");
+            }
 
             _formCode = new FormCode
             {
@@ -143,13 +141,13 @@ internal class OpenBatchSessionRequestBuilderImpl
             return this;
         }
 
-    /// <inheritdoc />
-    public IOpenBatchSessionRequestBuilderBatchFile WithBatchFile(long fileSize, string fileHash)
-    {
-        if (fileSize < 0 || string.IsNullOrWhiteSpace(fileHash))
+        /// <inheritdoc />
+        public IOpenBatchSessionRequestBuilderBatchFile WithBatchFile(long fileSize, string fileHash)
         {
-            throw new ArgumentException("Parametry BatchFile są nieprawidłowe.");
-        }
+            if (fileSize < 0 || string.IsNullOrWhiteSpace(fileHash))
+            {
+                throw new ArgumentException("Parametry BatchFile są nieprawidłowe.");
+            }
 
             _batchFileSize = fileSize;
             _batchFileHash = fileHash;
@@ -164,16 +162,17 @@ internal class OpenBatchSessionRequestBuilderImpl
             {
                 AddBatchFilePart(fileName, ordinalNumber, fileSize, fileHash);
             }
+
             return this;
         }
 
-    /// <inheritdoc />
-    public IOpenBatchSessionRequestBuilderBatchFile AddBatchFilePart(string fileName, int ordinalNumber, long fileSize, string fileHash)
-    {
-        if (string.IsNullOrWhiteSpace(fileName) || ordinalNumber < 0 || fileSize < 0 || string.IsNullOrWhiteSpace(fileHash))
+        /// <inheritdoc />
+        public IOpenBatchSessionRequestBuilderBatchFile AddBatchFilePart(string fileName, int ordinalNumber, long fileSize, string fileHash)
         {
-            throw new ArgumentException("Parametry BatchFilePart są nieprawidłowe.");
-        }
+            if (string.IsNullOrWhiteSpace(fileName) || ordinalNumber < 0 || fileSize < 0 || string.IsNullOrWhiteSpace(fileHash))
+            {
+                throw new ArgumentException("Parametry BatchFilePart są nieprawidłowe.");
+            }
 
             _parts.Add(new BatchFilePartInfo
             {
@@ -185,24 +184,24 @@ internal class OpenBatchSessionRequestBuilderImpl
             return this;
         }
 
-    /// <inheritdoc />
-    public IOpenBatchSessionRequestBuilderEncryption EndBatchFile()
-    {
-        if (string.IsNullOrWhiteSpace(_batchFileHash))
+        /// <inheritdoc />
+        public IOpenBatchSessionRequestBuilderEncryption EndBatchFile()
         {
-            throw new InvalidOperationException("Hash BatchFile musi być ustawiony.");
+            if (string.IsNullOrWhiteSpace(_batchFileHash))
+            {
+                throw new InvalidOperationException("Hash BatchFile musi być ustawiony.");
+            }
+
+            return this;
         }
 
-        return this;
-    }
-
-    /// <inheritdoc />
-    public IOpenBatchSessionRequestBuilderBuild WithEncryption(string encryptedSymmetricKey, string initializationVector)
-    {
-        if (string.IsNullOrWhiteSpace(encryptedSymmetricKey) || string.IsNullOrWhiteSpace(initializationVector))
+        /// <inheritdoc />
+        public IOpenBatchSessionRequestBuilderBuild WithEncryption(string encryptedSymmetricKey, string initializationVector)
         {
-            throw new ArgumentException("Parametry szyfrowania nie mogą być puste ani null.");
-        }
+            if (string.IsNullOrWhiteSpace(encryptedSymmetricKey) || string.IsNullOrWhiteSpace(initializationVector))
+            {
+                throw new ArgumentException("Parametry szyfrowania nie mogą być puste ani null.");
+            }
 
             _encryption.EncryptedSymmetricKey = encryptedSymmetricKey;
             _encryption.InitializationVector = initializationVector;
@@ -216,18 +215,18 @@ internal class OpenBatchSessionRequestBuilderImpl
             return this;
         }
 
-    /// <inheritdoc />
-    public OpenBatchSessionRequest Build()
-    {
-        if (_formCode == null)
+        /// <inheritdoc />
+        public OpenBatchSessionRequest Build()
         {
-            throw new InvalidOperationException("FormCode jest wymagany.");
-        }
+            if (_formCode == null)
+            {
+                throw new InvalidOperationException("FormCode jest wymagany.");
+            }
 
-        if (string.IsNullOrWhiteSpace(_encryption.EncryptedSymmetricKey) || string.IsNullOrWhiteSpace(_encryption.InitializationVector))
-        {
-            throw new InvalidOperationException("Konfiguracja szyfrowania jest niekompletna.");
-        }
+            if (string.IsNullOrWhiteSpace(_encryption.EncryptedSymmetricKey) || string.IsNullOrWhiteSpace(_encryption.InitializationVector))
+            {
+                throw new InvalidOperationException("Konfiguracja szyfrowania jest niekompletna.");
+            }
 
             return new OpenBatchSessionRequest
             {

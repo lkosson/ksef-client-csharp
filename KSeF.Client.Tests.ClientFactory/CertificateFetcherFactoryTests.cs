@@ -1,11 +1,7 @@
 ﻿using KSeF.Client.ClientFactory;
 using KSeF.Client.Core.Interfaces.Services;
-using KSeF.Client.DI;
 using KSeF.Client.ClientFactory.DI;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace KSeF.Client.Tests.ClientFactory
 {

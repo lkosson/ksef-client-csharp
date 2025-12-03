@@ -4,31 +4,111 @@ using KSeF.Client.Validation;
 
 namespace KSeF.Client.Api.Builders.IndirectEntityPermissions;
 
+/// <summary>
+/// Buduje żądanie nadania uprawnień pośrednich dla podmiotu w KSeF.
+/// </summary>
 public static class GrantIndirectEntityPermissionsRequestBuilder
 {
+    /// <summary>
+    /// Rozpoczyna budowę żądania nadania uprawnień pośrednich.
+    /// </summary>
+    /// <returns>
+    /// Interfejs pozwalający ustawić podmiot, któremu nadawane są uprawnienia.
+    /// </returns>
     public static ISubjectStep Create() => GrantPermissionsRequestBuilderImpl.Create();
 
+    /// <summary>
+    /// Etap budowy żądania, w którym ustawiany jest podmiot, któremu nadawane są uprawnienia pośrednie.
+    /// </summary>
     public interface ISubjectStep
     {
+        /// <summary>
+        /// Ustawia identyfikator podmiotu, któremu mają zostać nadane uprawnienia pośrednie.
+        /// </summary>
+        /// <param name="subject">
+        /// Identyfikator podmiotu. Nie może być null i musi przejść walidację
+        /// <see cref="TypeValueValidator"/>.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający ustawić kontekst uprawnień.
+        /// </returns>
         IContextStep WithSubject(IndirectEntitySubjectIdentifier subject);
     }
+
+    /// <summary>
+    /// Etap budowy żądania, w którym ustawiany jest kontekst uprawnień pośrednich.
+    /// </summary>
     public interface IContextStep
     {
+        /// <summary>
+        /// Ustawia kontekst uprawnień pośrednich (podmiot, którego dotyczą uprawnienia).
+        /// </summary>
+        /// <param name="context">
+        /// Identyfikator podmiotu, w którego sprawach będzie działał podmiot z uprawnieniami pośrednimi.
+        /// Nie może być null i musi przejść walidację <see cref="TypeValueValidator"/>.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający określić listę nadawanych uprawnień.
+        /// </returns>
         IPermissionsStep WithContext(IndirectEntityTargetIdentifier context);
     }
 
+    /// <summary>
+    /// Etap budowy żądania, w którym określane są uprawnienia nadawane podmiotowi.
+    /// </summary>
     public interface IPermissionsStep
     {
+        /// <summary>
+        /// Ustawia listę uprawnień nadawanych podmiotowi pośredniemu.
+        /// </summary>
+        /// <param name="permissions">
+        /// Co najmniej jedno uprawnienie, które ma zostać nadane.
+        /// </param>
+        /// <returns>
+        /// Interfejs pozwalający dodać opis, dane szczegółowe i zbudować żądanie.
+        /// </returns>
         IOptionalStep WithPermissions(params IndirectEntityStandardPermissionType[] permissions);
     }
 
+    /// <summary>
+    /// Etap budowy żądania, w którym można dodać opis i dane szczegółowe podmiotu.
+    /// </summary>
     public interface IOptionalStep
     {
+        /// <summary>
+        /// Ustawia opis nadawanych uprawnień.
+        /// </summary>
+        /// <param name="description">
+        /// Opis uprawnienia. Nie może być pusty; długość musi mieścić się
+        /// w zakresie <see cref="ValidValues.PermissionDescriptionMinLength"/>
+        ///–<see cref="ValidValues.PermissionDescriptionMaxLength"/>.
+        /// </param>
+        /// <returns>
+        /// Ten sam interfejs, umożliwiający dalsze ustawienia lub zbudowanie żądania.
+        /// </returns>
         IOptionalStep WithDescription(string description);
+
+        /// <summary>
+        /// Ustawia dodatkowe dane podmiotu, któremu nadawane są uprawnienia pośrednie.
+        /// </summary>
+        /// <param name="subjectDetails">
+        /// Szczegóły podmiotu (na przykład dane kontaktowe). Nie mogą być null.
+        /// </param>
+        /// <returns>
+        /// Ten sam interfejs, umożliwiający dalsze ustawienia lub zbudowanie żądania.
+        /// </returns>
         IOptionalStep WithSubjectDetails(PermissionsIndirectEntitySubjectDetails subjectDetails);
+
+        /// <summary>
+        /// Tworzy finalne żądanie nadania uprawnień pośrednich.
+        /// </summary>
+        /// <returns>
+        /// Obiekt <see cref="GrantPermissionsIndirectEntityRequest"/> gotowy do wysłania do KSeF.
+        /// </returns>
         GrantPermissionsIndirectEntityRequest Build();
     }
 
+    /// <inheritdoc />
     private sealed class GrantPermissionsRequestBuilderImpl :
         ISubjectStep,
         IContextStep,
@@ -43,8 +123,13 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
 
         private GrantPermissionsRequestBuilderImpl() { }
 
+        /// <summary>
+        /// Tworzy nową implementację buildera żądania nadania uprawnień pośrednich.
+        /// </summary>
+        /// <returns>Interfejs startowy buildera.</returns>
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();
 
+        /// <inheritdoc />
         public IContextStep WithSubject(IndirectEntitySubjectIdentifier subject)
         {
             ArgumentNullException.ThrowIfNull(subject);
@@ -52,10 +137,12 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
             {
                 throw new ArgumentException($"Nieprawidłowa wartość dla typu {subject.Type}", nameof(subject));
             }
+
             _subject = subject;
             return this;
         }
 
+        /// <inheritdoc />
         public IOptionalStep WithPermissions(params IndirectEntityStandardPermissionType[] permissions)
         {
             if (permissions == null || permissions.Length == 0)
@@ -67,6 +154,7 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
             return this;
         }
 
+        /// <inheritdoc />
         public IOptionalStep WithDescription(string description)
         {
             ArgumentNullException.ThrowIfNull(description);
@@ -78,16 +166,19 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
             {
                 throw new ArgumentException($"Opis uprawnienia za długi, maksymalna długość: {ValidValues.PermissionDescriptionMaxLength} znaków.", nameof(description));
             }
+
             _description = description;
             return this;
         }
 
+        /// <inheritdoc />
         public IOptionalStep WithSubjectDetails(PermissionsIndirectEntitySubjectDetails subjectDetails)
         {
             _subjectDetails = subjectDetails ?? throw new ArgumentNullException(nameof(subjectDetails));
             return this;
         }
 
+        /// <inheritdoc />
         public GrantPermissionsIndirectEntityRequest Build()
         {
             if (_subject is null)
@@ -102,6 +193,7 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
             {
                 throw new InvalidOperationException("Metoda WithPermissions(...) musi zostać wywołana po ustawieniu kontekstu.");
             }
+
             return new GrantPermissionsIndirectEntityRequest
             {
                 SubjectIdentifier = _subject,
@@ -112,6 +204,7 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
             };
         }
 
+        /// <inheritdoc />
         public IPermissionsStep WithContext(IndirectEntityTargetIdentifier context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -119,6 +212,7 @@ public static class GrantIndirectEntityPermissionsRequestBuilder
             {
                 throw new ArgumentException($"Nieprawidłowa wartość dla typu {context.Type}", nameof(context));
             }
+
             _context = context;
             return this;
         }

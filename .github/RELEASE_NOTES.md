@@ -1,5 +1,12 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
 
+## Changelog zmian – Wersja 2.0.0 RC6.0.1
+### Nowe
+- **Dodano opisy budowniczych żądań w SDK**
+
+### Zmodyfikowane
+- **Zmieniono pole `RestrictToPermanentStorageHwmDate` na nullowalne**
+
 ## Changelog zmian – Wersja 2.0.0 RC6.0
 
 ### Nowe
