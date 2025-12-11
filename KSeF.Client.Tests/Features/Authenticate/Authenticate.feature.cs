@@ -139,6 +139,10 @@ public class AuthenticateTests : KsefIntegrationTestBase
             .WithSubject(subject)
             .WithPermissions(EntityPermission.New(permission, true))
             .WithDescription($"Grant {string.Join(", ", permission)} to {subject.Type}:{subject.Value}")
+            .WithSubjectDetails(new PermissionsEntitySubjectDetails
+            {
+                FullName = $"Entity {subject.Value}"
+            })
             .Build();
 
         await KsefClient.GrantsPermissionEntityAsync(request, ownerToken);

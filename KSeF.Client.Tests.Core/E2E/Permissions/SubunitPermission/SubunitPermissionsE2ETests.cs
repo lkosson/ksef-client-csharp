@@ -254,6 +254,15 @@ public class SubunitPermissionsE2ETests : TestBase
             })
             .WithPermissions(PersonPermissionType.SubunitManage, PersonPermissionType.CredentialsManage)
             .WithDescription("E2E test - nadanie uprawnień osobowych do zarządzania jednostką podrzędną")
+            .WithSubjectDetails(new PersonPermissionSubjectDetails
+            {
+                SubjectDetailsType = PersonPermissionSubjectDetailsType.PersonByIdentifier,
+                PersonById = new PersonPermissionPersonById
+                {
+                    FirstName = "Jan",
+                    LastName = "Testowy"
+                },
+            })
             .Build();
 
         OperationResponse operationResponse = await KsefClient.GrantsPermissionPersonAsync(personGrantRequest, _unitAccessToken).ConfigureAwait(false);
@@ -277,6 +286,11 @@ public class SubunitPermissionsE2ETests : TestBase
             })
             .WithSubunitName("E2E Test Subunit")
             .WithDescription("E2E test grant sub-unit")
+            .WithSubjectDetails(new SubunitSubjectDetails
+            {
+                SubjectDetailsType = PermissionsSubunitSubjectDetailsType.PersonByIdentifier,
+                PersonById = new PermissionsSubunitPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+            })
             .Build();
 
         OperationResponse operationResponse = await KsefClient

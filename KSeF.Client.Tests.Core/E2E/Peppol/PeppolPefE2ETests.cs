@@ -99,6 +99,7 @@ public partial class PeppolPefE2ETests : TestBase
 
         // Assert
         Assert.NotNull(provider);
+        Assert.Null(provider.Name);
         Assert.Equal(peppolId, provider!.Id);
 
         // === 2) GRANT: Firma -> Dostawca (PefInvoicing) ===
@@ -179,6 +180,7 @@ public partial class PeppolPefE2ETests : TestBase
 
         // Assert
         Assert.NotNull(provider);
+        Assert.Null(provider.Name);
         Assert.Equal(peppolId, provider!.Id);
 
         // === 2) GRANT: Firma -> Dostawca (PefInvoicing) ===
@@ -205,6 +207,13 @@ public partial class PeppolPefE2ETests : TestBase
             cancellationToken: CancellationToken.None);
 
         Assert.NotNull(authz);
+        Assert.NotNull(authz.AuthorizationGrants.First().Id);
+        Assert.True(authz.AuthorizationGrants.Count() == 1);
+        Assert.NotNull(authz.AuthorizationGrants.First().Description);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorIdentifier);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizingEntityIdentifier);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizedEntityIdentifier);
+        Assert.Null(authz.AuthorizationGrants.First().SubjectEntityDetails);
 
         // === 3) WYSYŁKA PEF przez dostawcę ===
         // Arrange
@@ -277,6 +286,7 @@ public partial class PeppolPefE2ETests : TestBase
             contextIdentifierValue: peppolId).ConfigureAwait(false);
 
         Assert.NotNull(providerAuth?.AccessToken);
+        Assert.NotNull(providerAuth?.RefreshToken);
         return (peppolId, providerAuth.AccessToken.Token);
     }
 
@@ -355,27 +365,31 @@ public partial class PeppolPefE2ETests : TestBase
             cancellationToken: CancellationToken.None).ConfigureAwait(false);
 
         Assert.NotNull(grantResp);
+        Assert.NotNull(grantResp.ReferenceNumber);
 
         PermissionsOperationStatusResponse grantRespStatus = await KsefClient.OperationsStatusAsync(grantResp.ReferenceNumber, accessToken).ConfigureAwait(false);
 
         Assert.NotNull(grantRespStatus);
+        Assert.NotNull(grantRespStatus.Status);
+        Assert.Null(grantRespStatus.Status.Details);
+        Assert.Null(grantRespStatus.Status.Extensions);
 
-            // opcjonalnie: szybka walidacja listy grantów (w niektórych env może nie być 1:1)
-            EntityAuthorizationsQueryRequest query = new()
+        // opcjonalnie: szybka walidacja listy grantów (w niektórych env może nie być 1:1)
+        EntityAuthorizationsQueryRequest query = new()
+        {
+            AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier
             {
-                AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier
-                {
-                    Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip,
-                    Value = companyNip
-                },
-                AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier
-                {
-                    Type = EntityAuthorizationsAuthorizedEntityIdentifierType.PeppolId,
-                    Value = peppolId
-                },
-                QueryType = QueryType.Granted,
-                PermissionTypes = [InvoicePermissionType.PefInvoicing]
-            };
+                Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip,
+                Value = companyNip
+            },
+            AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier
+            {
+                Type = EntityAuthorizationsAuthorizedEntityIdentifierType.PeppolId,
+                Value = peppolId
+            },
+            QueryType = QueryType.Granted,
+            PermissionTypes = [InvoicePermissionType.PefInvoicing]
+        };
 
         PagedAuthorizationsResponse<AuthorizationGrant> authz = await KsefClient.SearchEntityAuthorizationGrantsAsync(
             requestPayload: query,
@@ -385,6 +399,14 @@ public partial class PeppolPefE2ETests : TestBase
             cancellationToken: CancellationToken.None).ConfigureAwait(false);
 
         Assert.NotNull(authz);
+        Assert.NotNull(authz.AuthorizationGrants.Count > 0);
+        Assert.Null(authz.AuthorizationGrants.First().SubjectEntityDetails);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorIdentifier.Value);
+        Assert.NotNull(authz.AuthorizationGrants.First().Id);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizationScope);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizationScope);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizedEntityIdentifier);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizingEntityIdentifier);
     }
 
     // -----------------------------
@@ -428,8 +450,11 @@ public partial class PeppolPefE2ETests : TestBase
         }
 
         Assert.Null(statusProcessing.FailedInvoiceCount);
+        Assert.NotNull(statusProcessing.Status);
         Assert.Equal(OnlineSessionCodeResponse.SessionOpened, statusProcessing.Status.Code);
-        Assert.Equal(OnlineSessionCodeResponse.SessionOpened, statusProcessing.Status.Code);
+        Assert.Null(statusProcessing.Upo);
+        Assert.NotNull(statusProcessing.InvoiceCount);
+        Assert.True(statusProcessing.InvoiceCount.Value > 0);
 
         await KsefClient.CloseOnlineSessionAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None).ConfigureAwait(false);
 

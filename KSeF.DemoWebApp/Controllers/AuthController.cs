@@ -1,25 +1,32 @@
 using KSeF.Client.Api.Builders.Auth;
 using KSeF.Client.Api.Builders.X509Certificates;
-using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces;
+using KSeF.Client.Core.Interfaces.Clients;
+using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Extensions;
+using KSeF.DemoWebApp.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using KSeF.DemoWebApp.Services;
-using KSeF.Client.Extensions;
-using KSeF.Client.Api.Services;
 
 namespace KSeF.DemoWebApp.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class AuthController(IAuthCoordinator authCoordinator, IConfiguration configuration, IAuthorizationClient authorizationClient) : ControllerBase
+public class AuthController(IAuthCoordinator authCoordinator,
+    IConfiguration configuration,
+    IAuthorizationClient authorizationClient,
+    ICryptographyService cryptographyService,
+    ICryptographyClient cryptographyClient) : ControllerBase
 {
 
-    private readonly string _contextIdentifier = configuration["Tools:contextIdentifier"]!;
+    private readonly string _contextIdentifier = configuration["Tools:ContextIdentifier"]!;
     private readonly string xMLDirectory = configuration["Tools:XMLDirectory"] ?? string.Empty;
+
+    private readonly ICryptographyService _cryptographyService;
 
     [HttpPost("auth-by-coordinator-with-PZ")]
     public async Task<ActionResult<AuthenticationOperationStatusResponse>> AuthWithPZAsync(string contextIdentifier, CancellationToken cancellationToken)
@@ -30,9 +37,9 @@ public class AuthController(IAuthCoordinator authCoordinator, IConfiguration con
                                                     AuthenticationTokenContextIdentifierType.Nip,
                                                     !string.IsNullOrWhiteSpace(contextIdentifier) ? contextIdentifier : _contextIdentifier,
                                                     AuthenticationTokenSubjectIdentifierTypeEnum.CertificateSubject,
-                                                    xmlSigner: (xml) => { return XadeSDummy.SignWithPZ(xml, xMLDirectory, timeout : TimeSpan.FromMinutes(10)); },
+                                                    xmlSigner: (xml) => { return XadeSDummy.SignWithPZ(xml, xMLDirectory, timeout: TimeSpan.FromMinutes(10)); },
                                                     authorizationPolicy: null,
-                                                    cancellationToken:cancellationToken).ConfigureAwait(false);
+                                                    cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     [HttpPost("auth-step-by-step")]
@@ -58,9 +65,9 @@ public class AuthController(IAuthCoordinator authCoordinator, IConfiguration con
     public async Task<AuthenticationOperationStatusResponse> AuthWithKsefCert(string certInBase64, string contextIdentifier, string privateKey, CancellationToken cancellationToken)
     {
         byte[] cert = Convert.FromBase64String(certInBase64);
-        X509Certificate2 x509 = cert.LoadPkcs12(); 
+        X509Certificate2 x509 = cert.LoadPkcs12();
         byte[] privateKeyBytes = Convert.FromBase64String(privateKey);
-        
+
         using RSA rsa = RSA.Create();
         rsa.ImportRSAPrivateKey(privateKeyBytes, out _);
 
@@ -171,16 +178,47 @@ public class AuthController(IAuthCoordinator authCoordinator, IConfiguration con
         AuthenticationOperationStatusResponse authResult = await authorizationClient.GetAccessTokenAsync(signatureResponse.AuthenticationToken.Token).ConfigureAwait(false);
         return authResult;
     }
-}
 
-public class CertificateRequestModel
-{
-    public ContextIdentifier ContextIdentifier { get; set; }
-    public string GivenName { get; set; }
-    public string Surname { get; set; }
-    public string SerialNumberPrefix { get; set; }
-    public string SerialNumber { get; set; }
-    public string CommonName { get; set; }
+    [HttpPost("auth-with-ksef-token")]
+    public async Task<AuthenticationOperationStatusResponse> GetAccessTokenWithKsefTokenAsync([FromBody] string ksefToken, CancellationToken cancellationToken)
+    {
+        AuthenticationChallengeResponse challengeResponse = await authorizationClient.GetAuthChallengeAsync(cancellationToken).ConfigureAwait(false);
+
+        long timeStamp = challengeResponse.Timestamp.ToUnixTimeMilliseconds();
+
+        string tokenWithTimestamp = $"{ksefToken}|{timeStamp}";
+        byte[] tokenBytes = System.Text.Encoding.UTF8.GetBytes(tokenWithTimestamp);
+        byte[] encryptedBytes = cryptographyService.EncryptKsefTokenWithRSAUsingPublicKey(tokenBytes);
+
+        string encryptedTokenBase64 = Convert.ToBase64String(encryptedBytes);
+
+        IAuthKsefTokenRequestBuilderWithEncryptedToken builder = AuthKsefTokenRequestBuilder
+            .Create()
+            .WithChallenge(challengeResponse.Challenge)
+            .WithContext(AuthenticationTokenContextIdentifierType.Nip, _contextIdentifier)
+            .WithEncryptedToken(encryptedTokenBase64);
+
+        SignatureResponse signatureResponse = await authorizationClient
+            .SubmitKsefTokenAuthRequestAsync(builder.Build(), cancellationToken).ConfigureAwait(false);
+
+        AuthStatus authStatus = await authorizationClient
+            .GetAuthStatusAsync(signatureResponse.ReferenceNumber, signatureResponse.AuthenticationToken.Token, cancellationToken).ConfigureAwait(false);
+
+        AuthenticationOperationStatusResponse authResult = await authorizationClient
+            .GetAccessTokenAsync(signatureResponse.AuthenticationToken.Token, cancellationToken).ConfigureAwait(false);
+
+        return authResult;
+    }
+
+    public class CertificateRequestModel
+    {
+        public ContextIdentifier ContextIdentifier { get; set; }
+        public string GivenName { get; set; }
+        public string Surname { get; set; }
+        public string SerialNumberPrefix { get; set; }
+        public string SerialNumber { get; set; }
+        public string CommonName { get; set; }
+    }
 }
 
 public static class AuthSessionStepByStepHelper
@@ -233,7 +271,7 @@ public static class AuthSessionStepByStepHelper
             await Task.Delay(sleepTime + TimeSpan.FromSeconds(currentLoginAttempt), cancellationToken).ConfigureAwait(false);
             authorizationStatus = await authorizationClient.GetAuthStatusAsync(
                 authOperationInfo.ReferenceNumber,
-                authOperationInfo.AuthenticationToken.Token, 
+                authOperationInfo.AuthenticationToken.Token,
                 cancellationToken).ConfigureAwait(false);
             currentLoginAttempt++;
         }

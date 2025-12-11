@@ -3,6 +3,7 @@ using KSeF.Client.Api.Builders.EUEntityRepresentativePermissions;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
+using KSeF.Client.Core.Models.Permissions.Authorizations;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.EuEntityRepresentative;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
@@ -64,7 +65,17 @@ public class EuRepresentativePermissionE2ETests : TestBase
             AuthenticationTokenContextIdentifierType.Nip,
             ownerCertificate);
 
-        // 2) Właściciel nadaje uprawnienia administracyjne jednostce unijnej (kontekst NipVatEu)
+        //2) Właściciel nadaje uprawnienia administracyjne jednostce unijnej(kontekst NipVatEu)
+        PermissionsEuEntitySubjectDetails subjectDetails = new PermissionsEuEntitySubjectDetails
+        {
+            SubjectDetailsType = PermissionsEuEntitySubjectDetailsType.EntityByFingerprint,
+            EntityByFp = new PermissionsEuEntityEntityByFp
+            {
+                Address = "EU Admin Address",
+                FullName = "EU Admin Full Name"
+            }
+        };
+
         GrantPermissionsEuEntityRequest grantAdministrativePermissionsRequest = GrantEuEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(new EuEntitySubjectIdentifier
@@ -75,6 +86,7 @@ public class EuRepresentativePermissionE2ETests : TestBase
             .WithSubjectName("MB Company")
             .WithContext(new EuEntityContextIdentifier { Type = EuEntityContextIdentifierType.NipVatUe, Value = ownerVatEu })
             .WithDescription("EU Company")
+            .WithSubjectDetails(subjectDetails)
             .Build();
 
         OperationResponse response = await KsefClient
@@ -100,6 +112,23 @@ public class EuRepresentativePermissionE2ETests : TestBase
             AuthenticationTokenSubjectIdentifierTypeEnum.CertificateFingerprint); // typ identyfikatora jednostki eu
 
         // 6) Nadaj uprawnienia reprezentanta
+        EuEntityRepresentativeSubjectDetails euRepresentativeSubjectDetails = new EuEntityRepresentativeSubjectDetails
+        {
+            SubjectDetailsType = EuEntityRepresentativeSubjectDetailsType.PersonByFingerprintWithoutIdentifier,
+            PersonByFpNoId = new EuEntityRepresentativePersonByFpNoId
+            {
+                FirstName = "Reprezentant",
+                LastName = "Reprezentant",
+                BirthDate = new DateTimeOffset(1990, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                IdDocument = new EuEntityRepresentativeIdentityDocument
+                {
+                    Type = "Passport",
+                    Number = "AA1234567",
+                    Country = "PL"
+                }
+            }
+        };
+
         GrantPermissionsEuEntityRepresentativeRequest grantRepresentativePermissionsRequest =
             GrantEUEntityRepresentativePermissionsRequestBuilder
                 .Create()
@@ -113,6 +142,7 @@ public class EuRepresentativePermissionE2ETests : TestBase
                     EuEntityRepresentativeStandardPermissionType.InvoiceRead
                 )
                 .WithDescription("Representative for EU Entity")
+                .WithSubjectDetails(euRepresentativeSubjectDetails)
                 .Build();
 
         OperationResponse grantRepresentativePermissionResponse =
@@ -129,6 +159,7 @@ public class EuRepresentativePermissionE2ETests : TestBase
             maxAttempts: 60,
             cancellationToken: CancellationToken
         );
+
 
         // 8) Odwołaj uprawnienia reprezentanta (wszystkie zwrócone)
         foreach (Client.Core.Models.Permissions.EuEntityPermission? permission in grantedRepresentativePermission.Permissions)
@@ -148,6 +179,8 @@ public class EuRepresentativePermissionE2ETests : TestBase
         // Weryfikacja
         Assert.NotNull(grantedPermissions);
         Assert.NotEmpty(grantedPermissions.Permissions);
+        Assert.Contains(grantedPermissions.Permissions, x => x.SubjectEntityDetails.Address == subjectDetails.EntityByFp.Address 
+        && x.SubjectEntityDetails.FullName == subjectDetails.EntityByFp.FullName);
 
         Assert.NotNull(euAuthInfo);
         Assert.NotNull(euAuthInfo.AccessToken);
@@ -159,6 +192,8 @@ public class EuRepresentativePermissionE2ETests : TestBase
         Assert.NotNull(grantRepresentativePermissionResponse);
         Assert.NotNull(grantedRepresentativePermission);
         Assert.NotEmpty(grantedRepresentativePermission.Permissions);
+        Assert.True(grantedRepresentativePermission.Permissions.Where(x => x.SubjectPersonDetails != null).Count(x => x.SubjectPersonDetails.FirstName == euRepresentativeSubjectDetails.PersonByFpNoId.FirstName && x.SubjectPersonDetails.LastName == euRepresentativeSubjectDetails.PersonByFpNoId.LastName) == 2);
+
 
         Assert.NotNull(afterRevoke);
         Assert.Empty(afterRevoke.Permissions);

@@ -168,8 +168,14 @@ public class OnlineSessionE2ETests : TestBase
         Uri upoDownloadUrl = invoices.Invoices.First().UpoDownloadUrl;
         string invoiceUpoXml = await UpoUtils.GetUpoAsync(KsefClient, upoDownloadUrl);
         Assert.False(string.IsNullOrWhiteSpace(invoiceUpoXml));
-        InvoiceUpo invoiceUpo = UpoUtils.UpoParse<InvoiceUpo>(invoiceUpoXml);
+        InvoiceUpoV4_2 invoiceUpo = UpoUtils.UpoParse<InvoiceUpoV4_2>(invoiceUpoXml);
         Assert.Equal(invoiceUpo.Document.KSeFDocumentNumber, ksefNumber);
+        Assert.False(string.IsNullOrWhiteSpace(invoiceUpo.ReceivingEntityName));
+        Assert.False(string.IsNullOrWhiteSpace(invoiceUpo.SessionReferenceNumber));
+        Assert.NotNull(invoiceUpo.Authentication);
+        Assert.False(string.IsNullOrWhiteSpace(invoiceUpo.LogicalStructureName));
+        Assert.False(string.IsNullOrWhiteSpace(invoiceUpo.FormCode));
+        Assert.NotNull(invoiceUpo.Signature);
     }
 
     /// <summary>

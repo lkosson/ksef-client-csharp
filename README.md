@@ -201,6 +201,30 @@ Projekt zawiera rozbudowany zestaw testów:
 ```bash
 dotnet test KSeF.Client.sln
 ```
+## Rozwiązywanie problemów (Troubleshooting)
+
+### Błąd: "The password may be incorrect" na IIS / Azure
+
+Jeśli podczas ładowania certyfikatu z kluczem prywatnym otrzymujesz wyjątek:
+
+> **System.Security.Cryptography.CryptographicException:** The EncryptedPrivateKeyInfo structure was decoded but was not successfully interpreted, the password may be incorrect.
+
+Oznacza to zazwyczaj problem środowiskowy (brak załadowanego profilu użytkownika na IIS/Azure), a nie błędne hasło. System Windows próbuje zapisać tymczasowy klucz na dysku, ale nie ma do tego uprawnień.
+
+#### Rozwiązanie
+
+Zamiast standardowego `X509Certificate2.CreateFromEncryptedPem`, użyj metody rozszerzającej `X509Certificate2.MergeWithPemKey` dostępnej w bibliotece, która ładuje klucz w pamięci (Ephemeral Key):
+```
+using System.Security.Cryptography.X509Certificates;
+using KSeF.Client.Extensions;
+
+// 1. Wczytaj certyfikat publiczny i treść klucza PEM
+X509Certificate2 publicCert = new X509Certificate2("cert.cer");
+string privateKeyPem = File.ReadAllText("key.pem");
+
+// 2. Połącz bezpiecznie (działa na Azure/IIS bez LoadUserProfile)
+X509Certificate2 cert = publicCert.MergeWithPemKey(privateKeyPem, "TwojeHaslo");
+```
 
 ## Więcej informacji
 

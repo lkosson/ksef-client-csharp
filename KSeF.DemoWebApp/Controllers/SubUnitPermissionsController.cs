@@ -18,6 +18,7 @@ public class SubUnitPermissionsController(IKSeFClient ksefClient) : ControllerBa
             .WithSubject(grantPermissionsRequest.SubjectIdentifier)
             .WithContext(grantPermissionsRequest.ContextIdentifier)
             .WithDescription(grantPermissionsRequest.Description)
+            .WithSubjectDetails(grantPermissionsRequest.SubjectDetails)
             .Build();
 
         return await ksefClient.GrantsPermissionSubUnitAsync(request, accessToken, cancellationToken).ConfigureAwait(false);

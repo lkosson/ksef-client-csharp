@@ -974,10 +974,19 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
     }
        
     /// <inheritdoc />
-    public async Task<OperationResponse> ExportInvoicesAsync(
+    public Task<OperationResponse> ExportInvoicesAsync(
     InvoiceExportRequest requestPayload,
     string accessToken,
     bool includeMetadata = true,
+    CancellationToken cancellationToken = default)
+    {
+        return ExportInvoicesAsync(requestPayload, accessToken, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<OperationResponse> ExportInvoicesAsync(
+    InvoiceExportRequest requestPayload,
+    string accessToken,
     CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(requestPayload);
@@ -986,13 +995,6 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
         StringBuilder urlBuilder = new("/api/v2/invoices/exports");
 
         Dictionary<string, string> headers = null;
-        if (includeMetadata)
-        {
-            headers = new Dictionary<string, string>
-            {
-                ["x-ksef-feature"] = "include-metadata"
-            };
-        }
 
         return await restClient.SendAsync<OperationResponse, InvoiceExportRequest>(
             HttpMethod.Post,
@@ -1004,6 +1006,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
             cancellationToken
         ).ConfigureAwait(false);
     }
+
     /// <inheritdoc />
     public async Task<InvoiceExportStatusResponse> GetInvoiceExportStatusAsync(
     string referenceNumber,

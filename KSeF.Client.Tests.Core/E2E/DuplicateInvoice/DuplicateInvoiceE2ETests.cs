@@ -123,6 +123,8 @@ public class DuplicateInvoiceE2ETests : TestBase
         Assert.NotEmpty(failedBatchInvoices.Invoices);
         SessionInvoice failed = failedBatchInvoices.Invoices.First();
         Assert.NotNull(failed.Status);
+        Assert.NotNull(failed.Status.Description);
+        Assert.NotNull(failed.Status.Details);
         Assert.Equal(InvoiceInSessionStatusCodeResponse.DuplicateInvoice, failed.Status.Code);
     }
 

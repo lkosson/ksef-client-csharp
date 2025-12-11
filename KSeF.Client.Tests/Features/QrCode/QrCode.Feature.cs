@@ -45,7 +45,6 @@ public class QrCodeTests
 
         string nip = "0000000000";
         string xml = "<x/>";
-        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         invoiceHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(xml)));
 
@@ -55,7 +54,6 @@ public class QrCodeTests
                 nip,
                 QRCodeContextIdentifierType.Nip,
                 nip,
-                serial,
                 invoiceHash,
                 publicCert
             )

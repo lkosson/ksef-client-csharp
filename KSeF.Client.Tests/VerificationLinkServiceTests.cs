@@ -69,7 +69,6 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         // Arrange
         string nip = "0000000000";
         string xml = "<x/>";
-        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
         invoiceHash = Convert.ToBase64String(hashBytes);
@@ -80,7 +79,7 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         X509Certificate2 fullCert = certificateRequest.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
 
         // Act
-        string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, fullCert);
+        string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, invoiceHash, fullCert);
 
         // Assert
         string[] segments = [.. new Uri(url)
@@ -92,7 +91,7 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         Assert.Equal("Nip", segments[3]);
         Assert.Equal(nip, segments[4]);
         Assert.Equal(nip, segments[5]);
-        Assert.Equal(serial.ToString(), segments[6]);
+        Assert.Equal(fullCert.SerialNumber, segments[6]);
         Assert.False(string.IsNullOrWhiteSpace(segments[7])); // hash
         Assert.False(string.IsNullOrWhiteSpace(segments[8])); // signed hash
     }
@@ -103,7 +102,6 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         // Arrange
         string nip = "0000000000";
         string xml = "<x/>";
-        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         string cnEntry = "CN=TestECDSA";
         DateTimeOffset certificateValidNotBefore = DateTimeOffset.Now;
@@ -117,7 +115,7 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         X509Certificate2 fullCert = certificateRequest.CreateSelfSigned(certificateValidNotBefore, certificateValidNotAfter);
 
         // Act
-        string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, fullCert, fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
+        string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, invoiceHash, fullCert, fullCert.GetRSAPrivateKey()?.ExportPkcs8PrivateKeyPem());
 
         // Assert
         string[] segments = [.. new Uri(url)
@@ -129,7 +127,7 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         Assert.Equal("Nip", segments[3]);
         Assert.Equal(nip, segments[4]);
         Assert.Equal(nip, segments[5]);
-        Assert.Equal(serial.ToString(), segments[6]);
+        Assert.Equal(fullCert.SerialNumber, segments[6]);
         Assert.False(string.IsNullOrWhiteSpace(segments[7])); // hash
         Assert.False(string.IsNullOrWhiteSpace(segments[8])); // signed hash
     }
@@ -153,7 +151,6 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
 
         string nip = ZeroNip;
         string xml = MinimalXml;
-        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
         invoiceHash = Convert.ToBase64String(hashBytes);
@@ -162,7 +159,7 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
         {
             // przekazujemy pusty ciąg Base64 jako "brakujący" klucz prywatny
-            return verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial.ToString(), invoiceHash, pubOnly);
+            return verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, invoiceHash, pubOnly);
         });
 
         Assert.Contains(ExpecterErrorMessage, ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -191,7 +188,6 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
 
         string nip = "0000000000";
         string xml = "<x/>";
-        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         byte[] sha = SHA256.HashData(Encoding.UTF8.GetBytes(xml));
         invoiceHash = Convert.ToBase64String(sha);
@@ -199,7 +195,6 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         // Act
         string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip,
             nip,
-            serial,
             invoiceHash,
             certWithKey
         );
@@ -251,7 +246,6 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         // Arrange – generowanie ECDSA P-256
         string nip = "0000000000";
         string xml = "<x/>";
-        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         invoiceHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(xml)));
 
@@ -261,7 +255,7 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
 
         // Act – jawnie przekazujemy prywatny klucz ECDSA
         string? privateKeyPem = fullCert.GetECDsaPrivateKey()?.ExportPkcs8PrivateKeyPem();
-        string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial, invoiceHash, fullCert, privateKeyPem);
+        string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, invoiceHash, fullCert, privateKeyPem);
 
         // Assert – format ścieżek
         string[] segments = [.. new Uri(url).Segments.Select(s => s.Trim('/'))];
@@ -270,7 +264,7 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
         Assert.Equal("Nip", segments[3]);
         Assert.Equal(nip, segments[4]);
         Assert.Equal(nip, segments[5]);
-        Assert.Equal(serial.ToString(), segments[6]);
+        Assert.Equal(fullCert.SerialNumber, segments[6]);
         Assert.False(string.IsNullOrWhiteSpace(segments[7])); // hash
         Assert.False(string.IsNullOrWhiteSpace(segments[8])); // signed hash
     }
@@ -287,13 +281,12 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
 
         string nip = "0000000000";
         string xml = "<x/>";
-        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         invoiceHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(xml)));
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
-            verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial, invoiceHash, pubOnly)
+            verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, invoiceHash, pubOnly)
         );
     }
 
@@ -314,12 +307,11 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
 
         string nip = ZeroNip;
         string xml = MinimalXml;
-        string serial = Guid.NewGuid().ToString();
         string invoiceHash;
         invoiceHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(xml)));
 
         // Act
-        string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, serial, invoiceHash, certWithKey);
+        string url = verificationLinkService.BuildCertificateVerificationUrl(nip, QRCodeContextIdentifierType.Nip, nip, invoiceHash, certWithKey);
 
         // Assert: URL zawiera poprawny ECDSA podpis kodowany w Base64
         Uri uri = new(url);
@@ -441,7 +433,6 @@ public class VerificationLinkServiceTests : KsefIntegrationTestBase
             ownerNip,
             QRCodeContextIdentifierType.Nip,
             ownerNip,
-            certificate.CertificateSerialNumber,
             invoiceHash,
             certWithKey);
 

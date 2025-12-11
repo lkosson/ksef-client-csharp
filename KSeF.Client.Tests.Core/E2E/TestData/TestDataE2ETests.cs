@@ -92,6 +92,8 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
             // Assert - Weryfikacja usunięcia ról podmiotu głównego
             Assert.NotNull(subjectRolesAfterRemoval);
             Assert.NotNull(subjectRolesAfterRemoval.Roles);
+            Assert.True(subjectRolesAfterRemoval.Roles.All(x => x.ParentEntityIdentifier != null));
+            Assert.True(subjectRolesAfterRemoval.Roles.All(x => x.Description != null));
             Assert.False(subjectRolesAfterRemoval.Roles.Any(role => role.Role == expectedRoleType),
                 $"Rola {expectedRoleType} powinna zostać usunięta wraz z podmiotem głównym");
         }
@@ -431,9 +433,10 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
 			Assert.True(revokedPermissionStatus.RevokedDate.HasValue,
 				"Data wygaśnięcia uprawnienia (revokeDate) powinna zostać ustawiona po cofnięciu uprawnienia");
 
-			DateOnly expectedDate = DateOnly.FromDateTime(revokeDate);
-			DateOnly actualDate = DateOnly.FromDateTime(revokedPermissionStatus.RevokedDate.Value);
-			Assert.Equal(expectedDate, actualDate);
-		}
+            DateOnly expectedDate = DateOnly.FromDateTime(revokeDate.ToUniversalTime());
+            DateOnly actualDate = DateOnly.FromDateTime(revokedPermissionStatus.RevokedDate.Value.ToUniversalTime());
+
+            Assert.Equal(expectedDate, actualDate);
+        }
 	}
 }

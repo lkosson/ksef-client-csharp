@@ -206,7 +206,6 @@ public class QrCodeOfflineE2ETests : TestBase
                 Fixture.Nip,
                 QRCodeContextIdentifierType.Nip,
                 Fixture.Nip,
-                Fixture.Certificate.CertificateSerialNumber,
                 Fixture.InvoiceHash,
                 certWithKey));
 

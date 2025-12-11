@@ -60,8 +60,6 @@ public partial class EntityPermissionE2ETests : TestBase
                         x.Description == PermissionDescription &&
                         x.CanDelegate == false &&
                         Enum.Parse<EntityStandardPermissionType>(x.PermissionScope.ToString()) == EntityStandardPermissionType.InvoiceWrite),
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(searchAfterGrant);
@@ -95,8 +93,6 @@ public partial class EntityPermissionE2ETests : TestBase
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchGrantedPersonPermissionsAsync(accessToken).ConfigureAwait(false),
                 result => result is not null && result.Permissions is { Count: 0 },
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(searchAfterRevoke);
@@ -119,6 +115,10 @@ public partial class EntityPermissionE2ETests : TestBase
                 Client.Core.Models.Permissions.Entity.EntityPermission.New(EntityStandardPermissionType.InvoiceWrite, false)
             )
             .WithDescription(description)
+            .WithSubjectDetails(new PermissionsEntitySubjectDetails
+            {
+                FullName = $"Entity {subject.Value}"
+            })
             .Build();
 
         OperationResponse response = await KsefClient.GrantsPermissionEntityAsync(request, accessToken, CancellationToken).ConfigureAwait(false);
@@ -161,8 +161,6 @@ public partial class EntityPermissionE2ETests : TestBase
                 await AsyncPollingUtils.PollAsync(
                     async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken).ConfigureAwait(false),
                     result => result.Status.Code == OperationStatusCodeResponse.Success,
-                    delay: TimeSpan.FromMilliseconds(SleepTime),
-                    maxAttempts: 30,
                     cancellationToken: CancellationToken).ConfigureAwait(false);
 
             statuses.Add(status);

@@ -135,6 +135,16 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
 
         // Weryfikacja, że metadane zawierają dokładnie tyle wpisów, co unikalne faktury
         Assert.Equal(uniqueInvoices.Count, totalMetadataEntries);
+        Assert.NotNull(uniqueInvoices.Values);
+        Assert.True(uniqueInvoices.Values.All(x=> x.FormCode != null));
+        Assert.True(uniqueInvoices.Values.All(x=> !string.IsNullOrWhiteSpace(x.KsefNumber)));
+        Assert.True(uniqueInvoices.Values.All(x=> !string.IsNullOrWhiteSpace(x.Currency)));
+        Assert.True(uniqueInvoices.Values.All(x=> x.Buyer != null));
+        Assert.True(uniqueInvoices.Values.All(x=> x.Seller != null));
+        Assert.True(uniqueInvoices.Values.All(x=> x.InvoiceType != null));
+        Assert.True(uniqueInvoices.Values.All(x=> x.HashOfCorrectedInvoice == null));
+        Assert.True(uniqueInvoices.Values.All(x=> x.AuthorizedSubject == null));
+
 
         // Weryfikacja, że mechanizm HWM shift działał (punkt kontynuacji był aktualizowany)
         Assert.True(hwmShiftCount > 0, "Oczekiwano co najmniej jednego przesunięcia punktu kontynuacji przez HWM");
@@ -270,6 +280,7 @@ public class IncrementalInvoiceRetrievalE2ETests : TestBase
         Assert.NotNull(batchStatus);
         Assert.Equal(invoiceCount, batchStatus.SuccessfulInvoiceCount);
         Assert.Equal(0, batchStatus.FailedInvoiceCount);
+        Assert.NotNull(batchStatus.ValidUntil);
 
         // Pobranie numerów KSeF utworzonych faktur z sesji wsadowej
         SessionInvoicesResponse sessionInvoices = await KsefClient.GetSessionInvoicesAsync(

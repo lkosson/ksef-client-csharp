@@ -146,6 +146,9 @@ public class KsefTokenE2ETests : TestBase
             cancellationToken: CancellationToken).ConfigureAwait(false);
 
         Assert.Equal(SuccessfulAuthStatusCode, status.Status.Code);
+        Assert.NotNull(status.IsTokenRedeemed);
+        Assert.Null(status.RefreshTokenValidUntil);
+        Assert.Null(status.LastTokenRefreshDate);
 
         // 5) Pobierz access/refresh tokeny
         AuthenticationOperationStatusResponse tokens = await AuthorizationClient.GetAccessTokenAsync(signature.AuthenticationToken.Token, CancellationToken).ConfigureAwait(false);

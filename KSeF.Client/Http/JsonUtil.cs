@@ -1,5 +1,9 @@
+using System;
+using System.Globalization;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using KSeF.Client.Http.Converters;
 
 namespace KSeF.Client.Http;
 
@@ -16,9 +20,14 @@ public static class JsonUtil
 
         WriteIndented = false,
         PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter() }
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+
+    static JsonUtil()
+    {
+        _settings.Converters.Add(new JsonStringEnumConverter());
+        _settings.Converters.Add(new DateOnlyToDateTimeOffsetJsonConverter());
+    }
     public static string Serialize<T>(T obj)
     {
         try

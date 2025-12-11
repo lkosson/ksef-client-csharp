@@ -25,9 +25,26 @@ public class AuthorizationE2ETests : TestBase
         // Assert
         Assert.NotNull(authResult);
         Assert.NotNull(authResult.AccessToken);
+        Assert.NotNull(authResult.RefreshToken);
 
         PersonToken personToken = TokenService.MapFromJwt(authResult.AccessToken!.Token!);
         Assert.NotNull(personToken);
+        Assert.Null(personToken.IpPolicy);
+        Assert.True(!string.IsNullOrWhiteSpace(personToken.Issuer));
+        Assert.NotNull(personToken.Audiences);
+        Assert.NotNull(personToken.IssuedAt);
+        Assert.NotNull(personToken.ExpiresAt);
+        Assert.NotNull(personToken.Roles);
+        Assert.True(!string.IsNullOrWhiteSpace(personToken.TokenType));
+        Assert.NotNull(personToken.ContextIdType);
+        Assert.NotNull(personToken.ContextIdValue);
+        Assert.NotNull(personToken.AuthMethod);
+        Assert.True(!string.IsNullOrWhiteSpace(personToken.AuthRequestNumber));
+        Assert.NotNull(personToken.SubjectDetails);
+        Assert.NotNull(personToken.Permissions);
+        Assert.NotNull(personToken.PermissionsExcluded);
+        Assert.NotNull(personToken.RolesRaw);
+        Assert.NotNull(personToken.PermissionsEffective);
         Assert.Contains(OwnerRole, personToken.Roles, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -55,6 +72,7 @@ public class AuthorizationE2ETests : TestBase
         Assert.Equal(contextIdentifierType, authTokenRequest.ContextIdentifier.Type);
         Assert.Equal(nip, authTokenRequest.ContextIdentifier.Value);
         Assert.Equal(subjectIdentifierTypeEnum, authTokenRequest.SubjectIdentifierType);
+        Assert.Null(authTokenRequest.AuthorizationPolicy);
     }
 }
 

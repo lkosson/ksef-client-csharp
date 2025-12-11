@@ -118,6 +118,10 @@ public class GrantPermissionsInAGeneralIndirectMannerTests : KsefIntegrationTest
                 EntityPermission.New(EntityStandardPermissionType.InvoiceWrite, true)
             )
             .WithDescription("description")
+            .WithSubjectDetails(new PermissionsEntitySubjectDetails
+            {
+                FullName = $"Entity {intermediaryNIP}"
+            })
             .Build();
 
         OperationResponse firstActionStatusResponse = await KsefClient.GrantsPermissionEntityAsync(request, authOperationStatusResponse.AccessToken.Token).ConfigureAwait(false);

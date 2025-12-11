@@ -2,6 +2,7 @@
 using KSeF.Client.ClientFactory.DI;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Models.Authorization;
+using KSeF.Client.Core.Models.Certificates;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KSeF.Client.Tests.ClientFactory
@@ -28,6 +29,31 @@ namespace KSeF.Client.Tests.ClientFactory
             // Assert
             Assert.NotNull(challengeOnTestEnvironmet);
             Assert.NotNull(challengeOnDemoEnvironmet);
+        }
+
+        [Fact]
+        public async Task CertificatesChangeTest_ShouldShowDifference()
+        {
+            // Arrange
+            ServiceCollection services = new ServiceCollection();
+            services.RegisterKSeFClientFactory();
+
+            ServiceProvider provider = services.BuildServiceProvider();
+
+            IKSeFFactoryCryptographyServices ksefFactoryCryptographyServices = provider.GetRequiredService<IKSeFFactoryCryptographyServices>();
+            ICryptographyClient testCryptoClient = ksefFactoryCryptographyServices.CryptographyClient(Client.ClientFactory.Environment.Test);
+            ICryptographyClient demoCryptoClient = ksefFactoryCryptographyServices.CryptographyClient(Client.ClientFactory.Environment.Demo);
+
+            // Act
+            ICollection<PemCertificateInfo> testCerts = await testCryptoClient.GetPublicCertificatesAsync();
+            ICollection<PemCertificateInfo> demoCerts = await demoCryptoClient.GetPublicCertificatesAsync();
+
+            // Assert
+            Assert.NotNull(testCerts);
+            Assert.NotNull(demoCerts);
+            Assert.Equal(testCerts.First().Certificate, demoCerts.First().Certificate);
+            Assert.Equal(testCerts.Last().Certificate, demoCerts.Last().Certificate);
+
         }
     }
 }

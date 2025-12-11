@@ -2,6 +2,7 @@ using KSeF.Client.Core.Exceptions;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Sessions.ActiveSessions;
 using KSeF.Client.Tests.Utils;
+using System.Net.NetworkInformation;
 
 
 namespace KSeF.Client.Tests.Core.E2E.Authorization.Sessions;
@@ -54,6 +55,19 @@ public class SessionE2ETests : TestBase
         Assert.NotNull(all);
         Assert.NotEmpty(all);
         Assert.Contains(all, x => x.IsCurrent);
+
+        foreach (AuthenticationListItem item in all)
+        {
+            Assert.NotNull(item);
+            Assert.True(!string.IsNullOrWhiteSpace(item.ReferenceNumber));
+            Assert.NotNull(item.Status.Code);
+            Assert.NotNull(item.StartDate);
+            Assert.True(DateTime.UtcNow.AddMinutes(-1) < item.StartDate.DateTime && item.StartDate.DateTime < DateTime.UtcNow.AddMinutes(1));
+            Assert.True(item.IsTokenRedeemed);
+            Assert.True(item.IsCurrent);
+            Assert.NotNull(item.RefreshTokenValidUntil);
+            Assert.Null(item.LastTokenRefreshDate);
+        }
     }
 
     /// <summary>

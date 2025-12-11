@@ -2,6 +2,7 @@
 using KSeF.Client.Core.Exceptions;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Invoices;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -37,20 +38,38 @@ namespace KSeF.Client.Core.Interfaces.Clients
 		/// <exception cref="KsefApiException">Brak autoryzacji. (401 Unauthorized)</exception>
 		Task<PagedInvoiceResponse> QueryInvoiceMetadataAsync(InvoiceQueryFilters requestPayload, string accessToken, int? pageOffset = null, int? pageSize = null, SortOrder sortOrder = SortOrder.Asc, CancellationToken cancellationToken = default);
 
-		/// <summary>
-		/// Inicjuje eksport paczki faktur zgodnie z podanymi filtrami.
-		/// </summary>
-		/// <param name="requestPayload">Żądanie eksportu faktur (filtry + szyfrowanie).</param>
-		/// <param name="accessToken">Access token.</param>
-		/// <param name="includeMetadata">Określ czy rezultat ma zawierać metadane.</param>
-		/// <param name="cancellationToken">Cancellation token.</param>
-		/// <returns><see cref="OperationResponse"/> zawierający numer referencyjny operacji.</returns>
-		/// <exception cref="KsefApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
-		/// <exception cref="KsefApiException">Brak autoryzacji. (401 Unauthorized)</exception>
-		Task<OperationResponse> ExportInvoicesAsync(
+        /// <summary>
+        /// Inicjuje eksport paczki faktur zgodnie z podanymi filtrami.
+        /// </summary>
+        /// <param name="requestPayload">Żądanie eksportu faktur (filtry + szyfrowanie).</param>
+        /// <param name="accessToken">Access token.</param>
+        /// <param name="includeMetadata">
+        /// (Przestarzałe) Określa czy rezultat ma zawierać metadane. 
+        /// Od 2025-10-27 parametr jest ignorowany – plik _metadata.json generuje się zawsze.
+        /// </param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns><see cref="OperationResponse"/> zawierający numer referencyjny operacji.</returns>
+        /// <exception cref="KsefApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+        /// <exception cref="KsefApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+        [Obsolete("Od 2025-10-27 parametr includeMetadata jest ignorowany – plik _metadata.json generuje się zawsze.")]
+        Task<OperationResponse> ExportInvoicesAsync(
             InvoiceExportRequest requestPayload,
             string accessToken,            
             bool includeMetadata = true,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Inicjuje eksport paczki faktur zgodnie z podanymi filtrami.
+        /// </summary>
+        /// <param name="requestPayload">Żądanie eksportu faktur (filtry + szyfrowanie).</param>
+        /// <param name="accessToken">Access token.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns><see cref="OperationResponse"/> zawierający numer referencyjny operacji.</returns>
+        /// <exception cref="KsefApiException">Nieprawidłowe żądanie. (400 Bad request)</exception>
+        /// <exception cref="KsefApiException">Brak autoryzacji. (401 Unauthorized)</exception>
+        Task<OperationResponse> ExportInvoicesAsync(
+            InvoiceExportRequest requestPayload,
+            string accessToken,
             CancellationToken cancellationToken = default);
 
         /// <summary>

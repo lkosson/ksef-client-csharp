@@ -19,6 +19,7 @@ public class IndirectPermissionsEntityController(IKSeFClient ksefClient) : Contr
             .WithContext(grantPermissionsRequest.TargetIdentifier)
             .WithPermissions([.. grantPermissionsRequest.Permissions])
             .WithDescription(grantPermissionsRequest.Description)
+            .WithSubjectDetails(grantPermissionsRequest.SubjectDetails)
             .Build();
 
         return await ksefClient.GrantsPermissionIndirectEntityAsync(request, accessToken, cancellationToken).ConfigureAwait(false);

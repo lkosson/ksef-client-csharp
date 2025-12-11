@@ -42,6 +42,19 @@ namespace KSeF.Client.Api.Services
             return $"{BaseUrl}/certificate/{contextIdentifierType}/{contextIdentifierValue}/{sellerNip}/{certificateSerial}/{invoiceHashUrlEncoded}/{signedHash}";
         }
 
+        /// <inheritdoc/>
+        public string BuildCertificateVerificationUrl(
+            string sellerNip,
+            QRCodeContextIdentifierType contextIdentifierType,
+            string contextIdentifierValue,
+            string invoiceHash,
+            X509Certificate2 signingCertificate,
+            string privateKey = ""
+        )
+        {
+            return BuildCertificateVerificationUrl(sellerNip, contextIdentifierType, contextIdentifierValue, signingCertificate.SerialNumber, invoiceHash, signingCertificate, privateKey);
+        }
+
 
         private static string ComputeUrlEncodedSignedHash(string pathToSign, X509Certificate2 cert, string privateKey = "", DSASignatureFormat dSASignatureFormat = DSASignatureFormat.IeeeP1363FixedFieldConcatenation)
         {

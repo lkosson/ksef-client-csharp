@@ -214,6 +214,10 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
                 EntityPermission.New(EntityStandardPermissionType.InvoiceWrite, canDelegate: true)
             )
             .WithDescription("E2E test - nadanie uprawnień z delegacją dla pośrednika")
+            .WithSubjectDetails(new PermissionsEntitySubjectDetails
+            {
+                FullName = $"Entity {_intermediaryNip}"
+            })
             .Build();
 
         return await KsefClient.GrantsPermissionEntityAsync(request, ownerAccessToken, CancellationToken.None).ConfigureAwait(false);
@@ -244,6 +248,13 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
                 IndirectEntityStandardPermissionType.InvoiceWrite
             )
             .WithDescription($"E2E test - selektywne przekazanie uprawnień dla partnera {targetPartnerNip}")
+            .WithSubjectDetails(
+                new PermissionsIndirectEntitySubjectDetails
+                {
+                    SubjectDetailsType = PermissionsIndirectEntitySubjectDetailsType.PersonByIdentifier,
+                    PersonById = new PermissionsIndirectEntityPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+                }
+            )
             .Build();
 
         return await KsefClient.GrantsPermissionIndirectEntityAsync(request, _intermediaryAccessToken, CancellationToken.None).ConfigureAwait(false);

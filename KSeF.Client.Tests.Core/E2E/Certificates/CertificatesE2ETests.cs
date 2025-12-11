@@ -101,6 +101,8 @@ public class CertificatesE2ETests : TestBase
         // Assert
         Assert.NotNull(TestFixture.Limits);
         Assert.True(TestFixture.Limits.CanRequest);
+        Assert.NotNull(TestFixture.Limits.Enrollment);
+        Assert.NotNull(TestFixture.Limits.Certificate);
         #endregion
 
         #region Pobierz informacje o zarejestrowanych certyfikatach
@@ -111,6 +113,10 @@ public class CertificatesE2ETests : TestBase
         // Assert
         Assert.NotNull(TestFixture.EnrollmentInfo);
         Assert.NotEmpty(TestFixture.EnrollmentInfo.SerialNumber);
+        Assert.NotEmpty(TestFixture.EnrollmentInfo.CommonName);
+        Assert.NotEmpty(TestFixture.EnrollmentInfo.GivenName);
+        Assert.Null(TestFixture.EnrollmentInfo.OrganizationName);
+        Assert.NotEmpty(TestFixture.EnrollmentInfo.Surname);
         #endregion
 
         #region Wyślij zgłoszenie nowe
@@ -133,7 +139,7 @@ public class CertificatesE2ETests : TestBase
         TestFixture.EnrollmentReference = certificateEnrollmentResponse.ReferenceNumber;
 
         // Assert
-        Assert.NotNull(TestFixture.EnrollmentReference);
+        Assert.False(string.IsNullOrWhiteSpace(TestFixture.EnrollmentReference));
         Assert.False(string.IsNullOrWhiteSpace(TestFixture.EnrollmentReference));
         #endregion
 
@@ -153,7 +159,10 @@ public class CertificatesE2ETests : TestBase
         TestFixture.EnrollmentStatus = certificateEnrollmentStatusResponse;
 
         // Assert
+        Assert.NotNull(TestFixture.EnrollmentStatus.Status);
         Assert.Equal(CertificateStatusCodeResponse.RequestProcessedSuccessfully, TestFixture.EnrollmentStatus.Status.Code);
+        Assert.False(string.IsNullOrWhiteSpace(TestFixture.EnrollmentStatus.CertificateSerialNumber));
+        Assert.NotNull(TestFixture.EnrollmentStatus.RequestDate);
         #endregion
 
         #region Pobierz zarejestrowany certyfikat
@@ -171,6 +180,11 @@ public class CertificatesE2ETests : TestBase
         // Assert
         Assert.NotNull(TestFixture.RetrievedCertificates);
         Assert.Single(TestFixture.RetrievedCertificates.Certificates);
+        Assert.False(string.IsNullOrWhiteSpace(TestFixture.RetrievedCertificates.Certificates.First().Certificate));
+        Assert.NotNull(TestFixture.RetrievedCertificates.Certificates.First().CertificateType);
+        Assert.False(string.IsNullOrWhiteSpace(TestFixture.RetrievedCertificates.Certificates.First().CertificateName));
+        Assert.False(string.IsNullOrWhiteSpace(TestFixture.RetrievedCertificates.Certificates.First().CertificateSerialNumber));
+
         #endregion
 
         #region Cofnij certyfikat
@@ -208,7 +222,7 @@ public class CertificatesE2ETests : TestBase
 
         #region odwołaj uprawnienia
 
-        PagedPermissionsResponse<PersonPermission> permissions =
+        PagedPermissionsResponse<PersonPermission> permissionsQueryResponse =
             await KsefClient
             .SearchGrantedPersonPermissionsAsync(
                 new PersonPermissionsQueryRequest { },
@@ -217,9 +231,9 @@ public class CertificatesE2ETests : TestBase
                 pageSize: CertificatesLimitTestPollAsyncMaxAttempts,
                 CancellationToken);
 
-        Assert.NotEmpty(permissions.Permissions);
+        Assert.NotEmpty(permissionsQueryResponse.Permissions);
 
-        OperationResponse operationResponse = await KsefClient.RevokeCommonPermissionAsync(permissions.Permissions.First().Id, ownerAccessToken, CancellationToken);
+        OperationResponse operationResponse = await KsefClient.RevokeCommonPermissionAsync(permissionsQueryResponse.Permissions.First().Id, ownerAccessToken, CancellationToken);
 
         // Poll status operacji cofnięcia uprawnień do 200
         PermissionsOperationStatusResponse revokeOpStatus = await AsyncPollingUtils.PollAsync(
@@ -230,9 +244,11 @@ public class CertificatesE2ETests : TestBase
             cancellationToken: CancellationToken);
 
         Assert.Equal(200, revokeOpStatus.Status.Code);
+        Assert.False(string.IsNullOrWhiteSpace(revokeOpStatus.Status.Description));
+        Assert.Null(revokeOpStatus.Status.Details);
 
         // Poll aż lista uprawnień delegata będzie pusta
-        permissions = await AsyncPollingUtils.PollAsync(
+        permissionsQueryResponse = await AsyncPollingUtils.PollAsync(
             async () => await KsefClient
                 .SearchGrantedPersonPermissionsAsync(
                     new PersonPermissionsQueryRequest { },
@@ -245,7 +261,7 @@ public class CertificatesE2ETests : TestBase
             maxAttempts: 15,
             cancellationToken: CancellationToken);
 
-        Assert.Empty(permissions.Permissions);
+        Assert.Empty(permissionsQueryResponse.Permissions);
         #endregion zdejmij uprawnienia
     }
 
@@ -275,6 +291,7 @@ public class CertificatesE2ETests : TestBase
         // Assert
         Assert.NotNull(certificate);
         Assert.True(certificate.HasPrivateKey);
+        Assert.False(certificate.Archived);
         if (encryptionType == EncryptionMethodEnum.ECDsa)
         {
             Assert.IsAssignableFrom<ECDsa>(certificate.GetECDsaPrivateKey());

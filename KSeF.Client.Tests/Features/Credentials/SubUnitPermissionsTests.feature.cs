@@ -92,6 +92,11 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
             })
             .WithSubunitName("Przedszkole Testowe")
             .WithDescription("Sub-unit permission grant")
+            .WithSubjectDetails(new SubunitSubjectDetails
+            {
+                SubjectDetailsType = PermissionsSubunitSubjectDetailsType.PersonByIdentifier,
+                PersonById = new PermissionsSubunitPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+            })
             .Build();
 
         OperationResponse grantOperation = await KsefClient.GrantsPermissionSubUnitAsync(
@@ -148,7 +153,7 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
             {
                 From = DateTime.UtcNow.AddMonths(-2),
                 To = DateTime.UtcNow.AddMonths(5),
-                DateType = DateType.Issue
+                DateType = DateType.Issue,
             }
         };
 
@@ -172,7 +177,7 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
             {
                 From = DateTime.UtcNow.AddMonths(-2),
                 To = DateTime.UtcNow.AddMonths(5),
-                DateType = DateType.Issue
+                DateType = DateType.Issue,
             }
         };
 

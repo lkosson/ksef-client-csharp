@@ -179,6 +179,13 @@ public class IndirectPermissionE2ETests : TestBase
                 IndirectEntityStandardPermissionType.InvoiceWrite
             )
             .WithDescription("E2E test - przekazanie uprawnień (InvoiceRead, InvoiceWrite) przez pośrednika")
+            .WithSubjectDetails(
+                new PermissionsIndirectEntitySubjectDetails
+                {
+                    SubjectDetailsType = PermissionsIndirectEntitySubjectDetailsType.PersonByIdentifier,
+                    PersonById = new PermissionsIndirectEntityPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+                }
+            )
             .Build();
 
         OperationResponse grantOperationResponse =

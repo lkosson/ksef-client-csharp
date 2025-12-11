@@ -12,10 +12,11 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EntityPermission;
 
 public class EntityPermissionsE2ETestsScenarios : TestBase
 {
+    private const int ExpectedPermissionsCount = 2;
+
     /// <summary>
     /// Potwierdza że grantor widzi uprawnienia które nadał innemu podmiotowi.
     /// </summary>
-    /// <returns></returns>
     [Fact]
     public async Task GrantPermissions_E2E_ShouldReturnPermissionsGrantedByGrantor()
     {
@@ -23,7 +24,7 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         string contextNip = MiscellaneousUtils.GetRandomNip();
         string subjectNip = MiscellaneousUtils.GetRandomNip();
 
-        GrantPermissionsEntitySubjectIdentifier BR_subject =
+        GrantPermissionsEntitySubjectIdentifier brSubject =
             new()
             {
                 Type = GrantPermissionsEntitySubjectIdentifierType.Nip,
@@ -34,26 +35,22 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         AuthenticationOperationStatusResponse authorizationInfo =
             await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, contextNip);
 
-        GrantPermissionsEntityRequest grantsPermissionsRequest =
-            GrantEntityPermissionsRequestBuilder
-                .Create()
-                .WithSubject(BR_subject)
-                .WithPermissions(
-                    Client.Core.Models.Permissions.Entity.EntityPermission.New(
-                        EntityStandardPermissionType.InvoiceRead, true),
-                    Client.Core.Models.Permissions.Entity.EntityPermission.New(
-                        EntityStandardPermissionType.InvoiceWrite, false)
-                )
-                .WithDescription("Read and Write permissions")
-                .Build();
+        Client.Core.Models.Permissions.Entity.EntityPermission[] permissions =
+        [
+            Client.Core.Models.Permissions.Entity.EntityPermission.New(
+                EntityStandardPermissionType.InvoiceRead, true),
+            Client.Core.Models.Permissions.Entity.EntityPermission.New(
+                EntityStandardPermissionType.InvoiceWrite, false)
+        ];
 
-        OperationResponse grantsPermissionsResponse =
-            await KsefClient.GrantsPermissionEntityAsync(
-                grantsPermissionsRequest,
-                authorizationInfo.AccessToken.Token,
-                CancellationToken);
+        (OperationResponse grantsPermissionsResponse, PermissionsEntitySubjectDetails subjectDetails) =
+            await GrantPermissionsAsync(
+                brSubject,
+                authorizationInfo,
+                permissions);
 
         Assert.NotNull(grantsPermissionsResponse);
+        Assert.False(string.IsNullOrWhiteSpace(grantsPermissionsResponse.ReferenceNumber));
 
         PersonPermissionsQueryRequest queryForAllPermissions =
             new()
@@ -67,14 +64,13 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
                 action: () => KsefClient.SearchGrantedPersonPermissionsAsync(
                     queryForAllPermissions,
                     authorizationInfo.AccessToken.Token),
-                condition: r => r is not null && r.Permissions is not null && r.Permissions.Count == 2,
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
+                condition: r => r is not null && r.Permissions is not null && r.Permissions.Count == ExpectedPermissionsCount,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(queryForAllPermissionsResponse);
         Assert.NotEmpty(queryForAllPermissionsResponse.Permissions);
-        Assert.Equal(2, queryForAllPermissionsResponse.Permissions.Count);
+        Assert.Equal(ExpectedPermissionsCount, queryForAllPermissionsResponse.Permissions.Count);
+        Assert.True(queryForAllPermissionsResponse.Permissions.All(p => p.SubjectEntityDetails.FullName == subjectDetails.FullName));
     }
 
     /// <summary>
@@ -97,21 +93,21 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
 
         AuthenticationOperationStatusResponse authorizationInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, contextNip);
 
-        GrantPermissionsEntityRequest grantPermissionsEntityRequest = GrantEntityPermissionsRequestBuilder
-            .Create()
-            .WithSubject(subject)
-            .WithPermissions(
-                Client.Core.Models.Permissions.Entity.EntityPermission.New(
-                    EntityStandardPermissionType.InvoiceRead, true),
-                Client.Core.Models.Permissions.Entity.EntityPermission.New(
-                    EntityStandardPermissionType.InvoiceWrite, true)
-            )
-            .WithDescription("Grant read and write permissions")
-            .Build();
+        Client.Core.Models.Permissions.Entity.EntityPermission[] permissions =
+        [
+            Client.Core.Models.Permissions.Entity.EntityPermission.New(
+                EntityStandardPermissionType.InvoiceRead, true),
+            Client.Core.Models.Permissions.Entity.EntityPermission.New(
+                EntityStandardPermissionType.InvoiceWrite, true)
+        ];
 
-        OperationResponse grantPermissionsEntityResponse = await KsefClient.GrantsPermissionEntityAsync(
-            grantPermissionsEntityRequest, authorizationInfo.AccessToken.Token, CancellationToken);
+        (OperationResponse grantPermissionsEntityResponse, PermissionsEntitySubjectDetails subjectDetails) = await GrantPermissionsAsync(
+            subject,
+            authorizationInfo,
+            permissions);
+
         Assert.NotNull(grantPermissionsEntityResponse);
+        Assert.False(string.IsNullOrWhiteSpace(grantPermissionsEntityResponse.ReferenceNumber));
 
         // Auth: Entity we własnym kontekście
         AuthenticationOperationStatusResponse entityAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, subjectNip);
@@ -121,24 +117,28 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
             await AsyncPollingUtils.PollAsync(
                 action: () => KsefClient.SearchGrantedPersonalPermissionsAsync(
                     queryForAllPermissions, entityAuthorizationInfo.AccessToken.Token),
-                condition: r => r is not null && r.Permissions is not null && r.Permissions.Count == 2,
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
+                condition: r => r is not null && r.Permissions is not null && r.Permissions.Count == ExpectedPermissionsCount,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(queryForAllPermissionsResponse);
         Assert.NotEmpty(queryForAllPermissionsResponse.Permissions);
-        Assert.Equal(2, queryForAllPermissionsResponse.Permissions.Count);
+        Assert.Equal(ExpectedPermissionsCount, queryForAllPermissionsResponse.Permissions.Count);
 
-        List<PersonalPermission> permissionsGrantedByEntity = [.. queryForAllPermissionsResponse.Permissions.Where(p => p.ContextIdentifier.Value == contextNip)];
-        Assert.Equal(2, permissionsGrantedByEntity.Count);
+        List<PersonalPermission> permissionsGrantedByEntity = queryForAllPermissionsResponse.Permissions
+            .Where(p => p.ContextIdentifier.Value == contextNip)
+            .ToList();
+        Assert.Equal(ExpectedPermissionsCount, permissionsGrantedByEntity.Count);
+
+        // Weryfikacja SubjectDetails
+        Assert.True(permissionsGrantedByEntity.All(p =>
+            p.SubjectEntityDetails is not null &&
+            p.SubjectEntityDetails.FullName == subjectDetails.FullName));
     }
 
     /// <summary>
     /// Potwierdza że podmiot któremu nadano uprawnienia widzi je w swoim kontekście, 
     /// a nie widzi uprawnień nadanych przez inny podmiot.
     /// </summary>
-    /// <returns></returns>
     [Fact]
     public async Task GrantPermissions_E2E_ShouldReturnPermissionsSearchedBySubjectInEntityContext()
     {
@@ -174,20 +174,24 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
         // uwierzytelnienie jdg we własnym kontekście
         AuthenticationOperationStatusResponse authorizationInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, jdgNip);
         // nadanie uprawnień biuru rachunkowemu
-        OperationResponse brGrantInJdg = await GrantPermissionsAsync(brSubject, authorizationInfo, permissions);
+        (OperationResponse brGrantInJdg, PermissionsEntitySubjectDetails brGrantSubjectDetails) = await GrantPermissionsAsync(brSubject, authorizationInfo, permissions);
         Assert.NotNull(brGrantInJdg);
+        Assert.False(string.IsNullOrWhiteSpace(brGrantInJdg.ReferenceNumber));
         // nadanie uprawnień kancelarii doradztwa podatkowego
-        OperationResponse kdpGrantInJdg = await GrantPermissionsAsync(kdpSubject, authorizationInfo, permissions);
+        (OperationResponse kdpGrantInJdg, PermissionsEntitySubjectDetails kdpSubjectDetails) = await GrantPermissionsAsync(kdpSubject, authorizationInfo, permissions);
         Assert.NotNull(kdpGrantInJdg);
+        Assert.False(string.IsNullOrWhiteSpace(kdpGrantInJdg.ReferenceNumber));
 
         // uwierzytelnienie otherJdg we własnym kontekście
         AuthenticationOperationStatusResponse otherJdgAuthorizationInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, otherJdgNip);
         // nadanie uprawnień biuru rachunkowemu
-        OperationResponse brGrantInOtherJdg = await GrantPermissionsAsync(brSubject, otherJdgAuthorizationInfo, permissions);
+        (OperationResponse brGrantInOtherJdg, PermissionsEntitySubjectDetails brGrantSubjectDetailsInOtherJdg) = await GrantPermissionsAsync(brSubject, otherJdgAuthorizationInfo, permissions);
         Assert.NotNull(brGrantInOtherJdg);
+        Assert.False(string.IsNullOrWhiteSpace(brGrantInOtherJdg.ReferenceNumber));
         // nadanie uprawnień kancelarii doradztwa podatkowego
-        OperationResponse kdpGrantInOtherJdg = await GrantPermissionsAsync(kdpSubject, otherJdgAuthorizationInfo, permissions);
+        (OperationResponse kdpGrantInOtherJdg, PermissionsEntitySubjectDetails kdpGrantSubjectDetails) = await GrantPermissionsAsync(kdpSubject, otherJdgAuthorizationInfo, permissions);
         Assert.NotNull(kdpGrantInOtherJdg);
+        Assert.False(string.IsNullOrWhiteSpace(kdpGrantInOtherJdg.ReferenceNumber));
 
         // w tym momencie:
         // biuro rachunkowe ma uprawnienia w kontekście jdg i otherJdg (razem 4 uprawnienia)
@@ -218,30 +222,35 @@ public class EntityPermissionsE2ETestsScenarios : TestBase
                 action: () => KsefClient.SearchGrantedPersonalPermissionsAsync(
                     queryForContextPermissions,
                     entityAuthorizationInfo.AccessToken.Token),
-                condition: r => r is not null && r.Permissions is not null && r.Permissions.Count == 2,
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
+                condition: r => r is not null && r.Permissions is not null && r.Permissions.Count == ExpectedPermissionsCount,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(queryForContextPermissionsResponse);
-        Assert.Equal(2, queryForContextPermissionsResponse.Permissions.Count); // biuro rachunkowe ma 2 uprawnienia w kontekście jdg
+        Assert.Equal(ExpectedPermissionsCount, queryForContextPermissionsResponse.Permissions.Count); // biuro rachunkowe ma 2 uprawnienia w kontekście jdg
+
+        Assert.True(queryForContextPermissionsResponse.Permissions.All(p => p.SubjectEntityDetails.FullName == brGrantSubjectDetails.FullName));
     }
 
-    private async Task<OperationResponse> GrantPermissionsAsync(
+    private async Task<(OperationResponse, PermissionsEntitySubjectDetails)> GrantPermissionsAsync(
             GrantPermissionsEntitySubjectIdentifier subject,
             AuthenticationOperationStatusResponse authorizationInfo,
             Client.Core.Models.Permissions.Entity.EntityPermission[] permissions)
     {
+        PermissionsEntitySubjectDetails subjectDetails = new()
+        {
+            FullName = $"Podmiot {subject.Value}"
+        };
         GrantPermissionsEntityRequest grantEntityPermissionsRequest = GrantEntityPermissionsRequestBuilder
                     .Create()
                     .WithSubject(subject)
                     .WithPermissions(permissions)
                     .WithDescription("Uprawnienia do odczytu i wystawiania faktur")
+                    .WithSubjectDetails(subjectDetails)
                     .Build();
 
         OperationResponse grantEntityPermissionsResponse = await KsefClient.GrantsPermissionEntityAsync(
             grantEntityPermissionsRequest, authorizationInfo.AccessToken.Token, CancellationToken).ConfigureAwait(false);
 
-        return grantEntityPermissionsResponse;
+        return (grantEntityPermissionsResponse, subjectDetails);
     }
 }

@@ -228,7 +228,11 @@ public class VatGroupParentSubunitPermissionsListAsParentE2ETests : TestBase
                 Value = _parentInternalId
             })
             .WithSubunitName("E2E VATGroup Subunit")
-            .WithDescription("E2E - grant subunit admin by subunit context")
+            .WithDescription("E2E - grant subunit admin by subunit context").WithSubjectDetails(new SubunitSubjectDetails
+            {
+                SubjectDetailsType = PermissionsSubunitSubjectDetailsType.PersonByIdentifier,
+                PersonById = new PermissionsSubunitPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+            })
             .Build();
 
         return await KsefClient.GrantsPermissionSubUnitAsync(request, accessToken, CancellationToken).ConfigureAwait(false);

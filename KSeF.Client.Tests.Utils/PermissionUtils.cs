@@ -113,6 +113,13 @@ public static class PermissionsUtils
             .WithContext(context)
             .WithPermissions(permissions)
             .WithDescription(!string.IsNullOrEmpty(description) ? description : $"Grant {string.Join(", ", permissions)} to {subject.Type}:{subject.Value} @ {context.Value}")
+            .WithSubjectDetails(
+                new PermissionsIndirectEntitySubjectDetails
+                {
+                    SubjectDetailsType = PermissionsIndirectEntitySubjectDetailsType.PersonByIdentifier,
+                    PersonById = new PermissionsIndirectEntityPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+                }
+            )
             .Build();
 
         return await client.GrantsPermissionIndirectEntityAsync(request, accessToken).ConfigureAwait(false);

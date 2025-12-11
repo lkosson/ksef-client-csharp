@@ -231,6 +231,11 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
             })
             .WithSubunitName("E2E VATGroup Jednostka podrzędna")
             .WithDescription("E2E - nadanie uprawnień administratora w kontekście jednostki podrzędnej")
+            .WithSubjectDetails(new SubunitSubjectDetails
+            {
+                SubjectDetailsType = PermissionsSubunitSubjectDetailsType.PersonByIdentifier,
+                PersonById = new PermissionsSubunitPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+            })
             .Build();
 
         return await KsefClient.GrantsPermissionSubUnitAsync(request, accessToken, CancellationToken).ConfigureAwait(false);

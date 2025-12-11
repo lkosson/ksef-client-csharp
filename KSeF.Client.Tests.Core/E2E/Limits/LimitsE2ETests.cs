@@ -68,6 +68,7 @@ public class LimitsE2ETests : TestBase
         Assert.Equal(limitsForContext.OnlineSession.MaxInvoices, newLimits.OnlineSession.MaxInvoices);
         Assert.Equal(limitsForContext.OnlineSession.MaxInvoiceSizeInMB, newLimits.OnlineSession.MaxInvoiceSizeInMB);
         Assert.Equal(limitsForContext.OnlineSession.MaxInvoiceWithAttachmentSizeInMB, newLimits.OnlineSession.MaxInvoiceWithAttachmentSizeInMB);
+        Assert.NotNull(limitsForContext.BatchSession);
 
         // 6. Przywrócenie oryginalnych limitów dla bieżącego kontekstu sesji
         await TestDataClient.RestoreDefaultSessionLimitsInCurrentContextAsync(
@@ -82,6 +83,7 @@ public class LimitsE2ETests : TestBase
         Assert.Equal(limitsForContext.OnlineSession.MaxInvoices, newLimits.OnlineSession.MaxInvoices - LimitsChangeValue);
         Assert.Equal(limitsForContext.OnlineSession.MaxInvoiceSizeInMB, newLimits.OnlineSession.MaxInvoiceSizeInMB - LimitsChangeValue);
         Assert.Equal(limitsForContext.OnlineSession.MaxInvoiceWithAttachmentSizeInMB, newLimits.OnlineSession.MaxInvoiceWithAttachmentSizeInMB - LimitsChangeValue);
+        Assert.NotNull(limitsForContext.BatchSession);
     }
 
     /// <summary>

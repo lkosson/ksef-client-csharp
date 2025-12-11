@@ -1,5 +1,6 @@
 ﻿using KSeF.Client.Api.Builders.Online;
 using KSeF.Client.Core.Interfaces.Services;
+using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Invoices;
 using KSeF.Client.Core.Models.Sessions;
@@ -13,12 +14,10 @@ namespace KSeF.Client.Tests.Core.E2E.Upo;
 [Collection("UpoScenario")]
 public class UpoE2ETests : TestBase
 {
-    private const int SuccessfulSessionStatusCode = 200;
     private const SystemCode DefaultSystemCode = SystemCode.FA3;
     private const string DefaultSchemaVersion = "1-0E";
     private const string DefaultFormCodeValue = "FA";
     private const int SuccessfulInvoiceCountExpected = 1;
-    private const int SessionStatusCodeExpected = 100;
 
     private readonly string accessToken = string.Empty;
     private string nip { get; }
@@ -67,7 +66,7 @@ public class UpoE2ETests : TestBase
         Assert.Equal(SuccessfulInvoiceCountExpected, statusAfterSend.SuccessfulInvoiceCount);
         Assert.Null(statusAfterSend.FailedInvoiceCount);
         Assert.Null(statusAfterSend.Upo);
-        Assert.Equal(SessionStatusCodeExpected, statusAfterSend.Status.Code);
+        Assert.Equal(OnlineSessionCodeResponse.SessionOpened, statusAfterSend.Status.Code);
         await Task.Delay(SleepTime);
 
         // 4) Zamknięcie sesji
@@ -93,20 +92,20 @@ public class UpoE2ETests : TestBase
             accessToken
         );
         Assert.NotNull(statusAfterClose);
-        Assert.Equal(SuccessfulSessionStatusCode, statusAfterClose.Status.Code);
+        Assert.Equal(OnlineSessionCodeResponse.ProcessedSuccessfully, statusAfterClose.Status.Code);
         string upoReferenceNumber = statusAfterClose.Upo.Pages.First().ReferenceNumber;
 
         // 7) pobranie UPO faktury z URL zawartego w metadanych faktury
         Uri upoDownloadUrl = invoices.Invoices.First().UpoDownloadUrl;
         string invoiceUpoXml = await UpoUtils.GetUpoAsync(KsefClient, upoDownloadUrl);
         Assert.False(string.IsNullOrWhiteSpace(invoiceUpoXml));
-        InvoiceUpo invoiceUpo = UpoUtils.UpoParse<InvoiceUpo>(invoiceUpoXml);
+        InvoiceUpoV4_2 invoiceUpo = UpoUtils.UpoParse<InvoiceUpoV4_2>(invoiceUpoXml);
         Assert.Equal(invoiceUpo.Document.KSeFDocumentNumber, ksefNumber);
 
         // 8) UPO faktury po numerze KSeF
         invoiceUpoXml = await UpoUtils.GetSessionInvoiceUpoAsync(KsefClient, openSessionResponse.ReferenceNumber, ksefNumber, accessToken);
         Assert.False(string.IsNullOrWhiteSpace(invoiceUpoXml));
-        invoiceUpo = UpoUtils.UpoParse<InvoiceUpo>(invoiceUpoXml);
+        invoiceUpo = UpoUtils.UpoParse<InvoiceUpoV4_2>(invoiceUpoXml);
         Assert.Equal(invoiceUpo.Document.KSeFDocumentNumber, ksefNumber);
 
         // 9) UPO sesji po numerze referencyjnym UPO

@@ -24,7 +24,6 @@ public class QrCodeE2ETests : TestBase
 
     private readonly ECCurve CurveName = ECCurve.NamedCurves.nistP256;
     private readonly string Nip = MiscellaneousUtils.GetRandomNip();
-    private readonly string CertificateSerialNumber = Guid.NewGuid().ToString();
     private readonly VerificationLinkService linkService;
 
 
@@ -64,7 +63,7 @@ public class QrCodeE2ETests : TestBase
 
         // Act
         // Brak jawnego klucza prywatnego → użycie wbudowanego klucza
-        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, CertificateSerialNumber, invoiceHash, certWithKey);
+        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, invoiceHash, certWithKey);
         byte[] qrBytes = QrCodeService.GenerateQrCode(url, PixelsPerModule);
         byte[] labeled = QrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
         string pngBase64 = Convert.ToBase64String(labeled);
@@ -107,7 +106,6 @@ public class QrCodeE2ETests : TestBase
         // Nie podajemy privateKey — metoda użyje certWithKey.GetRSAPrivateKey()
         string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip,
             Nip,
-            CertificateSerialNumber,
             invoiceHash,
             certWithKey
         );
@@ -152,7 +150,7 @@ public class QrCodeE2ETests : TestBase
 
         // Act
         // Brak jawnego klucza prywatnego → użycie osadzonego klucza ECDSA
-        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, CertificateSerialNumber, invoiceHash, certWithKey);
+        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, invoiceHash, certWithKey);
         byte[] qrBytes = QrCodeService.GenerateQrCode(url, PixelsPerModule);
         byte[] labeled = QrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
         string pngBase64 = Convert.ToBase64String(labeled);
@@ -191,7 +189,7 @@ SHA256.HashData(Encoding.UTF8.GetBytes(InvoiceXml)));
 
         // Act
         // Jawny import klucza prywatnego P-256
-        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, CertificateSerialNumber, invoiceHash, certWithKey);
+        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, invoiceHash, certWithKey);
         byte[] qrBytes = QrCodeService.GenerateQrCode(url, PixelsPerModule);
         byte[] labeled = QrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
         string pngBase64 = Convert.ToBase64String(labeled);

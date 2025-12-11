@@ -73,6 +73,18 @@ public partial class BatchSessionE2ETests : TestBase
         Assert.NotNull(openResult);
         Assert.False(string.IsNullOrWhiteSpace(openResult.ReferenceNumber));
         Assert.NotNull(openResult.OpenBatchSessionResponse);
+        Assert.False(string.IsNullOrWhiteSpace(openResult.OpenBatchSessionResponse.ReferenceNumber));
+        Assert.NotNull(openResult.OpenBatchSessionResponse.PartUploadRequests);
+
+        foreach (PackagePartSignatureInitResponseType? part in openResult.OpenBatchSessionResponse.PartUploadRequests)
+        {
+            Assert.True(!string.IsNullOrWhiteSpace(part.Method));
+            Assert.NotNull(part.OrdinalNumber);
+            Assert.NotNull(part.Url);
+            Assert.True(!string.IsNullOrWhiteSpace(part.Method));
+            Assert.NotNull(part.Headers);
+        }
+
         Assert.NotNull(openResult.EncryptedParts);
         Assert.NotEmpty(openResult.EncryptedParts);
 
@@ -113,6 +125,11 @@ public partial class BatchSessionE2ETests : TestBase
         Assert.True(statusResponse.SuccessfulInvoiceCount == TotalInvoices);
         Assert.Equal(ExpectedFailedInvoiceCount, statusResponse.FailedInvoiceCount);
         Assert.NotNull(statusResponse.Upo);
+        Assert.NotNull(statusResponse.Upo.Pages);
+        Assert.True(statusResponse.Upo.Pages.First().DownloadUrlExpirationDate < DateTime.Now.AddDays(4));
+        Assert.NotNull(statusResponse.Upo.Pages.First().DownloadUrl);
+        Assert.False(string.IsNullOrWhiteSpace(statusResponse.Upo.Pages.First().ReferenceNumber));
+        Assert.NotNull(statusResponse.ValidUntil);
         Assert.Equal(ExpectedSessionStatusCode, statusResponse.Status.Code);
 
         upoReferenceNumber = statusResponse.Upo.Pages.First().ReferenceNumber;
@@ -121,6 +138,7 @@ public partial class BatchSessionE2ETests : TestBase
         SessionInvoicesResponse documents = await BatchUtils.GetSessionInvoicesAsync(KsefClient, batchSessionReferenceNumber!, accessToken, TotalInvoices);
 
         Assert.NotNull(documents);
+        Assert.Null(documents.ContinuationToken);
         Assert.NotEmpty(documents.Invoices);
         Assert.Equal(TotalInvoices, documents.Invoices.Count);
 
@@ -130,8 +148,15 @@ public partial class BatchSessionE2ETests : TestBase
         Uri upoDownloadUrl = documents.Invoices.First().UpoDownloadUrl;
         string invoiceUpoXml = await UpoUtils.GetUpoAsync(KsefClient, upoDownloadUrl);
         Assert.False(string.IsNullOrWhiteSpace(invoiceUpoXml));
-        InvoiceUpo invoiceUpo = UpoUtils.UpoParse<InvoiceUpo>(invoiceUpoXml);
+        InvoiceUpoV4_2 invoiceUpo = UpoUtils.UpoParse<InvoiceUpoV4_2>(invoiceUpoXml);
         Assert.Equal(invoiceUpo.Document.KSeFDocumentNumber, ksefNumber);
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.ReceivingEntityName));
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.SessionReferenceNumber));
+        Assert.NotNull(invoiceUpo.Authentication);
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.LogicalStructureName));
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.FormCode));
+        Assert.NotNull(invoiceUpo.Signature);
+        Assert.Equal(invoiceUpo.Document.SellerNip, sellerNip);
 
         // 7. Pobranie UPO zbiorczego sesji
         string sessionUpo = await KsefClient.GetSessionUpoAsync(

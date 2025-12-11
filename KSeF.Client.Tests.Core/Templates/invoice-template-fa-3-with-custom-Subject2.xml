@@ -24,7 +24,7 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 	</Podmiot1>
 	<Podmiot2>
 		<DaneIdentyfikacyjne>
-			<NIP>1111111111</NIP>
+			<NIP>#nipOdbiorca#</NIP>
 			<Nazwa>F.H.U. Jan Kowalski</Nazwa>
 		</DaneIdentyfikacyjne>
 		<Adres>
@@ -42,7 +42,7 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 	</Podmiot2>
 	<Fa>
 		<KodWaluty>PLN</KodWaluty>
-		<P_1>2025-12-08</P_1>
+		<P_1>2025-09-01</P_1>
 		<P_1M>Warszawa</P_1M>
 		<P_2>FA/GRQMB-#invoice_number#/05/2025</P_2>
 		<OkresFa>
@@ -71,23 +71,17 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 		<RodzajFaktury>VAT</RodzajFaktury>
 		<DodatkowyOpis>
 			<Klucz>Informacja o akcyzie</Klucz>
-			<Wartosc>Od 20 kWh energii elektrycznej czynnej naliczono akcyzƒô w kwocie 0,10 z≈Ç</Wartosc>
+			<Wartosc>Od 20 kWh energii elektrycznej czynnej naliczono akcyzÍ w kwocie 0,10 z≥</Wartosc>	
 		</DodatkowyOpis>
 		<FaWiersz>
 			<NrWierszaFa>1</NrWierszaFa>
-			<P_7>Razem za energiƒô czynnƒÖ</P_7>
-			<P_8A>kWh</P_8A>
-			<P_8B>20.00</P_8B>
-			<P_9A>0.90</P_9A>
+			<P_7>Razem za energiÍ czynnπ</P_7>
 			<P_11>18.00</P_11>
 			<P_12>23</P_12>
 		</FaWiersz>
 		<FaWiersz>
 			<NrWierszaFa>2</NrWierszaFa>
-			<P_7>Razem za us≈Çugi dystrybucji</P_7>
-			<P_8A>okres</P_8A>
-			<P_8B>1.00</P_8B>
-			<P_9A>25.60</P_9A>
+			<P_7>Razem za us≥ugi dystrybucji</P_7>
 			<P_11>25.60</P_11>
 			<P_12>23</P_12>
 		</FaWiersz>
@@ -99,10 +93,10 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 			<SumaObciazen>0.00</SumaObciazen>
 			<Odliczenia>
 				<Kwota>0.00</Kwota>
-				<Powod>Nadp≈Çata</Powod>
+				<Powod>Nadp≥ata</Powod>
 			</Odliczenia>
-			<SumaOdliczen>0.00</SumaOdliczen>
-			<DoZaplaty>53.63</DoZaplaty>
+			<SumaOdliczen>0.00</SumaOdliczen>	
+			<DoZaplaty>53.63</DoZaplaty>	
 		</Rozliczenie>
 		<Platnosc>
 			<TerminPlatnosci>
@@ -111,14 +105,14 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 			<FormaPlatnosci>6</FormaPlatnosci>
 			<RachunekBankowy>
 				<NrRB>73111111111111111111111111</NrRB>
-				<NazwaBanku>Bank Bankowo≈õci Bankowej S. A.</NazwaBanku>
+				<NazwaBanku>Bank Bankowoúci Bankowej S. A.</NazwaBanku>
 				<OpisRachunku>PLN</OpisRachunku>
 			</RachunekBankowy>
 		</Platnosc>
 	</Fa>
 	<Stopka>
 		<Informacje>
-			<StopkaFaktury>Kapia≈Ç zak≈Çadowy 5 000 000</StopkaFaktury>
+			<StopkaFaktury>Kapia≥ zak≥adowy 5 000 000</StopkaFaktury>
 		</Informacje>
 		<Rejestry>
 			<KRS>0000099999</KRS>

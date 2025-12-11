@@ -88,6 +88,7 @@ public class BatchSessionStreamE2ETests : TestBase
         Assert.True(statusResponse.SuccessfulInvoiceCount == TotalInvoices);
         Assert.Equal(ExpectedFailedInvoiceCount, statusResponse.FailedInvoiceCount);
         Assert.NotNull(statusResponse.Upo);
+        Assert.NotNull(statusResponse.ValidUntil);
         Assert.Equal(ExpectedSessionStatusCode, statusResponse.Status.Code);
 
         upoReferenceNumber = statusResponse.Upo.Pages.First().ReferenceNumber;
@@ -96,6 +97,7 @@ public class BatchSessionStreamE2ETests : TestBase
         SessionInvoicesResponse documents = await KsefClient.GetSessionInvoicesAsync(batchSessionReferenceNumber!, accessToken, TotalInvoices, null, CancellationToken);
 
         Assert.NotNull(documents);
+        Assert.Null(documents.ContinuationToken);
         Assert.NotEmpty(documents.Invoices);
         Assert.Equal(TotalInvoices, documents.Invoices.Count);
 
@@ -105,8 +107,14 @@ public class BatchSessionStreamE2ETests : TestBase
         Uri upoDownloadUrl = documents.Invoices.First().UpoDownloadUrl;
         string invoiceUpoXml = await UpoUtils.GetUpoAsync(KsefClient, upoDownloadUrl);
         Assert.False(string.IsNullOrWhiteSpace(invoiceUpoXml));
-        InvoiceUpo invoiceUpo = UpoUtils.UpoParse<InvoiceUpo>(invoiceUpoXml);
+        InvoiceUpoV4_2 invoiceUpo = UpoUtils.UpoParse<InvoiceUpoV4_2>(invoiceUpoXml);
         Assert.Equal(invoiceUpo.Document.KSeFDocumentNumber, ksefNumber);
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.ReceivingEntityName));
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.SessionReferenceNumber));
+        Assert.NotNull(invoiceUpo.Authentication);
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.LogicalStructureName));
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.FormCode));
+        Assert.NotNull(invoiceUpo.Signature);
     }
 
     private async Task<(string ReferenceNumber, OpenBatchSessionResponse OpenResp, List<BatchPartStreamSendingInfo> EncryptedParts)> PrepareAndOpenBatchSessionWithStreamsAsync(

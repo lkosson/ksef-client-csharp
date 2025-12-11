@@ -41,6 +41,16 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
         string euAdminFingerprint = CertificateUtils.GetSha256Fingerprint(euAdminCertificate);
 
         // Nadaj uprawnienia administracyjne jednostce UE w kontekście właściciela (NipVatUe)
+        PermissionsEuEntitySubjectDetails subjectDetails = new PermissionsEuEntitySubjectDetails
+        {
+            SubjectDetailsType = PermissionsEuEntitySubjectDetailsType.EntityByFingerprint,
+             EntityByFp = new PermissionsEuEntityEntityByFp
+             {
+                 Address = "EU Admin Address",
+                 FullName = "EU Admin Full Name"
+             }
+        };
+
         GrantPermissionsEuEntityRequest grantRequest = GrantEuEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(new EuEntitySubjectIdentifier
@@ -55,6 +65,7 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
                 Value = ownerVatEu
             })
             .WithDescription("Grant admin for EU Entity context")
+            .WithSubjectDetails(subjectDetails)
             .Build();
 
         OperationResponse grantResponse = await KsefClient
@@ -98,5 +109,6 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
         // Assert
         Assert.NotNull(admins);
         Assert.NotEmpty(admins.Permissions);
+        Assert.Contains(admins.Permissions, x => x.SubjectEntityDetails.Address == subjectDetails.EntityByFp.Address && x.SubjectEntityDetails.FullName == subjectDetails.EntityByFp.FullName);
     }
 }
