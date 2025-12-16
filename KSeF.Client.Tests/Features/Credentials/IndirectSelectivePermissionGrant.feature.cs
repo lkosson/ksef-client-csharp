@@ -63,13 +63,11 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
         // Arrange: uwierzytelnienie pierwszego właściciela
         _firstOwnerAccessToken = (await AuthenticationUtils.AuthenticateAsync(
             AuthorizationClient,
-            SignatureService,
             _firstOwnerNip)).AccessToken.Token;
 
         // Arrange: uwierzytelnienie drugiego właściciela
         _secondOwnerAccessToken = (await AuthenticationUtils.AuthenticateAsync(
             AuthorizationClient,
-            SignatureService,
             _secondOwnerNip)).AccessToken.Token;
 
         // Act: 1) Nadanie uprawnień pośrednich przez właścicieli dla pośrednika
@@ -104,7 +102,6 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
         // Arrange: Uwierzytelnienie pośrednika
         _intermediaryAccessToken = (await AuthenticationUtils.AuthenticateAsync(
             AuthorizationClient,
-            SignatureService,
             _intermediaryNip)).AccessToken.Token;
 
         // Act: 2) Nadanie SELEKTYWNYCH uprawnień pośrednich
@@ -140,7 +137,6 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
         AuthenticationOperationStatusResponse peselAuthInFirstContext =
             await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 _subjectWithPesel.Value,
                 _firstOwnerNip);
 
@@ -163,15 +159,13 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
         {
             await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 _subjectWithPesel.Value,
-                _secondOwnerNip);
+                _secondOwnerNip).ConfigureAwait(false);
         });
 
         // Act: uwierzytelnienie NIP w kontekście secondOwner
         AuthenticationOperationStatusResponse nipInSecondContext = await AuthenticationUtils.AuthenticateAsync(
             AuthorizationClient,
-            SignatureService,
             _subjectWithNip.Value,
             _secondOwnerNip);
 
@@ -193,9 +187,8 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
         {
             await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 _subjectWithNip.Value,
-                _firstOwnerNip);
+                _firstOwnerNip).ConfigureAwait(false);
         });
     }
 
@@ -221,9 +214,13 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
                 EntityPermission.New(EntityStandardPermissionType.InvoiceWrite, canDelegate: true)
             )
             .WithDescription("E2E test - nadanie uprawnień z delegacją dla pośrednika")
+            .WithSubjectDetails(new PermissionsEntitySubjectDetails
+            {
+                FullName = $"Entity {_intermediaryNip}"
+            })
             .Build();
 
-        return await KsefClient.GrantsPermissionEntityAsync(request, ownerAccessToken, CancellationToken.None);
+        return await KsefClient.GrantsPermissionEntityAsync(request, ownerAccessToken, CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -251,9 +248,16 @@ public class IndirectSelectivePermissionGrantTests : KsefIntegrationTestBase
                 IndirectEntityStandardPermissionType.InvoiceWrite
             )
             .WithDescription($"E2E test - selektywne przekazanie uprawnień dla partnera {targetPartnerNip}")
+            .WithSubjectDetails(
+                new PermissionsIndirectEntitySubjectDetails
+                {
+                    SubjectDetailsType = PermissionsIndirectEntitySubjectDetailsType.PersonByIdentifier,
+                    PersonById = new PermissionsIndirectEntityPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+                }
+            )
             .Build();
 
-        return await KsefClient.GrantsPermissionIndirectEntityAsync(request, _intermediaryAccessToken, CancellationToken.None);
+        return await KsefClient.GrantsPermissionIndirectEntityAsync(request, _intermediaryAccessToken, CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>

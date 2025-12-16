@@ -29,7 +29,7 @@ public partial class EntityPermissionE2ETests : TestBase
     public EntityPermissionE2ETests()
     {
         AuthenticationOperationStatusResponse authOperationStatusResponse = AuthenticationUtils
-            .AuthenticateAsync(AuthorizationClient, SignatureService)
+            .AuthenticateAsync(AuthorizationClient)
             .GetAwaiter().GetResult();
 
         accessToken = authOperationStatusResponse.AccessToken.Token;
@@ -48,7 +48,7 @@ public partial class EntityPermissionE2ETests : TestBase
         // 2) Wyszukaj nadane uprawnienia — poll aż będą widoczne i kompletne
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterGrant =
             await AsyncPollingUtils.PollAsync(
-                async () => await SearchGrantedPersonPermissionsAsync(accessToken),
+                async () => await SearchGrantedPersonPermissionsAsync(accessToken).ConfigureAwait(false),
                 result =>
                     result is not null
                     && result.Permissions is { Count: > 0 }
@@ -60,8 +60,6 @@ public partial class EntityPermissionE2ETests : TestBase
                         x.Description == PermissionDescription &&
                         x.CanDelegate == false &&
                         Enum.Parse<EntityStandardPermissionType>(x.PermissionScope.ToString()) == EntityStandardPermissionType.InvoiceWrite),
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(searchAfterGrant);
@@ -93,10 +91,8 @@ public partial class EntityPermissionE2ETests : TestBase
         // 4) Ponowne wyszukiwanie uprawnień
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterRevoke =
             await AsyncPollingUtils.PollAsync(
-                async () => await SearchGrantedPersonPermissionsAsync(accessToken),
+                async () => await SearchGrantedPersonPermissionsAsync(accessToken).ConfigureAwait(false),
                 result => result is not null && result.Permissions is { Count: 0 },
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: 30,
                 cancellationToken: CancellationToken);
 
         Assert.NotNull(searchAfterRevoke);
@@ -119,9 +115,13 @@ public partial class EntityPermissionE2ETests : TestBase
                 Client.Core.Models.Permissions.Entity.EntityPermission.New(EntityStandardPermissionType.InvoiceWrite, false)
             )
             .WithDescription(description)
+            .WithSubjectDetails(new PermissionsEntitySubjectDetails
+            {
+                FullName = $"Entity {subject.Value}"
+            })
             .Build();
 
-        OperationResponse response = await KsefClient.GrantsPermissionEntityAsync(request, accessToken, CancellationToken);
+        OperationResponse response = await KsefClient.GrantsPermissionEntityAsync(request, accessToken, CancellationToken).ConfigureAwait(false);
         return response;
     }
 
@@ -132,7 +132,7 @@ public partial class EntityPermissionE2ETests : TestBase
         SearchGrantedPersonPermissionsAsync(string accessToken)
     {
         PersonPermissionsQueryRequest query = new();
-        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> response = await KsefClient.SearchGrantedPersonPermissionsAsync(query, accessToken);
+        PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> response = await KsefClient.SearchGrantedPersonPermissionsAsync(query, accessToken).ConfigureAwait(false);
         return response;
     }
 
@@ -148,7 +148,7 @@ public partial class EntityPermissionE2ETests : TestBase
         // Uruchomienie operacji cofania
         foreach (Client.Core.Models.Permissions.PersonPermission permission in grantedPermissions)
         {
-            OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None).ConfigureAwait(false);
             revokeResponses.Add(response);
         }
 
@@ -159,11 +159,9 @@ public partial class EntityPermissionE2ETests : TestBase
         {
             PermissionsOperationStatusResponse status =
                 await AsyncPollingUtils.PollAsync(
-                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken),
+                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken).ConfigureAwait(false),
                     result => result.Status.Code == OperationStatusCodeResponse.Success,
-                    delay: TimeSpan.FromMilliseconds(SleepTime),
-                    maxAttempts: 30,
-                    cancellationToken: CancellationToken);
+                    cancellationToken: CancellationToken).ConfigureAwait(false);
 
             statuses.Add(status);
         }

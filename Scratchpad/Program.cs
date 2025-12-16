@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using KSeF.Client.Api.Builders.Auth;
 using KSeF.Client.Api.Builders.X509Certificates;
+using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces.Clients;
 using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.Authorization;
@@ -18,7 +19,6 @@ var ksefClient = sp.GetRequiredService<IKSeFClient>();
 
 async Task<(TokenInfo accessToken, TokenInfo refreshToken)> AuthenticateUsingSignature(string nip)
 {
-	var signatureService = sp.GetRequiredService<ISignatureService>();
 	var challenge = await ksefClient.GetAuthChallengeAsync();
 	var authTokenRequest = AuthTokenRequestBuilder
 		.Create()
@@ -34,7 +34,7 @@ async Task<(TokenInfo accessToken, TokenInfo refreshToken)> AuthenticateUsingSig
 				.WithCommonName("JK")
 				.Build();
 	var unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authTokenRequest);
-	var signedXml = signatureService.Sign(unsignedXml, certificate);
+	var signedXml = SignatureService.Sign(unsignedXml, certificate);
 	var authOperationInfo = await ksefClient.SubmitXadesAuthRequestAsync(signedXml, verifyCertificateChain: false);
 
 retry:

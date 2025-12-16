@@ -116,15 +116,15 @@ public class BatchSessionController(ICryptographyService cryptographyService, IK
                 initializationVector: encryptionData.EncryptionInfo.InitializationVector)
         .Build();
 
-        OpenBatchSessionResponse openBatchSessionResponse = await ksefClient.OpenBatchSessionAsync(openBatchRequest, accessToken, cancellationToken);
-       await ksefClient.SendBatchPartsAsync(openBatchSessionResponse, encryptedParts, cancellationToken);
+        OpenBatchSessionResponse openBatchSessionResponse = await ksefClient.OpenBatchSessionAsync(openBatchRequest, accessToken, cancellationToken: cancellationToken).ConfigureAwait(false);
+       await ksefClient.SendBatchPartsAsync(openBatchSessionResponse, encryptedParts, cancellationToken).ConfigureAwait(false);
        return Ok($"Wysłano, zamknij sesję, żeby zacząć przetwarzanie i sprawdź status sesji, {openBatchSessionResponse.ReferenceNumber}");
     }
 
     [HttpPost("close-session")]
     public async Task<ActionResult> CloseBatchSessionAsync(string sessionReferenceNumber, string accessToken, CancellationToken cancellationToken)
     {
-        await ksefClient.CloseBatchSessionAsync(sessionReferenceNumber, accessToken, cancellationToken);
+        await ksefClient.CloseBatchSessionAsync(sessionReferenceNumber, accessToken, cancellationToken).ConfigureAwait(false);
         return Ok();
     }
   

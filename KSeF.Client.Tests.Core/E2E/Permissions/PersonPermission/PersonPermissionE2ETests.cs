@@ -19,7 +19,7 @@ public class PersonPermissionE2ETests : TestBase
     {
         // Arrange: uwierzytelnienie i przygotowanie danych testowych
         Client.Core.Models.Authorization.AuthenticationOperationStatusResponse auth = AuthenticationUtils
-            .AuthenticateAsync(AuthorizationClient, SignatureService)
+            .AuthenticateAsync(AuthorizationClient)
             .GetAwaiter().GetResult();
 
         accessToken = auth.AccessToken.Token;
@@ -30,7 +30,7 @@ public class PersonPermissionE2ETests : TestBase
     }
 
     /// <summary>
-    /// Testy E2E nadawania i cofania uprawnień dla osób:
+    /// Testy E2E nadawania i cofania uprawnień osobom:
     /// - nadanie uprawnień
     /// - wyszukanie nadanych uprawnień
     /// - cofnięcie uprawnień
@@ -42,7 +42,7 @@ public class PersonPermissionE2ETests : TestBase
         // Arrange: dane wejściowe i oczekiwane typy uprawnień
         string description = PermissionDescription;
 
-        // Act: nadaj uprawnienia dla osoby
+        // Act: nadaj uprawnienia osobie
         OperationResponse grantResponse =
             await GrantPersonPermissionsAsync(Person, description, accessToken);
 
@@ -53,7 +53,7 @@ public class PersonPermissionE2ETests : TestBase
         // Act: odpytywanie do momentu, aż nadane uprawnienia będą widoczne (obie pule: Read i Write)
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterGrant =
             await AsyncPollingUtils.PollAsync(
-                async () => await SearchGrantedPersonPermissionsAsync(accessToken),
+                async () => await SearchGrantedPersonPermissionsAsync(accessToken).ConfigureAwait(false),
                 (Func<PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>, bool>)(result =>
                 {
                     if (result is null || result.Permissions is null)
@@ -99,7 +99,7 @@ public class PersonPermissionE2ETests : TestBase
         // Act: odpytywanie do momentu, aż uprawnienia o danym opisie znikną
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterRevoke =
             await AsyncPollingUtils.PollAsync(
-                async () => await SearchGrantedPersonPermissionsAsync(accessToken),
+                async () => await SearchGrantedPersonPermissionsAsync(accessToken).ConfigureAwait(false),
                 result =>
                 {
                     if (result is null || result.Permissions is null)
@@ -126,7 +126,7 @@ public class PersonPermissionE2ETests : TestBase
     }
 
     /// <summary>
-    /// Nadaje uprawnienia dla osoby i zwraca odpowiedź operacji.
+    /// Nadaje uprawnienia osobie i zwraca odpowiedź operacji.
     /// </summary>
     private async Task<OperationResponse> GrantPersonPermissionsAsync(
         GrantPermissionsPersonSubjectIdentifier subject,
@@ -145,7 +145,7 @@ public class PersonPermissionE2ETests : TestBase
 
         // Act: wywołanie API nadawania uprawnień
         OperationResponse response =
-            await KsefClient.GrantsPermissionPersonAsync(request, accessToken, CancellationToken);
+            await KsefClient.GrantsPermissionPersonAsync(request, accessToken, CancellationToken).ConfigureAwait(false);
 
         // Assert: zwrócenie odpowiedzi (asercje są wykonywane w teście)
         return response;
@@ -169,7 +169,7 @@ public class PersonPermissionE2ETests : TestBase
 
         // Act: wywołanie API wyszukiwania
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> response =
-            await KsefClient.SearchGrantedPersonPermissionsAsync(query, accessToken, pageOffset: 0, pageSize: 10, CancellationToken);
+            await KsefClient.SearchGrantedPersonPermissionsAsync(query, accessToken, pageOffset: 0, pageSize: 10, CancellationToken).ConfigureAwait(false);
 
         // Assert: zwrócenie wyniku wyszukiwania
         return response;
@@ -185,10 +185,10 @@ public class PersonPermissionE2ETests : TestBase
         // Arrange: lista odpowiedzi z operacji cofania
         List<OperationResponse> revokeResponses = [];
 
-        // Act: uruchomienie operacji cofania dla każdej pozycji
+        // Act: uruchomienie operacji cofania każdej pozycji
         foreach (Client.Core.Models.Permissions.PersonPermission permission in grantedPermissions)
         {
-            OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            OperationResponse response = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None).ConfigureAwait(false);
             revokeResponses.Add(response);
         }
 
@@ -199,11 +199,11 @@ public class PersonPermissionE2ETests : TestBase
         {
             PermissionsOperationStatusResponse status =
                 await AsyncPollingUtils.PollAsync(
-                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken),
+                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken).ConfigureAwait(false),
                     result => result is not null && result.Status is not null && result.Status.Code == OperationStatusCodeResponse.Success,
                     delay: TimeSpan.FromMilliseconds(SleepTime),
                     maxAttempts: 60,
-                    cancellationToken: CancellationToken);
+                    cancellationToken: CancellationToken).ConfigureAwait(false);
 
             statuses.Add(status);
         }

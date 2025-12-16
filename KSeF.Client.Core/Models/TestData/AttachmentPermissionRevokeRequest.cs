@@ -4,5 +4,6 @@
     public sealed class AttachmentPermissionRevokeRequest
     {
         public string Nip { get; set; }
-    }
+		public string ExpectedEndDate { get; set; }
+	}
 }

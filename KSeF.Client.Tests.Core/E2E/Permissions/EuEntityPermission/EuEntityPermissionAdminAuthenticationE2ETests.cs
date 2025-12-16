@@ -64,7 +64,6 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
             // Uwierzytelnienie właściciela w kontekście NIP
             AuthenticationOperationStatusResponse ownerAuthResponse = await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 ownerNip,
                 AuthenticationTokenContextIdentifierType.Nip,
                 ownerCertificate);
@@ -79,7 +78,15 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
             #endregion
 
             #region Nadanie uprawnień administracyjnych jednostce EU
-
+            PermissionsEuEntitySubjectDetails subjectDetails = new PermissionsEuEntitySubjectDetails
+            {
+                SubjectDetailsType = PermissionsEuEntitySubjectDetailsType.EntityByFingerprint,
+                EntityByFp = new PermissionsEuEntityEntityByFp
+                {
+                    Address = "EU Admin Address",
+                    FullName = "EU Admin Full Name"
+                }
+            };
             // Właściciel nadaje uprawnienia administracyjne jednostce UE
             GrantPermissionsEuEntityRequest grantPermissionsRequest = GrantEuEntityPermissionsRequestBuilder
                 .Create()
@@ -95,6 +102,7 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
                     Value = ownerVatEu
                 })
                 .WithDescription(AdminPermissionDescription)
+                .WithSubjectDetails(subjectDetails)
                 .Build();
 
             OperationResponse grantOperationResponse = await KsefClient.GrantsPermissionEUEntityAsync(
@@ -112,7 +120,7 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
 
             // Odpytywanie statusu operacji nadania uprawnień do momentu sukcesu
             PermissionsOperationStatusResponse grantOperationStatus = await AsyncPollingUtils.PollAsync(
-                async () => await KsefClient.OperationsStatusAsync(grantOperationResponse.ReferenceNumber, ownerAccessToken),
+                async () => await KsefClient.OperationsStatusAsync(grantOperationResponse.ReferenceNumber, ownerAccessToken).ConfigureAwait(false),
                 status => status is not null &&
                          status.Status is not null &&
                          status.Status.Code == OperationStatusCodeResponse.Success,
@@ -142,7 +150,7 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
                         ownerAccessToken,
                         pageOffset: 0,
                         pageSize: 10,
-                        CancellationToken.None),
+                        CancellationToken.None).ConfigureAwait(false),
                     result => result is not null && result.Permissions is { Count: > 0 },
                     delay: TimeSpan.FromSeconds(1),
                     maxAttempts: 60,
@@ -150,6 +158,13 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
 
             Assert.NotNull(grantedPermissionsResponse);
             Assert.NotEmpty(grantedPermissionsResponse.Permissions);
+            Assert.True(grantedPermissionsResponse.Permissions.All(x=> x.AuthorIdentifier != null));
+            Assert.True(grantedPermissionsResponse.Permissions.All(x=> x.Description != null));
+            Assert.True(grantedPermissionsResponse.Permissions.All(x=> x.EuEntityDetails == null));
+            Assert.True(grantedPermissionsResponse.Permissions.All(x=> x.SubjectPersonDetails == null));
+            Assert.True(grantedPermissionsResponse.Permissions.All(x=> x.AuthorizedFingerprintIdentifier != null));
+            Assert.Contains(grantedPermissionsResponse.Permissions, x => x.SubjectEntityDetails.Address == subjectDetails.EntityByFp.Address
+            && x.SubjectEntityDetails.FullName == subjectDetails.EntityByFp.FullName);
 
             #endregion
 
@@ -158,7 +173,6 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
             // Uwierzytelnienie jako administrator w kontekście NipVatUe właściciela
             AuthenticationOperationStatusResponse euAdminAuthResponse = await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 ownerVatEu, 
                 AuthenticationTokenContextIdentifierType.NipVatUe,
                 euAdminCertificate, 
@@ -176,7 +190,7 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission
             Assert.NotNull(adminTokenInfo.Permissions);
 
             // Weryfikacja pełnego zestawu uprawnień administratora
-            HashSet<string> expectedAdminPermissions = new HashSet<string>
+            HashSet<string> expectedAdminPermissions = new()
             {
                 EuEntityPermissionType.VatUeManage.ToString(),
                 EuEntityPermissionType.InvoiceWrite.ToString(),

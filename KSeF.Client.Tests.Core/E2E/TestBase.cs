@@ -29,7 +29,6 @@ public abstract class TestBase : IDisposable
     protected ILimitsClient LimitsClient => Get<ILimitsClient>();
     protected ITestDataClient TestDataClient => Get<ITestDataClient>();
 
-    protected ISignatureService SignatureService => Get<ISignatureService>();
     protected IPersonTokenService TokenService => Get<IPersonTokenService>();
     protected ICryptographyService CryptographyService => Get<ICryptographyService>();
 

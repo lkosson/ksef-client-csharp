@@ -21,10 +21,8 @@ public abstract class KsefIntegrationTestBase : IDisposable
 
     protected IKSeFClient KsefClient => _scope.ServiceProvider.GetRequiredService<IKSeFClient>();
     protected IAuthorizationClient AuthorizationClient => _scope.ServiceProvider.GetRequiredService<IAuthorizationClient>();
-    protected ISignatureService SignatureService => _scope.ServiceProvider.GetRequiredService<ISignatureService>();
     protected IPersonTokenService TokenService => _scope.ServiceProvider.GetRequiredService<IPersonTokenService>();
     protected ICryptographyService CryptographyService => _scope.ServiceProvider.GetRequiredService<ICryptographyService>();
-    protected IQrCodeService QRCodeService => _scope.ServiceProvider.GetRequiredService<IQrCodeService>();
     protected IVerificationLinkService VerificationLinkService => _scope.ServiceProvider.GetRequiredService<IVerificationLinkService>();
 
     public KsefIntegrationTestBase()

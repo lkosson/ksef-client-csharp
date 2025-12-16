@@ -20,7 +20,7 @@ public class SessionController(IKSeFClient ksefClient) : ControllerBase
         string continuationToken = string.Empty;
         do
         {
-            SessionsListResponse response = await ksefClient.GetSessionsAsync(SessionType.Online, accessToken, pageSize, continuationToken, sessionsFilter, cancellationToken);
+            SessionsListResponse response = await ksefClient.GetSessionsAsync(SessionType.Online, accessToken, pageSize, continuationToken, sessionsFilter, cancellationToken).ConfigureAwait(false);
             continuationToken = response.ContinuationToken;
             sessions.AddRange(response.Sessions);
         } while (!string.IsNullOrEmpty(continuationToken));
@@ -36,7 +36,7 @@ public class SessionController(IKSeFClient ksefClient) : ControllerBase
         string continuationToken = string.Empty;
         do
         {
-            SessionsListResponse response = await ksefClient.GetSessionsAsync(SessionType.Batch, accessToken, pageSize, continuationToken, sessionsFilter, cancellationToken);
+            SessionsListResponse response = await ksefClient.GetSessionsAsync(SessionType.Batch, accessToken, pageSize, continuationToken, sessionsFilter, cancellationToken).ConfigureAwait(false);
             continuationToken = response.ContinuationToken;
             sessions.AddRange(response.Sessions);
         } while (!string.IsNullOrEmpty(continuationToken));
@@ -72,14 +72,14 @@ public class SessionController(IKSeFClient ksefClient) : ControllerBase
     [HttpGet("session-documents")]
     public async Task<ActionResult<SessionInvoicesResponse>> GetSessionDocumentsAsync(string accessToken, string sessionReferenceNumber, CancellationToken cancellationToken)
     {
-        SessionInvoicesResponse sessionDocuments = await ksefClient.GetSessionInvoicesAsync(sessionReferenceNumber, accessToken, null, null, cancellationToken);
+        SessionInvoicesResponse sessionDocuments = await ksefClient.GetSessionInvoicesAsync(sessionReferenceNumber, accessToken, null, null, cancellationToken).ConfigureAwait(false);
         return Ok(sessionDocuments);
     }
 
     [HttpGet("failed-invoices")]
     public async Task<ActionResult<SessionInvoicesResponse>> GetFailedInvoicesAsync(string accessToken, string sessionReferenceNumber, CancellationToken cancellationToken)
     {
-        SessionInvoicesResponse failedInvoices = await ksefClient.GetSessionFailedInvoicesAsync(sessionReferenceNumber, accessToken, null, null, cancellationToken);
+        SessionInvoicesResponse failedInvoices = await ksefClient.GetSessionFailedInvoicesAsync(sessionReferenceNumber, accessToken, null, null, cancellationToken).ConfigureAwait(false);
         return Ok(failedInvoices);
     }
 

@@ -15,7 +15,7 @@ public static class CertificateUtils
     public static async Task<(string csrBase64Encoded, string privateKeyBase64Encoded)> GenerateCsrAndPrivateKeyWithRsaAsync(IKSeFClient ksefClient, string accessToken, ICryptographyService cryptographyService, RSASignaturePadding? padding = null)
     {
         CertificateEnrollmentsInfoResponse enrollmentData = await ksefClient
-            .GetCertificateEnrollmentDataAsync(accessToken);
+            .GetCertificateEnrollmentDataAsync(accessToken).ConfigureAwait(false);
 
         return cryptographyService.GenerateCsrWithRsa(enrollmentData, padding);
     }
@@ -23,7 +23,7 @@ public static class CertificateUtils
     public static async Task<(string csrBase64Encoded, string privateKeyBase64Encoded)> GenerateCsrAndPrivateKeyWithEcdsaAsync(IKSeFClient ksefClient, string accessToken, ICryptographyService cryptographyService)
     {
         CertificateEnrollmentsInfoResponse enrollmentData = await ksefClient
-            .GetCertificateEnrollmentDataAsync(accessToken);
+            .GetCertificateEnrollmentDataAsync(accessToken).ConfigureAwait(false);
 
         return cryptographyService.GenerateCsrWithEcdsa(enrollmentData);
     }
@@ -37,7 +37,7 @@ public static class CertificateUtils
                    .WithValidFrom(DateTimeOffset.UtcNow)
                    .Build();
 
-        CertificateEnrollmentResponse certificateEnrollmentResponse = await ksefClient.SendCertificateEnrollmentAsync(request, accessToken);
+        CertificateEnrollmentResponse certificateEnrollmentResponse = await ksefClient.SendCertificateEnrollmentAsync(request, accessToken).ConfigureAwait(false);
 
         return certificateEnrollmentResponse;
     }
@@ -47,7 +47,7 @@ public static class CertificateUtils
         CertificateRevokeRequest request = RevokeCertificateRequestBuilder.Create()
             .Build();
 
-        await ksefClient.RevokeCertificateAsync(request, certificateSerialNumber, accessToken);
+        await ksefClient.RevokeCertificateAsync(request, certificateSerialNumber, accessToken).ConfigureAwait(false);
     }
 
     public static X509Certificate2 CreateCertificateWithPrivateKey(CertificateResponse response, string privateKeyBase64Encoded)

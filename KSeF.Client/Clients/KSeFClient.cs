@@ -155,7 +155,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
     }
 
     /// <inheritdoc />
-    public async Task<OpenOnlineSessionResponse> OpenOnlineSessionAsync(OpenOnlineSessionRequest requestPayload, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<OpenOnlineSessionResponse> OpenOnlineSessionAsync(OpenOnlineSessionRequest requestPayload, string accessToken, string upoVersion = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(requestPayload);
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
@@ -164,7 +164,9 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
                                                                                                "/api/v2/sessions/online",
                                                                                                requestPayload,
                                                                                                accessToken,
-                                                                                               RestClient.DefaultContentType,
+                                                                                               RestClient.DefaultContentType,                                                                                               
+																							   !string.IsNullOrEmpty(upoVersion) ? 
+                                                                                                    new Dictionary<string, string> { { "X-KSeF-Feature", upoVersion } } : null,
                                                                                                cancellationToken).ConfigureAwait(false);
     }
 
@@ -193,16 +195,24 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
                                    $"/api/v2/sessions/online/{sessionReferenceNumber}/close",
                                    accessToken,
                                    RestClient.DefaultContentType,
-                                   cancellationToken);
+                                   cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public async Task<OpenBatchSessionResponse> OpenBatchSessionAsync(OpenBatchSessionRequest requestPayload, string accessToken, CancellationToken cancellationToken = default)
+    public async Task<OpenBatchSessionResponse> OpenBatchSessionAsync(OpenBatchSessionRequest requestPayload, string accessToken, string upoVersion = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(requestPayload);
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
 
-        return await restClient.SendAsync<OpenBatchSessionResponse, OpenBatchSessionRequest>(HttpMethod.Post, "/api/v2/sessions/batch", requestPayload, accessToken, RestClient.DefaultContentType, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return await restClient.SendAsync<OpenBatchSessionResponse, OpenBatchSessionRequest>(HttpMethod.Post, 
+                                                                                             "/api/v2/sessions/batch", 
+                                                                                             requestPayload, 
+                                                                                             accessToken, 
+                                                                                             RestClient.DefaultContentType,                                                                                             
+																							 !string.IsNullOrEmpty(upoVersion) ?
+																									new Dictionary<string, string> { { "X-KSeF-Feature", upoVersion } } : null ,
+                                                                                             cancellationToken)
+                                                                                             .ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -715,11 +725,11 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
 
         return await restClient.SendAsync<OperationResponse,
             GrantPermissionsSubunitRequest>(HttpMethod.Post,
-                                                                                 "/api/v2/permissions/subunits/grants",
-                                                                                 requestPayload,
-                                                                                 accessToken,
-                                                                                 RestClient.DefaultContentType,
-                                                                                 cancellationToken).ConfigureAwait(false);
+                                           "/api/v2/permissions/subunits/grants",
+                                           requestPayload,
+                                           accessToken,
+                                           RestClient.DefaultContentType,
+                                           cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -964,10 +974,19 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
     }
        
     /// <inheritdoc />
-    public async Task<OperationResponse> ExportInvoicesAsync(
+    public Task<OperationResponse> ExportInvoicesAsync(
     InvoiceExportRequest requestPayload,
     string accessToken,
     bool includeMetadata = true,
+    CancellationToken cancellationToken = default)
+    {
+        return ExportInvoicesAsync(requestPayload, accessToken, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<OperationResponse> ExportInvoicesAsync(
+    InvoiceExportRequest requestPayload,
+    string accessToken,
     CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(requestPayload);
@@ -976,13 +995,6 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
         StringBuilder urlBuilder = new("/api/v2/invoices/exports");
 
         Dictionary<string, string> headers = null;
-        if (includeMetadata)
-        {
-            headers = new Dictionary<string, string>
-            {
-                ["x-ksef-feature"] = "include-metadata"
-            };
-        }
 
         return await restClient.SendAsync<OperationResponse, InvoiceExportRequest>(
             HttpMethod.Post,
@@ -994,6 +1006,7 @@ public class KSeFClient(IRestClient restClient) : IKSeFClient
             cancellationToken
         ).ConfigureAwait(false);
     }
+
     /// <inheritdoc />
     public async Task<InvoiceExportStatusResponse> GetInvoiceExportStatusAsync(
     string referenceNumber,

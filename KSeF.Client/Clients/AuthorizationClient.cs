@@ -13,9 +13,11 @@ namespace KSeF.Client.Clients;
 public class AuthorizationClient(IRestClient restClient, IRouteBuilder routeBuilder)
     : ClientBase(restClient, routeBuilder), IAuthorizationClient
 {
+    /// <inheritdoc/>
     public Task<AuthenticationChallengeResponse> GetAuthChallengeAsync(CancellationToken cancellationToken = default)
         => ExecuteAsync<AuthenticationChallengeResponse>(Routes.Authorization.Challenge, HttpMethod.Post, cancellationToken);
 
+    /// <inheritdoc/>
     public Task<SignatureResponse> SubmitXadesAuthRequestAsync(string signedXML, bool verifyCertificateChain = false, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(signedXML);
@@ -26,12 +28,14 @@ public class AuthorizationClient(IRestClient restClient, IRouteBuilder routeBuil
         return restClient.SendAsync<SignatureResponse, string>(HttpMethod.Post, path, signedXML, null, RestClient.XmlContentType, cancellationToken);
     }
 
+    /// <inheritdoc/>
     public Task<SignatureResponse> SubmitKsefTokenAuthRequestAsync(AuthenticationKsefTokenRequest requestPayload, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(requestPayload);
         return ExecuteAsync<SignatureResponse, AuthenticationKsefTokenRequest>(Routes.Authorization.KsefToken, requestPayload, cancellationToken);
     }
 
+    /// <inheritdoc/>
     public Task<AuthStatus> GetAuthStatusAsync(string authOperationReferenceNumber, string authenticationToken, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(authenticationToken);
@@ -44,6 +48,7 @@ public class AuthorizationClient(IRestClient restClient, IRouteBuilder routeBuil
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public Task<AuthenticationOperationStatusResponse> GetAccessTokenAsync(string authenticationToken, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(authenticationToken);
@@ -55,6 +60,7 @@ public class AuthorizationClient(IRestClient restClient, IRouteBuilder routeBuil
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public Task<RefreshTokenResponse> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(refreshToken);

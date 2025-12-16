@@ -65,5 +65,8 @@ namespace KSeF.Client.Clients
         /// <inheritdoc />
         public Task SetRateLimitsAsync(EffectiveApiRateLimitsRequest requestPayload, string accessToken, CancellationToken cancellationToken = default) =>
             ExecuteAsync(Routes.TestData.RateLimits, requestPayload, accessToken, cancellationToken);
+
+        public Task RestoreProductionRateLimitsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+            ExecuteAsync(Routes.TestData.RateLimits, HttpMethod.Delete, accessToken, cancellationToken);
     }
 }

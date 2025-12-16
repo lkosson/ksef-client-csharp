@@ -38,7 +38,7 @@ public class BatchTests : KsefIntegrationTestBase
     public BatchTests()
     {
         authenticatedNip = MiscellaneousUtils.GetRandomNip();
-        accessToken = AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, authenticatedNip)
+        accessToken = AuthenticationUtils.AuthenticateAsync(AuthorizationClient, authenticatedNip)
             .GetAwaiter()
             .GetResult()
             .AccessToken.Token;
@@ -258,7 +258,7 @@ public class BatchTests : KsefIntegrationTestBase
 
         // API KSeF powinno odrzucić żądanie ze względu na przekroczony limit fileSize
         await Assert.ThrowsAnyAsync<KsefApiException>(async () =>
-            await BatchUtils.OpenBatchAsync(KsefClient, openSessionRequest, accessToken));
+            await BatchUtils.OpenBatchAsync(KsefClient, openSessionRequest, accessToken).ConfigureAwait(false));
     }
 
     /// <summary>
@@ -385,7 +385,7 @@ public class BatchTests : KsefIntegrationTestBase
         List<BatchPartSendingInfo> incompletePartsList = [encryptedParts[0]];
 
         await Assert.ThrowsAnyAsync<AggregateException>(async () =>
-            await BatchUtils.SendBatchPartsAsync(KsefClient, openSessionResponse, incompletePartsList));
+            await BatchUtils.SendBatchPartsAsync(KsefClient, openSessionResponse, incompletePartsList).ConfigureAwait(false));
     }
 
     /// <summary>
@@ -426,7 +426,7 @@ public class BatchTests : KsefIntegrationTestBase
 
         // API KSeF odrzuca żądanie z przekroczoną liczbą części
         await Assert.ThrowsAnyAsync<KsefApiException>(async () =>
-            await BatchUtils.OpenBatchAsync(KsefClient, openSessionRequest, accessToken));
+            await BatchUtils.OpenBatchAsync(KsefClient, openSessionRequest, accessToken).ConfigureAwait(false));
     }
 
     /// <summary>

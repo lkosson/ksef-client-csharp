@@ -31,7 +31,7 @@ public class PersonPermissionsOwnerNipGrantedFilterAuthorizedPeselE2ETests : Tes
 
         // owner (nadawca == owner)
         AuthenticationOperationStatusResponse ownerAuth =
-            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, ownerNip);
+            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, ownerNip);
         string ownerAccessToken = ownerAuth.AccessToken.Token;
 
         // GRANT — nadajemy np. InvoiceRead osobie po PESELu

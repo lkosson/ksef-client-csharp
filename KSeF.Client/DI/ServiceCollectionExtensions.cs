@@ -73,7 +73,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IActiveSessionsClient, ActiveSessionsClient>();
         services.AddScoped<IAuthorizationClient, AuthorizationClient>();
 
-        services.AddScoped<ISignatureService, SignatureService>();
         services.AddSingleton<IPersonTokenService, PersonTokenService>();
         services.AddScoped<IVerificationLinkService, VerificationLinkService>();
 

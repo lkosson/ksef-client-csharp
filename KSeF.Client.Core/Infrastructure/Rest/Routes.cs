@@ -70,6 +70,11 @@
             /// Odczyt limitów zapytań (rate limits) w środowisku testowym.
             /// </summary>
             public const string RateLimits = Prefix + "/rate-limits";
+
+            /// <summary>
+            /// Przywrócenie domyślnych produkcyjnych limitów API.
+            /// </summary>
+            public const string ProductionRateLimits = Prefix + "/rate-limits/production";
         }
 
         /// <summary>

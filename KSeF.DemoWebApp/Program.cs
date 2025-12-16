@@ -5,7 +5,8 @@ using System.Text.Json.Serialization;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddKSeFClient(options =>
+builder.Services.AddKSeFClient
+    (options =>
 {
     options.BaseUrl =
         builder.Configuration.GetSection("ApiSettings")

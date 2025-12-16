@@ -40,11 +40,11 @@ public class PersonPermissionsOwnerNipGrantedFilterAuthorizedFingerprintE2ETests
 
         // owner (nadawca == owner)
         AuthenticationOperationStatusResponse ownerAuth =
-            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, ownerNip);
+            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, ownerNip);
         string ownerAccessToken = ownerAuth.AccessToken.Token;
 
-        // GRANT → nadaj np. InvoiceRead dla fingerprintu
-        GrantPermissionsPersonRequest grantRequest = new()
+        // GRANT → nadaj np. InvoiceRead fingerprintowi
+        GrantPermissionsPersonRequest grantRequest = new GrantPermissionsPersonRequest
         {
             SubjectIdentifier = new GrantPermissionsPersonSubjectIdentifier
             {

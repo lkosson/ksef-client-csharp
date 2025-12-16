@@ -21,7 +21,7 @@ public class PersonPermissionController(IKSeFClient ksefClient) : ControllerBase
             .WithDescription("Access for quarterly review")
             .Build();
 
-        return await ksefClient.GrantsPermissionPersonAsync(request,  accessToken, cancellationToken);
+        return await ksefClient.GrantsPermissionPersonAsync(request,  accessToken, cancellationToken).ConfigureAwait(false);
     }
 
     [HttpPost("revoke-permissions-for-person")]
@@ -30,6 +30,6 @@ public class PersonPermissionController(IKSeFClient ksefClient) : ControllerBase
     string permissionId,
     CancellationToken cancellationToken)
     {
-        return await ksefClient.RevokeCommonPermissionAsync(permissionId, accessToken, cancellationToken);
+        return await ksefClient.RevokeCommonPermissionAsync(permissionId, accessToken, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -43,7 +43,7 @@ public class PersonalPermissions_IndirectSelective_CompleteChain_E2ETests : Test
         await TestDataClient.CreateSubjectAsync(new SubjectCreateRequest { SubjectNip = intermediaryNip, Description = $"E2E-Subject-Interm-{intermediaryNip}" }, CancellationToken);
 
         AuthenticationOperationStatusResponse ownerAuth =
-            await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip);
+            await AuthenticationUtils.AuthenticateAsync(KsefClient, ownerNip);
         string ownerAccessToken = ownerAuth.AccessToken.Token;
 
         GrantPermissionsAuthorizationRequest ownerToIntermediary =
@@ -68,7 +68,7 @@ public class PersonalPermissions_IndirectSelective_CompleteChain_E2ETests : Test
             TimeSpan.FromMilliseconds(SleepTime), 60, cancellationToken: CancellationToken);
 
         AuthenticationOperationStatusResponse intermAuth =
-            await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, intermediaryNip);
+            await AuthenticationUtils.AuthenticateAsync(KsefClient, intermediaryNip);
         string intermediaryAccessToken = intermAuth.AccessToken.Token;
 
         GrantPermissionsPersonRequest intermToPerson = new()
@@ -98,7 +98,7 @@ public class PersonalPermissions_IndirectSelective_CompleteChain_E2ETests : Test
 
         AuthenticationOperationStatusResponse personAuth =
             await AuthenticationUtils.AuthenticateAsync(
-                KsefClient, SignatureService, intermediaryNip, AuthenticationTokenContextIdentifierType.Nip, personalCert);
+                KsefClient, intermediaryNip, AuthenticationTokenContextIdentifierType.Nip, personalCert);
 
         string personAccessToken = personAuth.AccessToken.Token;
 

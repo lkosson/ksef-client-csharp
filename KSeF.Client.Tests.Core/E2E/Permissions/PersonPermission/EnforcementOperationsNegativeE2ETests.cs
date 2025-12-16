@@ -29,7 +29,7 @@ public class EnforcementOperationsNegativeE2ETests : TestBase
         string granteeNip = MiscellaneousUtils.GetRandomNip();
 
         AuthenticationOperationStatusResponse authorizationInfo = await AuthenticationUtils
-            .AuthenticateAsync(AuthorizationClient, SignatureService, ownerNip);
+            .AuthenticateAsync(AuthorizationClient, ownerNip);
 
         string accessToken = authorizationInfo.AccessToken.Token;
 

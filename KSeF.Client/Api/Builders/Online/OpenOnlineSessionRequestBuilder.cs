@@ -3,21 +3,54 @@ namespace KSeF.Client.Api.Builders.Online
     using KSeF.Client.Core.Models.Sessions.OnlineSession;
     using KSeF.Client.Core.Models.Sessions;
 
+    /// <summary>
+    /// Buduje żądanie otwarcia sesji online w KSeF.
+    /// </summary>
     public interface IOpenOnlineSessionRequestBuilder
     {
+        /// <summary>
+        /// Ustawia kod formularza, który będzie używany w sesji online.
+        /// </summary>
+        /// <param name="systemCode">Kod systemowy formularza zgodny ze specyfikacją KSeF.</param>
+        /// <param name="schemaVersion">Wersja schematu formularza.</param>
+        /// <param name="value">Wartość identyfikująca formularz.</param>
+        /// <returns>
+        /// Interfejs pozwalający ustawić dane szyfrowania.
+        /// </returns>
         IOpenOnlineSessionRequestBuilderWithFormCode WithFormCode(string systemCode, string schemaVersion, string value);
     }
 
+    /// <summary>
+    /// Etap budowy żądania, w którym ustawiono już kod formularza.
+    /// </summary>
     public interface IOpenOnlineSessionRequestBuilderWithFormCode
     {
+        /// <summary>
+        /// Ustawia dane szyfrowania używane dla sesji online.
+        /// </summary>
+        /// <param name="encryptedSymmetricKey">Zaszyfrowany klucz symetryczny użyty do szyfrowania danych.</param>
+        /// <param name="initializationVector">Wektor inicjalizujący użyty przy szyfrowaniu.</param>
+        /// <returns>
+        /// Interfejs pozwalający zbudować finalne żądanie.
+        /// </returns>
         IOpenOnlineSessionRequestBuilderWithEncryption WithEncryption(string encryptedSymmetricKey, string initializationVector);
     }
 
+    /// <summary>
+    /// Ostatni etap budowy żądania otwarcia sesji online.
+    /// </summary>
     public interface IOpenOnlineSessionRequestBuilderWithEncryption
     {
+        /// <summary>
+        /// Tworzy obiekt żądania otwarcia sesji online w KSeF.
+        /// </summary>
+        /// <returns>
+        /// Obiekt <see cref="OpenOnlineSessionRequest"/> gotowy do wysłania do KSeF.
+        /// </returns>
         OpenOnlineSessionRequest Build();
     }
 
+    /// <inheritdoc />
     internal sealed class OpenOnlineSessionRequestBuilderImpl
         : IOpenOnlineSessionRequestBuilder
         , IOpenOnlineSessionRequestBuilderWithFormCode
@@ -28,8 +61,13 @@ namespace KSeF.Client.Api.Builders.Online
 
         private OpenOnlineSessionRequestBuilderImpl() { }
 
+        /// <summary>
+        /// Tworzy nową implementację buildera sesji online.
+        /// </summary>
+        /// <returns>Interfejs startowy buildera.</returns>
         public static IOpenOnlineSessionRequestBuilder Create() => new OpenOnlineSessionRequestBuilderImpl();
 
+        /// <inheritdoc />
         public IOpenOnlineSessionRequestBuilderWithFormCode WithFormCode(string systemCode, string schemaVersion, string value)
         {
             if (string.IsNullOrWhiteSpace(systemCode) || string.IsNullOrWhiteSpace(schemaVersion) || string.IsNullOrWhiteSpace(value))
@@ -46,6 +84,7 @@ namespace KSeF.Client.Api.Builders.Online
             return this;
         }
 
+        /// <inheritdoc />
         public IOpenOnlineSessionRequestBuilderWithEncryption WithEncryption(string encryptedSymmetricKey, string initializationVector)
         {
             if (string.IsNullOrWhiteSpace(encryptedSymmetricKey) || string.IsNullOrWhiteSpace(initializationVector))
@@ -58,6 +97,7 @@ namespace KSeF.Client.Api.Builders.Online
             return this;
         }
 
+        /// <inheritdoc />
         public OpenOnlineSessionRequest Build()
         {
             if (_formCode == null)
@@ -78,8 +118,15 @@ namespace KSeF.Client.Api.Builders.Online
         }
     }
 
+    /// <summary>
+    /// Udostępnia metodę pomocniczą do tworzenia buildera żądania otwarcia sesji online.
+    /// </summary>
     public static class OpenOnlineSessionRequestBuilder
     {
+        /// <summary>
+        /// Tworzy nowy builder żądania otwarcia sesji online.
+        /// </summary>
+        /// <returns>Interfejs startowy buildera.</returns>
         public static IOpenOnlineSessionRequestBuilder Create() =>
             OpenOnlineSessionRequestBuilderImpl.Create();
     }

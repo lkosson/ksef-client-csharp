@@ -16,9 +16,13 @@ public static class JsonUtil
 
         WriteIndented = false,
         PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter() }
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+
+    static JsonUtil()
+    {
+        _settings.Converters.Add(new JsonStringEnumConverter());
+    }
     public static string Serialize<T>(T obj)
     {
         try
@@ -49,7 +53,7 @@ public static class JsonUtil
     {
         try
         {
-            await JsonSerializer.SerializeAsync(output, obj, _settings);
+            await JsonSerializer.SerializeAsync(output, obj, _settings).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -61,7 +65,7 @@ public static class JsonUtil
     {
         try
         {
-            T result = await JsonSerializer.DeserializeAsync<T>(input, _settings);
+            T result = await JsonSerializer.DeserializeAsync<T>(input, _settings).ConfigureAwait(false);
             return result == null
                 ? throw new InvalidOperationException($"[DeserializeAsync] Zdeserializowana wartość jest pusta (null) dla typu {typeof(T).Name}.")
                 : result;
@@ -76,7 +80,7 @@ public static class JsonUtil
                 {
                     input.Seek(0, SeekOrigin.Begin);
                     using StreamReader reader = new(input, leaveOpen: true);
-                    jsonFragment = await reader.ReadToEndAsync();
+                    jsonFragment = await reader.ReadToEndAsync().ConfigureAwait(false);
                 }
             }
             catch { /* nie psuj głównego wyjątku */ }

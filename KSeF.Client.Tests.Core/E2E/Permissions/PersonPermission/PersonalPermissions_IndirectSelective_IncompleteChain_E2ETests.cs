@@ -55,7 +55,7 @@ public class PersonalPermissionsIndirectSelectiveIncompleteChainE2ETests : TestB
 
         // AUTH: owner (kontekst NIP ownera)
         AuthenticationOperationStatusResponse ownerAuth =
-            await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, ownerNip);
+            await AuthenticationUtils.AuthenticateAsync(KsefClient, ownerNip);
         string ownerAccessToken = ownerAuth.AccessToken.Token;
 
         // 1) OWNER → INTERMEDIARY (NIP biura): grant "TaxRepresentative" (publiczne API podmiotowe)
@@ -84,7 +84,7 @@ public class PersonalPermissionsIndirectSelectiveIncompleteChainE2ETests : TestB
 
         // AUTH: intermediary (kontekst NIP biura)
         AuthenticationOperationStatusResponse intermAuth =
-            await AuthenticationUtils.AuthenticateAsync(KsefClient, SignatureService, intermediaryNip);
+            await AuthenticationUtils.AuthenticateAsync(KsefClient, intermediaryNip);
         string intermediaryAccessToken = intermAuth.AccessToken.Token;
 
         // 2) INTERMEDIARY → PERSON(PESEL): grant "InvoiceWrite" (brak wspólnego scope z Owner→Intermediary)
@@ -110,7 +110,7 @@ public class PersonalPermissionsIndirectSelectiveIncompleteChainE2ETests : TestB
                 TimeSpan.FromMilliseconds(SleepTime), 60,
                 cancellationToken: CancellationToken);
 
-        PersonPermissionsQueryRequest grantedCheck = new PersonPermissionsQueryRequest
+        PersonPermissionsQueryRequest grantedCheck = new()
         {
             ContextIdentifier = new PersonPermissionsContextIdentifier
             {
@@ -134,7 +134,7 @@ public class PersonalPermissionsIndirectSelectiveIncompleteChainE2ETests : TestB
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> grantedPage =
             await AsyncPollingUtils.PollAsync(
                 async () => await KsefClient.SearchGrantedPersonPermissionsAsync(
-                    grantedCheck, intermediaryAccessToken, pageOffset: 0, pageSize: 50, cancellationToken: CancellationToken),
+                    grantedCheck, intermediaryAccessToken, pageOffset: 0, pageSize: 50, cancellationToken: CancellationToken).ConfigureAwait(false),
                 result => result is not null
                           && result.Permissions is not null
                           && result.Permissions.Any(p =>
@@ -164,7 +164,7 @@ public class PersonalPermissionsIndirectSelectiveIncompleteChainE2ETests : TestB
 
         AuthenticationOperationStatusResponse personAuth =
             await AuthenticationUtils.AuthenticateAsync(
-                KsefClient, SignatureService, intermediaryNip, AuthenticationTokenContextIdentifierType.Nip, personalCert);
+                KsefClient, intermediaryNip, AuthenticationTokenContextIdentifierType.Nip, personalCert);
 
         string personAccessToken = personAuth.AccessToken.Token;
 

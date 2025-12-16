@@ -1,6 +1,9 @@
 using KSeF.Client.Core.Exceptions;
 using KSeF.Client.Core.Models.ApiResponses;
+using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Invoices;
+using KSeF.Client.Core.Models.Sessions;
+using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeF.Client.Tests.Utils;
 
 namespace KSeF.Client.Tests.Features
@@ -16,7 +19,7 @@ namespace KSeF.Client.Tests.Features
         public InvoiceTests()
         {
             nip = MiscellaneousUtils.GetRandomNip();
-            Core.Models.Authorization.AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, nip).GetAwaiter().GetResult();
+            Core.Models.Authorization.AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(AuthorizationClient, nip).GetAwaiter().GetResult();
             authToken = authInfo.AccessToken.Token;
         }
 
@@ -269,6 +272,87 @@ namespace KSeF.Client.Tests.Features
                     cancellationToken: CancellationToken.None,
                     pageOffset: 0,
                     pageSize: pageSize));
+        }
+
+        [Fact]
+        [Trait("Scenario", "Podmiot 3 może wyszukać fakturę, w której został wskazany jako ThirdSubject")]
+        public async Task GivenNewInvoiceWithP3_SendedToKsef_ThenP3ShouldFoundInvoice()
+        {
+            // Arrange
+            EncryptionData encryptionData = CryptographyService.GetEncryptionData();
+            string invoiceCreatorNip = MiscellaneousUtils.GetRandomNip();
+            string thirdSubjectIdentifier = MiscellaneousUtils.GetRandomNip();
+
+            // Wystawienie faktury przez wykonawcę dla jednostki podrzędnej identyfikującej sie numerem NIP  ---
+            string invoiceCreatorAuthToken = (await AuthenticationUtils.AuthenticateAsync(
+                AuthorizationClient, invoiceCreatorNip)).AccessToken.Token;
+
+            OpenOnlineSessionResponse openSessionResponse = await OnlineSessionUtils.OpenOnlineSessionAsync(
+                KsefClient,
+                encryptionData,
+                invoiceCreatorAuthToken,
+                SystemCode.FA3);
+
+            Assert.NotNull(openSessionResponse?.ReferenceNumber);
+
+            SendInvoiceResponse sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(
+                KsefClient,
+                openSessionResponse.ReferenceNumber,
+                invoiceCreatorAuthToken,
+                invoiceCreatorNip,
+                thirdSubjectIdentifier,
+                "invoice-template-fa-3-with-custom-Subject3.xml",
+                encryptionData,
+                CryptographyService);
+
+            Assert.NotNull(sendInvoiceResponse);
+
+            SessionStatusResponse sessionStatus = await AsyncPollingUtils.PollAsync(
+                async () => await OnlineSessionUtils.GetOnlineSessionStatusAsync(
+                    KsefClient,
+                    openSessionResponse.ReferenceNumber,
+                    invoiceCreatorAuthToken).ConfigureAwait(false),
+                result => result is not null && result.InvoiceCount == result.SuccessfulInvoiceCount,
+                delay: TimeSpan.FromMilliseconds(2 * SleepTime),
+                maxAttempts: 60);
+
+            Assert.NotNull(sessionStatus);
+            Assert.Equal(sessionStatus.InvoiceCount, sessionStatus.SuccessfulInvoiceCount);
+
+            SessionInvoicesResponse invoices = await KsefClient.GetSessionInvoicesAsync(
+                openSessionResponse.ReferenceNumber,
+                invoiceCreatorAuthToken,
+                pageSize: 10);
+
+            Assert.NotEmpty(invoices.Invoices);
+
+            // wyszukiwanie faktury jako podmiot3---
+            AuthenticationOperationStatusResponse autResult = await AuthenticationUtils.AuthenticateAsOrganizationAsync(KsefClient, thirdSubjectIdentifier, AuthenticationTokenContextIdentifierType.Nip, EncryptionMethodEnum.ECDsa);
+            string thirdSubjectToken = autResult.AccessToken.Token;
+
+            await Task.Delay(10 * SleepTime);
+
+            InvoiceQueryFilters invoiceQuery = new()
+            {
+                SubjectType = InvoiceSubjectType.Subject3,
+                DateRange = new DateRange
+                {
+                    From = DateTime.UtcNow.AddMonths(-2),
+                    To = DateTime.UtcNow.AddMonths(1),
+                    DateType = DateType.PermanentStorage
+                }
+            };
+
+
+            PagedInvoiceResponse invoiceQueryResponse = await KsefClient.QueryInvoiceMetadataAsync(
+                requestPayload: invoiceQuery,
+                accessToken: thirdSubjectToken,
+                cancellationToken: CancellationToken.None,
+                pageOffset: 0,
+                pageSize: 30);
+
+            // Assert
+            Assert.Contains(invoiceQueryResponse.Invoices, x => x.ThirdSubjects.Any(y => y.Identifier.Value == thirdSubjectIdentifier));
         }
     }
 }

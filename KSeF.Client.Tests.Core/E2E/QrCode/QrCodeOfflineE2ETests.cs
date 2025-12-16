@@ -42,18 +42,16 @@ public class QrCodeOfflineE2ETests : TestBase
 {
     private readonly QrCodeOfflineE2EScenarioFixture Fixture;
     private readonly VerificationLinkService linkService;
-    private readonly QrCodeService qrCodeService;
 
     public QrCodeOfflineE2ETests(QrCodeOfflineE2EScenarioFixture fixture)
     {
         Fixture = fixture;
         Fixture.Nip = MiscellaneousUtils.GetRandomNip();
 
-        AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, Fixture.Nip).GetAwaiter().GetResult();
+        AuthenticationOperationStatusResponse authInfo = AuthenticationUtils.AuthenticateAsync(AuthorizationClient, Fixture.Nip).GetAwaiter().GetResult();
         Fixture.AccessToken = authInfo.AccessToken.Token;
 
-        linkService = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnvironmentsUris.TEST });
-        qrCodeService = new QrCodeService();
+        linkService = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnvironmentsUris.TEST, BaseQRUrl = KsefQREnvironmentsUris.TEST });
     }
 
     public record TestScenario(
@@ -187,36 +185,32 @@ public class QrCodeOfflineE2ETests : TestBase
         Assert.Contains(Fixture.InvoiceDate.Value.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture), invoiceForOfflineUrl);
 
         //Utworzenie kodu QR faktury (KOD I) dla trybu offline
-        byte[]? qrOffline = qrCodeService.GenerateQrCode(invoiceForOfflineUrl);
+        byte[]? qrOffline = QrCodeService.GenerateQrCode(invoiceForOfflineUrl);
 
         //Dodanie etykiety OFFLINE
-        qrOffline = qrCodeService.AddLabelToQrCode(qrOffline, "OFFLINE");
+        qrOffline = QrCodeService.AddLabelToQrCode(qrOffline, "OFFLINE");
 
         Assert.NotEmpty(qrOffline);
 
         //Utworzenie odnośnika (Url) do weryfikacji certyfikatu (KOD II)
         byte[] certBytes = Convert.FromBase64String(Fixture.Certificate.Certificate);
-#if NET10_0_OR_GREATER
-        X509Certificate2 cert = X509CertificateLoader.LoadCertificate(certBytes);
-#else
-        X509Certificate2 cert = new X509Certificate2(certBytes);
-#endif
+
+        X509Certificate2 cert = X509CertificateLoaderExtensions.LoadCertificate(certBytes);
 
         //Dodanie klucza prywatnego do certyfikatu
         X509Certificate2 certWithKey = testScenario.GetCertWithPrivateKey(cert, Fixture.PrivateKey);
 
         //Utworzenie kodu QR do weryfikacji certyfikatu (KOD II) dla trybu offline
-        byte[] qrOfflineCertificate = qrCodeService.GenerateQrCode(
+        byte[] qrOfflineCertificate = QrCodeService.GenerateQrCode(
             linkService.BuildCertificateVerificationUrl(
                 Fixture.Nip,
                 QRCodeContextIdentifierType.Nip,
                 Fixture.Nip,
-                Fixture.Certificate.CertificateSerialNumber,
                 Fixture.InvoiceHash,
                 certWithKey));
 
         //Dodanie etykiety CERTYFIKAT
-        qrOfflineCertificate = qrCodeService.AddLabelToQrCode(qrOfflineCertificate, "CERTYFIKAT");
+        qrOfflineCertificate = QrCodeService.AddLabelToQrCode(qrOfflineCertificate, "CERTYFIKAT");
 
         Assert.NotEmpty(qrOfflineCertificate);
     }

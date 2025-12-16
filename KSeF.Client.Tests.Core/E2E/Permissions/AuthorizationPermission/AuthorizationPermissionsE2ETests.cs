@@ -20,7 +20,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
     {
         _fixture = fixture;
         AuthenticationOperationStatusResponse authOperationStatusResponse =
-            AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService).GetAwaiter().GetResult();
+            AuthenticationUtils.AuthenticateAsync(AuthorizationClient).GetAwaiter().GetResult();
         accessToken = authOperationStatusResponse.AccessToken.Token;
         _fixture.SubjectIdentifier.Value = MiscellaneousUtils.GetRandomNip();
     }
@@ -73,7 +73,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
         #region Wyszukaj ponownie — nie powinno być wpisów (polling)
         PagedAuthorizationsResponse<AuthorizationGrant> entityRolesAfterRevoke =
             await AsyncPollingUtils.PollAsync(
-                async () => await SearchGrantedRolesAsync(),
+                async () => await SearchGrantedRolesAsync().ConfigureAwait(false),
                 result => result is not null && result.AuthorizationGrants is { Count: 0 },
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 30,
@@ -103,7 +103,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
 
         OperationResponse operationResponse = await KsefClient
             .GrantsAuthorizationPermissionAsync(grantPermissionAuthorizationRequest,
-            accessToken, CancellationToken);
+            accessToken, CancellationToken).ConfigureAwait(false);
 
         return operationResponse;
     }
@@ -122,7 +122,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
                 pageOffset: 0,
                 pageSize: 10,
                 CancellationToken
-            );
+            ).ConfigureAwait(false);
 
         return entityRolesPaged;
     }
@@ -137,7 +137,7 @@ public class AuthorizationPermissionsE2ETests : TestBase
         // Uruchomienie operacji cofania
         foreach (AuthorizationGrant permission in _fixture.SearchResponse.AuthorizationGrants)
         {
-            OperationResponse resp = await KsefClient.RevokeAuthorizationsPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            OperationResponse resp = await KsefClient.RevokeAuthorizationsPermissionAsync(permission.Id, accessToken, CancellationToken.None).ConfigureAwait(false);
             revokeResponses.Add(resp);
         }
 
@@ -146,11 +146,11 @@ public class AuthorizationPermissionsE2ETests : TestBase
         {
             PermissionsOperationStatusResponse status =
                 await AsyncPollingUtils.PollAsync(
-                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken),
+                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken).ConfigureAwait(false),
                     result => result.Status.Code == OperationSuccessfulStatusCode,
                     delay: TimeSpan.FromMilliseconds(SleepTime),
                     maxAttempts: 30,
-                    cancellationToken: CancellationToken);
+                    cancellationToken: CancellationToken).ConfigureAwait(false);
 
             _fixture.RevokeStatusResults.Add(status);
         }

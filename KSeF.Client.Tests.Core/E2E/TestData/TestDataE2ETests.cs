@@ -3,6 +3,7 @@ using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.TestData;
 using KSeF.Client.Tests.Utils;
+using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using static KSeF.Client.Core.Models.Permissions.PersonalPermission;
 
@@ -54,7 +55,6 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
             // Uwierzytelnienie jako podmiot główny
             AuthenticationOperationStatusResponse authOperationStatusResponse = await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 subjectNip);
 
             // Pobranie ról przypisanych do podmiotu głównego
@@ -93,6 +93,8 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
             // Assert - Weryfikacja usunięcia ról podmiotu głównego
             Assert.NotNull(subjectRolesAfterRemoval);
             Assert.NotNull(subjectRolesAfterRemoval.Roles);
+            Assert.True(subjectRolesAfterRemoval.Roles.All(x => x.ParentEntityIdentifier != null));
+            Assert.True(subjectRolesAfterRemoval.Roles.All(x => x.Description != null));
             Assert.False(subjectRolesAfterRemoval.Roles.Any(role => role.Role == expectedRoleType),
                 $"Rola {expectedRoleType} powinna zostać usunięta wraz z podmiotem głównym");
         }
@@ -126,7 +128,6 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
             // Uwierzytelnienie jako organ egzekucyjny
             AuthenticationOperationStatusResponse authOperationStatusResponse = await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 subjectNip);
 
             // Act - Pobranie ról przypisanych do organu egzekucyjnego
@@ -199,7 +200,6 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
             // Uwierzytelnienie jako utworzona osoba fizyczna
             AuthenticationOperationStatusResponse authOperationStatusResponse = await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 personNip);
 
             // Act - Pobranie ról przypisanych do osoby fizycznej
@@ -273,11 +273,11 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
                 [
                     new() {
                         PermissionType = PermissionType.InvoiceRead,
-                        Description = "Uprawnienie InvoiceRead dla podmiotu testowego"
+                        Description = "Uprawnienie InvoiceRead podmiotu testowego"
                     },
                     new() {
                         PermissionType = PermissionType.InvoiceWrite,
-                        Description = "Uprawnienie InvoiceWrite dla podmiotu testowego"
+                        Description = "Uprawnienie InvoiceWrite podmiotu testowego"
                     }
                 ]
             };
@@ -301,10 +301,9 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
                     {
                         return await AuthenticationUtils.AuthenticateAsync(
                             AuthorizationClient,
-                            SignatureService,
                             ownerNip,
                             AuthenticationTokenContextIdentifierType.Nip,
-                            authorizedUserCertificate);
+                            authorizedUserCertificate).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -372,67 +371,74 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
                 "Uprawnienie InvoiceWrite powinno zostać usunięte po cofnięciu");
         }
 
-        /// <summary>
-        /// Weryfikacja poprawności nadawania i odbierania uprawnień do wysyłki faktur z załącznikami.
-        /// Scenariusz:
-        /// 1. Nadanie uprawnienia do załączników dla podmiotu
-        /// 2. Uwierzytelnienie i weryfikacja aktywnego uprawnienia
-        /// 3. Cofnięcie uprawnienia
-        /// 4. Weryfikacja usunięcia uprawnienia
-        /// </summary>
-        //[Fact]
-        public async Task GrantAttachmentPermissionVerifyEnabledThenRevokeAndVerifyDisabled()
-        {
-            // Arrange
-            string subjectNip = MiscellaneousUtils.GetRandomNip();
+		/// <summary>
+		/// Weryfikacja poprawności nadawania i odbierania uprawnień do wysyłki faktur z załącznikami.
+		/// Scenariusz:
+		/// 1. Nadanie uprawnienia do załączników dla podmiotu
+		/// 2. Uwierzytelnienie i weryfikacja aktywnego uprawnienia
+		/// 3. Cofnięcie uprawnienia - ustawienie daty wygaśnięcia (revokeDate)
+		/// 4. Weryfikacja ustawienia daty wygaśnięcia uprawnienia
+		/// </summary>
+		[Fact]
+		public async Task GrantAttachmentPermission_VerifyEnabled_ThenRevokeAndVerifyDisabled()
+		{
+			// Arrange
+			string subjectNip = MiscellaneousUtils.GetRandomNip();
+			string revokeDate = DateTime.UtcNow.AddDays(1).Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-            // Nadanie uprawnienia do wysyłki faktur z załącznikami
-            AttachmentPermissionGrantRequest grantRequest = new()
-            {
-                Nip = subjectNip
-            };
+			// Nadanie uprawnienia do wysyłki faktur z załącznikami
+			AttachmentPermissionGrantRequest grantRequest = new AttachmentPermissionGrantRequest
+			{
+				Nip = subjectNip
+			};
 
-            await TestDataClient.EnableAttachmentAsync(grantRequest);
+			await TestDataClient.EnableAttachmentAsync(grantRequest);
 
-            // Uwierzytelnienie podmiotu
-            AuthenticationOperationStatusResponse authOperationStatusResponse = await AuthenticationUtils.AuthenticateAsync(
-                AuthorizationClient,
-                SignatureService,
-                subjectNip);
+			// Uwierzytelnienie podmiotu
+			AuthenticationOperationStatusResponse authOperationStatusResponse = await AuthenticationUtils.AuthenticateAsync(
+				AuthorizationClient,
+				subjectNip);
 
-            // Act - Pobranie statusu uprawnienia do załączników z pollingiem
-            PermissionsAttachmentAllowedResponse grantedPermissionStatus = await AsyncPollingUtils.PollAsync(
-                action: () => KsefClient.GetAttachmentPermissionStatusAsync(authOperationStatusResponse.AccessToken.Token),
-                condition: r => r is not null && r.IsAttachmentAllowed == true,
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: MaxPollingAttempts,
-                cancellationToken: CancellationToken);
+			// Act - Pobranie statusu uprawnienia do załączników z pollingiem
+			PermissionsAttachmentAllowedResponse grantedPermissionStatus = await AsyncPollingUtils.PollAsync(
+				action: () => KsefClient.GetAttachmentPermissionStatusAsync(authOperationStatusResponse.AccessToken.Token),
+				condition: r => r is not null && r.IsAttachmentAllowed == true,
+				delay: TimeSpan.FromMilliseconds(SleepTime),
+				maxAttempts: MaxPollingAttempts,
+				cancellationToken: CancellationToken);
 
-            // Assert - Weryfikacja nadania uprawnienia
-            Assert.NotNull(grantedPermissionStatus);
-            Assert.True(grantedPermissionStatus.IsAttachmentAllowed,
-                "Uprawnienie do wysyłki załączników powinno być aktywne po nadaniu");
+			// Assert - Weryfikacja nadania uprawnienia
+			Assert.NotNull(grantedPermissionStatus);
+			Assert.True(grantedPermissionStatus.IsAttachmentAllowed,
+				"Uprawnienie do wysyłki załączników powinno być aktywne po nadaniu");
 
-            // Act - Cofnięcie uprawnienia do wysyłki faktur z załącznikami
-            AttachmentPermissionRevokeRequest revokeRequest = new()
-            {
-                Nip = subjectNip
-            };
+			// Act - Cofnięcie uprawnienia do wysyłki faktur z załącznikami
+			AttachmentPermissionRevokeRequest revokeRequest = new AttachmentPermissionRevokeRequest
+			{
+				Nip = subjectNip,
+				ExpectedEndDate = revokeDate
+			};
 
-            await TestDataClient.DisableAttachmentAsync(revokeRequest);
+			await TestDataClient.DisableAttachmentAsync(revokeRequest);
 
-            // Pobranie statusu uprawnienia po cofnięciu z pollingiem
-            PermissionsAttachmentAllowedResponse revokedPermissionStatus = await AsyncPollingUtils.PollAsync(
-                action: () => KsefClient.GetAttachmentPermissionStatusAsync(authOperationStatusResponse.AccessToken.Token),
-                condition: r => r is not null && r.IsAttachmentAllowed == false,
-                delay: TimeSpan.FromMilliseconds(SleepTime),
-                maxAttempts: MaxPollingAttempts,
-                cancellationToken: CancellationToken);
+			// Pobranie statusu uprawnienia po cofnięciu z pollingiem - weryfikacja ustawienia daty wygaśnięcia
+			PermissionsAttachmentAllowedResponse revokedPermissionStatus = await AsyncPollingUtils.PollAsync(
+				action: () => KsefClient.GetAttachmentPermissionStatusAsync(authOperationStatusResponse.AccessToken.Token),
+				condition: r => r is not null && r.RevokedDate.HasValue,
+				delay: TimeSpan.FromMilliseconds(SleepTime),
+				maxAttempts: MaxPollingAttempts,
+				cancellationToken: CancellationToken);
 
-            // Assert - Weryfikacja cofnięcia uprawnienia
-            Assert.NotNull(revokedPermissionStatus);
-            Assert.False(revokedPermissionStatus.IsAttachmentAllowed,
-                "Uprawnienie do wysyłki załączników powinno być nieaktywne po cofnięciu");
+			// Assert - Weryfikacja ustawienia daty wygaśnięcia uprawnienia
+			Assert.NotNull(revokedPermissionStatus);
+			Assert.True(revokedPermissionStatus.RevokedDate.HasValue,
+				"Data wygaśnięcia uprawnienia (revokeDate) powinna zostać ustawiona po cofnięciu uprawnienia");
+
+            DateOnly expectedDate = DateOnly.Parse(revokeDate, CultureInfo.InvariantCulture);
+            
+            DateOnly actualDate = DateOnly.FromDateTime(revokedPermissionStatus.RevokedDate.Value.ToUniversalTime());
+
+            Assert.Equal(expectedDate, actualDate);
         }
-    }
+	}
 }

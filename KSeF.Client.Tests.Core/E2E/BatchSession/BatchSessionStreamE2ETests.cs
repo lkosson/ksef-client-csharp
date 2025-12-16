@@ -27,7 +27,7 @@ public class BatchSessionStreamE2ETests : TestBase
     {
         string nip = MiscellaneousUtils.GetRandomNip();
         Client.Core.Models.Authorization.AuthenticationOperationStatusResponse authOperationStatusResponse = AuthenticationUtils
-            .AuthenticateAsync(AuthorizationClient, SignatureService, nip)
+            .AuthenticateAsync(AuthorizationClient, nip)
             .GetAwaiter().GetResult();
 
         accessToken = authOperationStatusResponse.AccessToken.Token;
@@ -66,7 +66,7 @@ public class BatchSessionStreamE2ETests : TestBase
         await AsyncPollingUtils.PollAsync(
             action: async () =>
             {
-                await KsefClient.CloseBatchSessionAsync(batchSessionReferenceNumber!, accessToken, CancellationToken);
+                await KsefClient.CloseBatchSessionAsync(batchSessionReferenceNumber!, accessToken, CancellationToken).ConfigureAwait(false);
                 return true;
             },
             condition: closed => closed,
@@ -88,6 +88,7 @@ public class BatchSessionStreamE2ETests : TestBase
         Assert.True(statusResponse.SuccessfulInvoiceCount == TotalInvoices);
         Assert.Equal(ExpectedFailedInvoiceCount, statusResponse.FailedInvoiceCount);
         Assert.NotNull(statusResponse.Upo);
+        Assert.NotNull(statusResponse.ValidUntil);
         Assert.Equal(ExpectedSessionStatusCode, statusResponse.Status.Code);
 
         upoReferenceNumber = statusResponse.Upo.Pages.First().ReferenceNumber;
@@ -96,6 +97,7 @@ public class BatchSessionStreamE2ETests : TestBase
         SessionInvoicesResponse documents = await KsefClient.GetSessionInvoicesAsync(batchSessionReferenceNumber!, accessToken, TotalInvoices, null, CancellationToken);
 
         Assert.NotNull(documents);
+        Assert.Null(documents.ContinuationToken);
         Assert.NotEmpty(documents.Invoices);
         Assert.Equal(TotalInvoices, documents.Invoices.Count);
 
@@ -105,8 +107,14 @@ public class BatchSessionStreamE2ETests : TestBase
         Uri upoDownloadUrl = documents.Invoices.First().UpoDownloadUrl;
         string invoiceUpoXml = await UpoUtils.GetUpoAsync(KsefClient, upoDownloadUrl);
         Assert.False(string.IsNullOrWhiteSpace(invoiceUpoXml));
-        InvoiceUpo invoiceUpo = UpoUtils.UpoParse<InvoiceUpo>(invoiceUpoXml);
+        InvoiceUpoV4_2 invoiceUpo = UpoUtils.UpoParse<InvoiceUpoV4_2>(invoiceUpoXml);
         Assert.Equal(invoiceUpo.Document.KSeFDocumentNumber, ksefNumber);
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.ReceivingEntityName));
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.SessionReferenceNumber));
+        Assert.NotNull(invoiceUpo.Authentication);
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.LogicalStructureName));
+        Assert.True(!string.IsNullOrWhiteSpace(invoiceUpo.FormCode));
+        Assert.NotNull(invoiceUpo.Signature);
     }
 
     private async Task<(string ReferenceNumber, OpenBatchSessionResponse OpenResp, List<BatchPartStreamSendingInfo> EncryptedParts)> PrepareAndOpenBatchSessionWithStreamsAsync(
@@ -135,13 +143,13 @@ public class BatchSessionStreamE2ETests : TestBase
             {
                 System.IO.Compression.ZipArchiveEntry entry = archive.CreateEntry(FileName, System.IO.Compression.CompressionLevel.Optimal);
                 using Stream entryStream = entry.Open();
-                await entryStream.WriteAsync(Content, CancellationToken);
+                await entryStream.WriteAsync(Content, CancellationToken).ConfigureAwait(false);
             }
         }
         zipStream.Position = 0;
 
         // 3) Metadane ZIP
-        FileMetadata zipMeta = await cryptographyService.GetMetaDataAsync(zipStream, CancellationToken);
+        FileMetadata zipMeta = await cryptographyService.GetMetaDataAsync(zipStream, CancellationToken).ConfigureAwait(false);
 
         // 4) Podział ZIP na części
         byte[] zipBytes = zipStream.ToArray();
@@ -153,14 +161,14 @@ public class BatchSessionStreamE2ETests : TestBase
         {
             using MemoryStream partInput = new(rawParts[i], writable: false);
             MemoryStream encryptedOutput = new();
-            await cryptographyService.EncryptStreamWithAES256Async(partInput, encryptedOutput, encryptionData.CipherKey, encryptionData.CipherIv, CancellationToken);
+            await cryptographyService.EncryptStreamWithAES256Async(partInput, encryptedOutput, encryptionData.CipherKey, encryptionData.CipherIv, CancellationToken).ConfigureAwait(false);
 
             if (encryptedOutput.CanSeek)
             {
                 encryptedOutput.Position = 0;
             }
 
-            FileMetadata partMeta = await cryptographyService.GetMetaDataAsync(encryptedOutput, CancellationToken);
+            FileMetadata partMeta = await cryptographyService.GetMetaDataAsync(encryptedOutput, CancellationToken).ConfigureAwait(false);
             if (encryptedOutput.CanSeek)
             {
                 encryptedOutput.Position = 0; // reset po odczycie do metadanych
@@ -199,7 +207,7 @@ public class BatchSessionStreamE2ETests : TestBase
                 initializationVector: encryptionData.EncryptionInfo.InitializationVector)
             .Build();
 
-        OpenBatchSessionResponse openResp = await KsefClient.OpenBatchSessionAsync(openBatchSessionRequest, accessToken, CancellationToken);
+        OpenBatchSessionResponse openResp = await KsefClient.OpenBatchSessionAsync(openBatchSessionRequest, accessToken,cancellationToken: CancellationToken).ConfigureAwait(false);
 
         return (openResp.ReferenceNumber, openResp, encryptedParts);
     }

@@ -28,7 +28,7 @@ public class OnlineSessionController(IKSeFClient ksefClient, ICryptographyServic
              initializationVector: encryptionData.EncryptionInfo.InitializationVector)
          .Build();
 
-        OpenOnlineSessionResponse openSessionResponse = await ksefClient.OpenOnlineSessionAsync(request, accessToken, cancellationToken);
+        OpenOnlineSessionResponse openSessionResponse = await ksefClient.OpenOnlineSessionAsync(request, accessToken, cancellationToken: cancellationToken).ConfigureAwait(false);
         return Ok(openSessionResponse);
     }
 

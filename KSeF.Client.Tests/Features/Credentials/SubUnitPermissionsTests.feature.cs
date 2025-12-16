@@ -32,7 +32,7 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
 
         // --- Etap 1: Wystawienie faktury przez wykonawcę dla przedszkola (jednostki podrzędnej) ---
         string invoiceCreatorAuthToken = (await AuthenticationUtils.AuthenticateAsync(
-            AuthorizationClient, SignatureService, invoiceCreatorNip)).AccessToken.Token;
+            AuthorizationClient, invoiceCreatorNip)).AccessToken.Token;
 
         OpenOnlineSessionResponse openSessionResponse = await OnlineSessionUtils.OpenOnlineSessionAsync(
             KsefClient,
@@ -58,7 +58,7 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
             async () => await OnlineSessionUtils.GetOnlineSessionStatusAsync(
                 KsefClient,
                 openSessionResponse.ReferenceNumber,
-                invoiceCreatorAuthToken),
+                invoiceCreatorAuthToken).ConfigureAwait(false),
             result => result is not null && result.InvoiceCount == result.SuccessfulInvoiceCount,
             delay: TimeSpan.FromMilliseconds(2*SleepTime),
             maxAttempts: 60);
@@ -76,7 +76,7 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
 
         // --- Etap 2: Gmina nadaje uprawnienia dyrektorowi przedszkola do zarządzania uprawnieniami w kontekście przedszkola---
         string municipalOfficeAuthToken = (await AuthenticationUtils.AuthenticateAsync(
-            AuthorizationClient, SignatureService, municipalOfficeNip)).AccessToken.Token;
+            AuthorizationClient, municipalOfficeNip)).AccessToken.Token;
 
         GrantPermissionsSubunitRequest grantSubUnitRequest = GrantSubunitPermissionsRequestBuilder
             .Create()
@@ -92,6 +92,11 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
             })
             .WithSubunitName("Przedszkole Testowe")
             .WithDescription("Sub-unit permission grant")
+            .WithSubjectDetails(new SubunitSubjectDetails
+            {
+                SubjectDetailsType = PermissionsSubunitSubjectDetailsType.PersonByIdentifier,
+                PersonById = new PermissionsSubunitPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+            })
             .Build();
 
         OperationResponse grantOperation = await KsefClient.GrantsPermissionSubUnitAsync(
@@ -105,7 +110,6 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
         // --- Etap 3: dyrektor w kontekście przedszkola nadaje sobie prawo do odczytu faktur ---
         AuthenticationOperationStatusResponse kindergartenAuthResult = await AuthenticationUtils.AuthenticateAsync(
             AuthorizationClient,
-            SignatureService,
             directorPesel,
             kindergartenId,
             AuthenticationTokenContextIdentifierType.InternalId);
@@ -127,7 +131,7 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
             "GrantPermissionToDirector");
 
         PermissionsOperationStatusResponse grantPersonStatus = await AsyncPollingUtils.PollAsync(
-                async () => await PermissionsUtils.GetPermissionsOperationStatusAsync(KsefClient,grantPersonResponse.ReferenceNumber, kindergartenAuthToken),
+                async () => await PermissionsUtils.GetPermissionsOperationStatusAsync(KsefClient,grantPersonResponse.ReferenceNumber, kindergartenAuthToken).ConfigureAwait(false),
                 status => status is not null &&
                          status.Status is not null &&
                          status.Status.Code == OperationStatusCodeResponse.Success,
@@ -149,7 +153,7 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
             {
                 From = DateTime.UtcNow.AddMonths(-2),
                 To = DateTime.UtcNow.AddMonths(5),
-                DateType = DateType.Issue
+                DateType = DateType.Issue,
             }
         };
 
@@ -173,7 +177,7 @@ public class SubUnitPermissionsTests : KsefIntegrationTestBase
             {
                 From = DateTime.UtcNow.AddMonths(-2),
                 To = DateTime.UtcNow.AddMonths(5),
-                DateType = DateType.Issue
+                DateType = DateType.Issue,
             }
         };
 

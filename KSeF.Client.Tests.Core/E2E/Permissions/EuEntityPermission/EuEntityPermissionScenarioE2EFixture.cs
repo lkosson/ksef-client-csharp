@@ -7,7 +7,6 @@ namespace KSeF.Client.Tests.Core.E2E.Permissions.EuEntityPermission;
 
 public class EuEntityPermissionScenarioE2EFixture
 {
-    public string AccessToken { get; set; }
     public EuEntitySubjectIdentifier EuEntity { get; } = new EuEntitySubjectIdentifier
     {
         Type = EuEntitySubjectIdentifierType.Fingerprint,

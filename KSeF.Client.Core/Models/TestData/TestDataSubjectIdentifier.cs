@@ -16,8 +16,6 @@ namespace KSeF.Client.Core.Models.TestData
         [EnumMember(Value = "pesel")]
         Pesel,
         [EnumMember(Value = "fingerprint")]
-        Fingerprint,
-        [EnumMember(Value = "token")]
-        Token
+        Fingerprint
     }
 }

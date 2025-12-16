@@ -1,4 +1,3 @@
-using KSeF.Client.Core.Interfaces.Services;
 using System.Globalization;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -9,18 +8,28 @@ using System.Xml;
 namespace KSeF.Client.Api.Services;
 
 /// <inheritdoc />
-public class SignatureService : ISignatureService
+public class SignatureService
 {
     private const string EcdsaSha256AlgorithmUrl = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256";
     private const string XadesNsUrl = "http://uri.etsi.org/01903/v1.3.2#";
     private const string SignedPropertiesType = "http://uri.etsi.org/01903#SignedProperties";
     private static readonly TimeSpan CertificateTimeBuffer = TimeSpan.FromMinutes(-1);
 
-    /// <inheritdoc />
     /// <summary>
-    /// Podpisuje dokument XML przekazany jako ciąg znaków
+    /// Podpisuje wskazany dokument XML w formacie XAdES, 
+    /// używając dostarczonego certyfikatu z kluczem prywatnym.
     /// </summary>
-    public string Sign(string xml, X509Certificate2 certificate)
+    /// <param name="xml">
+    /// Dokument XML (AuthTokenRequest) w formie tekstowej.
+    /// </param>
+    /// <param name="certificate">
+    /// Certyfikat X.509 zawierający klucz prywatny, 
+    /// którym ma zostać złożony podpis.
+    /// </param>
+    /// <returns>
+    /// Dokument XML podpisany w formacie XAdES (string).
+    /// </returns>
+    public static string Sign(string xml, X509Certificate2 certificate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(xml);
         ArgumentNullException.ThrowIfNull(certificate);
@@ -34,9 +43,23 @@ public class SignatureService : ISignatureService
     }
 
     /// <summary>
-    /// Podpisuje dokument XML i zwraca podpisany dokument
+    /// Podpisuje wskazany dokument XML w formacie XAdES, 
+    /// używając dostarczonego certyfikatu z kluczem prywatnym.
+    /// Metoda modyfikuje przekazany dokument w miejscu, dodając element podpisu.
     /// </summary>
-    public XmlDocument Sign(XmlDocument xmlDocument, X509Certificate2 certificate)
+    /// <param name="xmlDocument">
+    /// Dokument XML do podpisania. Musi posiadać element główny.
+    /// Zalecane jest ustawienie PreserveWhitespace = true.
+    /// </param>
+    /// <param name="certificate">
+    /// Certyfikat X.509 zawierający klucz prywatny, 
+    /// którym ma zostać złożony podpis.
+    /// </param>
+    /// <returns>
+    /// Ten sam obiekt XmlDocument co przekazany w parametrze, 
+    /// zmodyfikowany przez dodanie elementu podpisu XAdES.
+    /// </returns>
+    public static XmlDocument Sign(XmlDocument xmlDocument, X509Certificate2 certificate)
     {
         ArgumentNullException.ThrowIfNull(xmlDocument);
         ArgumentNullException.ThrowIfNull(certificate);

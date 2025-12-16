@@ -32,7 +32,7 @@ public static class UpoUtils
     /// </summary>
     public static async Task<string> GetSessionInvoiceUpoAsync(IKSeFClient ksefClient, string sessionReferenceNumber, string ksefNumber, string accessToken)
     {
-        return await ksefClient.GetSessionInvoiceUpoByKsefNumberAsync(sessionReferenceNumber, ksefNumber, accessToken, CancellationToken.None);
+        return await ksefClient.GetSessionInvoiceUpoByKsefNumberAsync(sessionReferenceNumber, ksefNumber, accessToken, CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public static class UpoUtils
     /// </summary>
     public static async Task<string> GetSessionUpoAsync(IKSeFClient ksefClient, string sessionReferenceNumber, string upoReferenceNumber, string accessToken)
     {
-        return await ksefClient.GetSessionUpoAsync(sessionReferenceNumber, upoReferenceNumber, accessToken, CancellationToken.None);
+        return await ksefClient.GetSessionUpoAsync(sessionReferenceNumber, upoReferenceNumber, accessToken, CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -48,6 +48,6 @@ public static class UpoUtils
     /// </summary>
     public static async Task<string> GetUpoAsync(IKSeFClient ksefClient, Uri uri)
     {
-        return await ksefClient.GetUpoAsync(uri, CancellationToken.None);
+        return await ksefClient.GetUpoAsync(uri, CancellationToken.None).ConfigureAwait(false);
     }
 }

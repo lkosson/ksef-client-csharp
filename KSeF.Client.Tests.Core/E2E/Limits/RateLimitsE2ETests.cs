@@ -49,7 +49,6 @@ public class RateLimitsE2ETests : TestBase
         AuthenticationOperationStatusResponse authorizationInfo =
             await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 MiscellaneousUtils.GetRandomNip());
         string accessToken = authorizationInfo.AccessToken.Token;
 
@@ -113,7 +112,6 @@ public class RateLimitsE2ETests : TestBase
         AuthenticationOperationStatusResponse authorizationInfo =
             await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 MiscellaneousUtils.GetRandomNip());
         string accessToken = authorizationInfo.AccessToken.Token;
 

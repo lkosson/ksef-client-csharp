@@ -14,7 +14,7 @@ public class Authorization : KsefIntegrationTestBase
     public async Task AuthAsyncFullIntegrationFlowReturnsAccessToken()
     {
         // Arrange & Act
-        AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, MiscellaneousUtils.GetRandomNip());
+        AuthenticationOperationStatusResponse authResult = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, MiscellaneousUtils.GetRandomNip());
 
         // Assert
         Assert.NotNull(authResult);
@@ -31,7 +31,7 @@ public class Authorization : KsefIntegrationTestBase
     {
         // Arrange
         // Uwierzytelnij
-        AuthenticationOperationStatusResponse authInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, MiscellaneousUtils.GetRandomNip());
+        AuthenticationOperationStatusResponse authInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, MiscellaneousUtils.GetRandomNip());
         // Najpierw trzeba uwierzytelnić jako właściciel, aby otrzymać token KSeF
         KsefTokenPermissionType[] permissions =
         [
@@ -81,7 +81,7 @@ public class Authorization : KsefIntegrationTestBase
         IAuthCoordinator authCoordinatorService = new AuthCoordinator(AuthorizationClient);
         string testNip = MiscellaneousUtils.GetRandomNip();
         AuthenticationTokenContextIdentifierType contextIdentifierType = AuthenticationTokenContextIdentifierType.Nip;
-        AuthenticationOperationStatusResponse authInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, testNip, contextIdentifierType);
+        AuthenticationOperationStatusResponse authInfo = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, testNip, contextIdentifierType);
         KsefTokenPermissionType[] permissions =
         [
             KsefTokenPermissionType.InvoiceWrite,

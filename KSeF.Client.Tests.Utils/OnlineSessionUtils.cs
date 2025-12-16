@@ -42,7 +42,7 @@ public static class OnlineSessionUtils
               initializationVector: encryptionData.EncryptionInfo.InitializationVector)
           .Build();
 
-        return await ksefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, accessToken);
+        return await ksefClient.OpenOnlineSessionAsync(openOnlineSessionRequest, accessToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -72,7 +72,7 @@ public static class OnlineSessionUtils
 
         string xml = GetXmlInvoiceFromPath(invoiceFilePath, nip);
 
-        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml);
+        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ public static class OnlineSessionUtils
 
         string xml = GetXmlInvoiceFromPath(invoiceFilePath, nip, subject);
 
-        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml);
+        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml).ConfigureAwait(false);
     }
 
     private static string GetXmlInvoiceFromPath(string invoiceFilePath,string nip, string subject = "")
@@ -253,7 +253,7 @@ public static class OnlineSessionUtils
             throw new ArgumentException($"Template contains unreplaced token(s): {string.Join(", ", leftovers)}.");
         }
 
-        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml);
+        return await SendInvoice(ksefClient, sessionReferenceNumber, accessToken, encryptionData, cryptographyService, xml).ConfigureAwait(false);
     }
 
 
@@ -274,7 +274,7 @@ public static class OnlineSessionUtils
             .WithEncryptedDocumentContent(Convert.ToBase64String(encryptedInvoice))
             .Build();
 
-        return await ksefClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, sessionReferenceNumber, accessToken);
+        return await ksefClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, sessionReferenceNumber, accessToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -316,7 +316,7 @@ public static class OnlineSessionUtils
             .WithEncryptedDocumentContent(Convert.ToBase64String(encryptedInvoice))
             .Build();
 
-        return await ksefClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, sessionReferenceNumber, accessToken);
+        return await ksefClient.SendOnlineSessionInvoiceAsync(sendOnlineInvoiceRequest, sessionReferenceNumber, accessToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -340,7 +340,7 @@ public static class OnlineSessionUtils
         SessionStatusResponse statusResponse;
         do
         {
-            statusResponse = await ksefClient.GetSessionStatusAsync(sessionReferenceNumber, accessToken);
+            statusResponse = await ksefClient.GetSessionStatusAsync(sessionReferenceNumber, accessToken).ConfigureAwait(false);
 
             if (attempt >= maxAttempts)
             {
@@ -348,7 +348,7 @@ public static class OnlineSessionUtils
             }
 
             attempt++;
-            await Task.Delay(sleepTime);
+            await Task.Delay(sleepTime).ConfigureAwait(false);
         } while (statusResponse.SuccessfulInvoiceCount is null);
 
         return statusResponse;
@@ -376,14 +376,14 @@ public static class OnlineSessionUtils
 
         for (int i = 0; i < maxAttempts; i++)
         {
-            sessionInvoiceStatus = await kSeFClient.GetSessionInvoiceAsync(sessionReferenceNumber, invoiceReferenceNumber, accessToken);
+            sessionInvoiceStatus = await kSeFClient.GetSessionInvoiceAsync(sessionReferenceNumber, invoiceReferenceNumber, accessToken).ConfigureAwait(false);
 
             if (sessionInvoiceStatus.Status.Code != ProcessingStatusCode) // Trwa przetwarzanie
             {
                 return sessionInvoiceStatus;
             }
 
-            await Task.Delay(sleepTime);
+            await Task.Delay(sleepTime).ConfigureAwait(false);
         }
 
         return sessionInvoiceStatus;
@@ -397,7 +397,7 @@ public static class OnlineSessionUtils
     /// <param name="accessToken">Token dostępu.</param>
     public static async Task CloseOnlineSessionAsync(IKSeFClient kSeFClient, string sessionReferenceNumber, string accessToken)
     {
-        await kSeFClient.CloseOnlineSessionAsync(sessionReferenceNumber, accessToken);
+        await kSeFClient.CloseOnlineSessionAsync(sessionReferenceNumber, accessToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -409,7 +409,7 @@ public static class OnlineSessionUtils
     /// <returns>Odpowiedź z metadanymi faktur sesji.</returns>
     public static async Task<SessionInvoicesResponse> GetSessionInvoicesMetadataAsync(IKSeFClient kSeFClient, string sessionReferenceNumber, string accessToken)
     {
-        SessionInvoicesResponse sessionInvoiceResponse = await kSeFClient.GetSessionInvoicesAsync(sessionReferenceNumber, accessToken);
+        SessionInvoicesResponse sessionInvoiceResponse = await kSeFClient.GetSessionInvoicesAsync(sessionReferenceNumber, accessToken).ConfigureAwait(false);
         return sessionInvoiceResponse;
     }
 
@@ -426,7 +426,7 @@ public static class OnlineSessionUtils
         string ksefInvoiceNumber,
         string accessToken)
     {
-        string upoResponse = await ksefClient.GetSessionInvoiceUpoByKsefNumberAsync(sessionReferenceNumber, ksefInvoiceNumber, accessToken, CancellationToken.None);
+        string upoResponse = await ksefClient.GetSessionInvoiceUpoByKsefNumberAsync(sessionReferenceNumber, ksefInvoiceNumber, accessToken, CancellationToken.None).ConfigureAwait(false);
         return upoResponse;
     }
 
@@ -443,7 +443,7 @@ public static class OnlineSessionUtils
         string upoReferenceNumber,
         string accessToken)
     {
-        string upoResponse = await ksefClient.GetSessionUpoAsync(sessionReferenceNumber, upoReferenceNumber, accessToken, CancellationToken.None);
+        string upoResponse = await ksefClient.GetSessionUpoAsync(sessionReferenceNumber, upoReferenceNumber, accessToken, CancellationToken.None).ConfigureAwait(false);
         return upoResponse;
     }
 }

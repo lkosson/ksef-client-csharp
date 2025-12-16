@@ -44,11 +44,11 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
 
         // Owner auth (kontekst NIP)
         AuthenticationOperationStatusResponse ownerAuth =
-            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, ownerNip);
+            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, ownerNip);
         string ownerAccessToken = ownerAuth.AccessToken.Token;
 
         // GRANT (publiczne API): nadajemy InvoiceRead + InvoiceWrite osobie identyfikowanej PESELem
-        GrantPermissionsPersonRequest grantRequest = new()
+        GrantPermissionsPersonRequest grantRequest = new GrantPermissionsPersonRequest
         {
             SubjectIdentifier = new GrantPermissionsPersonSubjectIdentifier
             {
@@ -68,7 +68,7 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
 
         PermissionsOperationStatusResponse grantStatus =
             await AsyncPollingUtils.PollAsync(
-                async () => await KsefClient.OperationsStatusAsync(grantOperation.ReferenceNumber, ownerAccessToken),
+                async () => await KsefClient.OperationsStatusAsync(grantOperation.ReferenceNumber, ownerAccessToken).ConfigureAwait(false),
                 result => result is not null && result.Status is not null && result.Status.Code == OperationStatusCodeResponse.Success,
                 description: "Czekam na nadanie uprawnień (200)",
                 delay: TimeSpan.FromMilliseconds(SleepTime),
@@ -88,7 +88,6 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
         AuthenticationOperationStatusResponse personAuth =
             await AuthenticationUtils.AuthenticateAsync(
                 AuthorizationClient,
-                SignatureService,
                 ownerNip,
                 AuthenticationTokenContextIdentifierType.Nip,
                 personalCertificate);
@@ -116,7 +115,7 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
         PagedPermissionsResponse<PersonalPermission> page =
             await AsyncPollingUtils.PollAsync(
                 async () => await KsefClient.SearchGrantedPersonalPermissionsAsync(
-                    query, personAccessToken, pageOffset: 0, pageSize: 50, cancellationToken: CancellationToken),
+                    query, personAccessToken, pageOffset: 0, pageSize: 50, cancellationToken: CancellationToken).ConfigureAwait(false),
                 result => result is not null
                           && result.Permissions is not null
                           && result.Permissions.Any(p => p.Description == description
@@ -147,7 +146,7 @@ public class PersonalPermissions_AuthorizedPesel_InNipContext_E2ETests : TestBas
 
             PermissionsOperationStatusResponse revokeStatus =
                 await AsyncPollingUtils.PollAsync(
-                    async () => await KsefClient.OperationsStatusAsync(revokeOp.ReferenceNumber, ownerAccessToken),
+                    async () => await KsefClient.OperationsStatusAsync(revokeOp.ReferenceNumber, ownerAccessToken).ConfigureAwait(false),
                     result => result is not null && result.Status is not null && result.Status.Code == OperationStatusCodeResponse.Success,
                     description: "Czekam na odebranie uprawnień (200)",
                     delay: TimeSpan.FromMilliseconds(SleepTime),

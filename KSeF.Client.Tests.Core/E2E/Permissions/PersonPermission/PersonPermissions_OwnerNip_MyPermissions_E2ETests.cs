@@ -30,7 +30,7 @@ public class PersonPermissionsOwnerNipMyPermissionsE2ETests : TestBase
         string ownerNip = MiscellaneousUtils.GetRandomNip();
 
         AuthenticationOperationStatusResponse ownerAuth =
-            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, ownerNip);
+            await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, ownerNip);
         string ownerAccessToken = ownerAuth.AccessToken.Token;
 
         PersonPermissionsQueryRequest request = new()

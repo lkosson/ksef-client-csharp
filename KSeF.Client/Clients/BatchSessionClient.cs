@@ -11,7 +11,7 @@ public class BatchSessionClient(IRestClient restClient, IRouteBuilder routeBuild
     : ClientBase(restClient, routeBuilder), IBatchSessionClient
 {
     /// <inheritdoc />
-    public Task<OpenBatchSessionResponse> OpenBatchSessionAsync(OpenBatchSessionRequest requestPayload, string accessToken, CancellationToken cancellationToken = default)
+    public Task<OpenBatchSessionResponse> OpenBatchSessionAsync(OpenBatchSessionRequest requestPayload, string accessToken, string upoVersion, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(requestPayload);
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
@@ -20,7 +20,10 @@ public class BatchSessionClient(IRestClient restClient, IRouteBuilder routeBuild
             Routes.Sessions.Batch.Open,
             requestPayload,
             accessToken,
-            cancellationToken);
+			!string.IsNullOrEmpty(upoVersion) ?
+            new Dictionary<string, string> 
+                { { "X-KSeF-Feature", upoVersion } } : null,
+			cancellationToken);
     }
 
     /// <inheritdoc />

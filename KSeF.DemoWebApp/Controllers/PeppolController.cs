@@ -19,7 +19,7 @@ public class PeppolController(IKSeFClient client) : ControllerBase
         [FromQuery] int? pageSize,
         CancellationToken cancellationToken)
     {
-        QueryPeppolProvidersResponse result = await client.QueryPeppolProvidersAsync(accessToken, pageOffset, pageSize, cancellationToken);
+        QueryPeppolProvidersResponse result = await client.QueryPeppolProvidersAsync(accessToken, pageOffset, pageSize, cancellationToken).ConfigureAwait(false);
         return Ok(result);
     }
 }

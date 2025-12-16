@@ -18,7 +18,7 @@ public class ActiveSessionsController(IActiveSessionsClient activeSessionsClient
         List<AuthenticationListItem> activeSessions = [];
         do
         {
-            AuthenticationListResponse response = await activeSessionsClient.GetActiveSessions(accessToken, pageSize, continuationToken, cancellationToken);
+            AuthenticationListResponse response = await activeSessionsClient.GetActiveSessions(accessToken, pageSize, continuationToken, cancellationToken).ConfigureAwait(false);
             continuationToken = response.ContinuationToken;
             activeSessions.AddRange(response.Items);
         }
@@ -35,7 +35,7 @@ public class ActiveSessionsController(IActiveSessionsClient activeSessionsClient
     [HttpDelete("revoke-current-session")]
     public async Task<ActionResult> RevokeCurrentSessionAsync([FromQuery] string token, CancellationToken cancellationToken)
     {
-        await activeSessionsClient.RevokeCurrentSessionAsync(token, cancellationToken);
+        await activeSessionsClient.RevokeCurrentSessionAsync(token, cancellationToken).ConfigureAwait(false);
         return NoContent();
     }
 
@@ -45,7 +45,7 @@ public class ActiveSessionsController(IActiveSessionsClient activeSessionsClient
     [HttpDelete("revoke-session")]
     public async Task<ActionResult> RevokeSessionAsync([FromQuery] string sessionReferenceNumber, [FromQuery] string accessToken, CancellationToken cancellationToken)
     {
-        await activeSessionsClient.RevokeSessionAsync(sessionReferenceNumber, accessToken, cancellationToken);
+        await activeSessionsClient.RevokeSessionAsync(sessionReferenceNumber, accessToken, cancellationToken).ConfigureAwait(false);
         return NoContent();
     }
 }

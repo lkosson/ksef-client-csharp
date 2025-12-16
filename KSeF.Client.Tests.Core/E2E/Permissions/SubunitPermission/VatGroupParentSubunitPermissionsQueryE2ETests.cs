@@ -140,7 +140,7 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
             Description = "Grupa VAT testowa"
         };
 
-        await testData.CreateSubjectAsync(createRequest, CancellationToken);
+        await testData.CreateSubjectAsync(createRequest, CancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
     /// <returns>Zadanie asynchroniczne bez wyniku.</returns>
     private async Task RemoveSubjectAsync()
     {
-        await TestDataClient.RemoveSubjectAsync(new Client.Core.Models.TestData.SubjectRemoveRequest { SubjectNip = _vatGroupNip }, CancellationToken);
+        await TestDataClient.RemoveSubjectAsync(new Client.Core.Models.TestData.SubjectRemoveRequest { SubjectNip = _vatGroupNip }, CancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -159,7 +159,7 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
     /// <returns>Access token ciąg znaków.</returns>
     private async Task<string> AuthenticateAsync(string nip)
     {
-        AuthenticationOperationStatusResponse auth = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, nip);
+        AuthenticationOperationStatusResponse auth = await AuthenticationUtils.AuthenticateAsync(AuthorizationClient, nip).ConfigureAwait(false);
         return auth.AccessToken.Token;
     }
 
@@ -180,10 +180,9 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
 
         AuthenticationOperationStatusResponse auth = await AuthenticationUtils.AuthenticateAsync(
             AuthorizationClient,
-            SignatureService,
             unitNip,
             AuthenticationTokenContextIdentifierType.Nip,
-            personalCertificate);
+            personalCertificate).ConfigureAwait(false);
 
         return auth.AccessToken.Token;
     }
@@ -204,7 +203,7 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
             .WithDescription("E2E test - nadanie uprawnień osobowych do zarządzania jednostką podrzędną")
             .Build();
 
-        OperationResponse operationResponse = await KsefClient.GrantsPermissionPersonAsync(personGrantRequest, _parentAccessToken);
+        OperationResponse operationResponse = await KsefClient.GrantsPermissionPersonAsync(personGrantRequest, _parentAccessToken).ConfigureAwait(false);
         return operationResponse;
     }
 
@@ -232,9 +231,14 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
             })
             .WithSubunitName("E2E VATGroup Jednostka podrzędna")
             .WithDescription("E2E - nadanie uprawnień administratora w kontekście jednostki podrzędnej")
+            .WithSubjectDetails(new SubunitSubjectDetails
+            {
+                SubjectDetailsType = PermissionsSubunitSubjectDetailsType.PersonByIdentifier,
+                PersonById = new PermissionsSubunitPersonByIdentifier { FirstName = "Jan", LastName = "Kowalski" }
+            })
             .Build();
 
-        return await KsefClient.GrantsPermissionSubUnitAsync(request, accessToken, CancellationToken);
+        return await KsefClient.GrantsPermissionSubUnitAsync(request, accessToken, CancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -248,7 +252,7 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
         List<OperationResponse> revokeOperations = [];
         foreach (Client.Core.Models.Permissions.SubunitPermission permission in permissions)
         {
-            OperationResponse resp = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            OperationResponse resp = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None).ConfigureAwait(false);
             revokeOperations.Add(resp);
         }
 
@@ -260,7 +264,7 @@ public class VatGroupParentSubunitPermissionsQueryE2ETests : TestBase
                 condition: s => s?.Status?.Code == OperationStatusCodeResponse.Success,
                 delay: TimeSpan.FromSeconds(1),
                 maxAttempts: 60,
-                cancellationToken: CancellationToken);
+                cancellationToken: CancellationToken).ConfigureAwait(false);
 
             statuses.Add(status);
         }

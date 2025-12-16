@@ -21,7 +21,7 @@ public class SearchPermissionController(IKSeFClient ksefClient) : ControllerBase
         [FromQuery] string accessToken,
         [FromBody] PersonPermissionsQueryRequest request)
     {
-        return Ok(await ksefClient.SearchGrantedPersonPermissionsAsync(request, accessToken, pageOffset, pageSize));
+        return Ok(await ksefClient.SearchGrantedPersonPermissionsAsync(request, accessToken, pageOffset, pageSize).ConfigureAwait(false));
 
     }
 
@@ -35,7 +35,7 @@ public class SearchPermissionController(IKSeFClient ksefClient) : ControllerBase
         [FromQuery] string accessToken,
         [FromBody] SubunitPermissionsQueryRequest request)
     {
-        return Ok(await ksefClient.SearchSubunitAdminPermissionsAsync(request, accessToken, pageOffset, pageSize));
+        return Ok(await ksefClient.SearchSubunitAdminPermissionsAsync(request, accessToken, pageOffset, pageSize).ConfigureAwait(false));
 
     }
 
@@ -49,7 +49,7 @@ public class SearchPermissionController(IKSeFClient ksefClient) : ControllerBase
         [FromQuery] int pageSize
         )
     {
-        return Ok(await ksefClient.SearchEntityInvoiceRolesAsync(accessToken, pageOffset, pageSize));
+        return Ok(await ksefClient.SearchEntityInvoiceRolesAsync(accessToken, pageOffset, pageSize).ConfigureAwait(false));
 
     }
 
@@ -64,7 +64,7 @@ public class SearchPermissionController(IKSeFClient ksefClient) : ControllerBase
         [FromQuery] int pageSize)
     {
 
-        return Ok(await ksefClient.SearchSubordinateEntityInvoiceRolesAsync(request, accessToken,pageOffset, pageSize));
+        return Ok(await ksefClient.SearchSubordinateEntityInvoiceRolesAsync(request, accessToken,pageOffset, pageSize).ConfigureAwait(false));
 
     }
 
@@ -78,7 +78,7 @@ public class SearchPermissionController(IKSeFClient ksefClient) : ControllerBase
         [FromQuery] string accessToken,
         [FromBody] EntityAuthorizationsQueryRequest request)
     {
-        return Ok(await ksefClient.SearchEntityAuthorizationGrantsAsync(request, accessToken, pageOffset, pageSize));
+        return Ok(await ksefClient.SearchEntityAuthorizationGrantsAsync(request, accessToken, pageOffset, pageSize).ConfigureAwait(false));
 
     }
 
@@ -92,7 +92,7 @@ public class SearchPermissionController(IKSeFClient ksefClient) : ControllerBase
         [FromQuery] string accessToken,
         [FromBody] EuEntityPermissionsQueryRequest request)
     {
-        return Ok(await ksefClient.SearchGrantedEuEntityPermissionsAsync(request, accessToken, pageOffset, pageSize));
+        return Ok(await ksefClient.SearchGrantedEuEntityPermissionsAsync(request, accessToken, pageOffset, pageSize).ConfigureAwait(false));
     }
 }
 

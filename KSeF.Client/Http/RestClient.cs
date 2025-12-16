@@ -247,11 +247,11 @@ public sealed class RestClient(HttpClient httpClient) : IRestClient
                 throw new KsefApiException("Not found", response.StatusCode);
 
             case System.Net.HttpStatusCode.TooManyRequests:
-                await HandleTooManyRequestsAsync(response, cancellationToken);
+                await HandleTooManyRequestsAsync(response, cancellationToken).ConfigureAwait(false);
                 return;
 
             default:
-                await HandleOtherErrorsAsync(response, cancellationToken);
+                await HandleOtherErrorsAsync(response, cancellationToken).ConfigureAwait(false);
                 return;
         }        
 

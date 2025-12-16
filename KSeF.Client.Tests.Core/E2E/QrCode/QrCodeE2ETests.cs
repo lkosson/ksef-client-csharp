@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using KSeF.Client.Core.Models.QRCode;
+using KSeF.Client.Extensions;
 
 namespace KSeF.Client.Tests.Core.E2E.QrCode;
 
@@ -23,14 +24,12 @@ public class QrCodeE2ETests : TestBase
 
     private readonly ECCurve CurveName = ECCurve.NamedCurves.nistP256;
     private readonly string Nip = MiscellaneousUtils.GetRandomNip();
-    private readonly string CertificateSerialNumber = Guid.NewGuid().ToString();
     private readonly VerificationLinkService linkService;
-    private readonly QrCodeService qrCodeService;
+
 
     public QrCodeE2ETests()
     {
-        linkService = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnvironmentsUris.TEST });
-        qrCodeService = new QrCodeService();
+        linkService = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefQREnvironmentsUris.TEST, BaseQRUrl = KsefQREnvironmentsUris.TEST });
     }
 
     #region Testy RSA
@@ -55,17 +54,8 @@ public class QrCodeE2ETests : TestBase
         );
         byte[] pfxBytes = fullCert.Export(X509ContentType.Pfx);
 
-#if NET10_0_OR_GREATER
-        X509Certificate2 certWithKey = X509CertificateLoader.LoadPkcs12(
-            pfxBytes,
-            password: null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-#else
-        X509Certificate2 certWithKey = new X509Certificate2(
-            pfxBytes,
-            (string?)null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-#endif
+        X509Certificate2 certWithKey = X509CertificateLoaderExtensions
+            .LoadPkcs12(pfxBytes);
 
         string invoiceHash;
         byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(InvoiceXml));
@@ -73,9 +63,9 @@ public class QrCodeE2ETests : TestBase
 
         // Act
         // Brak jawnego klucza prywatnego → użycie wbudowanego klucza
-        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, CertificateSerialNumber, invoiceHash, certWithKey);
-        byte[] qrBytes = qrCodeService.GenerateQrCode(url, PixelsPerModule);
-        byte[] labeled = qrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
+        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, invoiceHash, certWithKey);
+        byte[] qrBytes = QrCodeService.GenerateQrCode(url, PixelsPerModule);
+        byte[] labeled = QrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
         string pngBase64 = Convert.ToBase64String(labeled);
 
         // Assert
@@ -104,17 +94,9 @@ public class QrCodeE2ETests : TestBase
         );
 
         byte[] pfxBytes = fullCert.Export(X509ContentType.Pfx);
-#if NET10_0_OR_GREATER
-        X509Certificate2 certWithKey = X509CertificateLoader.LoadPkcs12(
-            pfxBytes,
-            password: null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-#else
-        X509Certificate2 certWithKey = new X509Certificate2(
-            pfxBytes,
-            (string?)null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-#endif
+
+        X509Certificate2 certWithKey = X509CertificateLoaderExtensions
+            .LoadPkcs12(pfxBytes);
 
         string invoiceHash;
         byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(InvoiceXml));
@@ -124,20 +106,19 @@ public class QrCodeE2ETests : TestBase
         // Nie podajemy privateKey — metoda użyje certWithKey.GetRSAPrivateKey()
         string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip,
             Nip,
-            CertificateSerialNumber,
             invoiceHash,
             certWithKey
         );
 
-        byte[] qrBytes = qrCodeService.GenerateQrCode(url, PixelsPerModule);
-        byte[] labeled = qrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
+        byte[] qrBytes = QrCodeService.GenerateQrCode(url, PixelsPerModule);
+        byte[] labeled = QrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
         string pngBase64 = Convert.ToBase64String(labeled);
 
         // Assert
         // Base64 PNG zaczyna się od "iVBOR"
         Assert.StartsWith(Base64PngPrefix, pngBase64);
     }
-    #endregion
+#endregion
 
     #region Testy ECC (rekomendowane)
     /// <summary>
@@ -159,17 +140,9 @@ public class QrCodeE2ETests : TestBase
             DateTimeOffset.UtcNow.AddDays(1)
         );
         byte[] pfxBytes = fullCert.Export(X509ContentType.Pfx);
-#if NET10_0_OR_GREATER
-        X509Certificate2 certWithKey = X509CertificateLoader.LoadPkcs12(
-            pfxBytes,
-            password: null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-#else
-        X509Certificate2 certWithKey = new X509Certificate2(
-            pfxBytes,
-            (string?)null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-#endif
+
+        X509Certificate2 certWithKey = X509CertificateLoaderExtensions
+            .LoadPkcs12(pfxBytes);
 
         string invoiceHash;
         invoiceHash = Convert.ToBase64String(
@@ -177,9 +150,9 @@ public class QrCodeE2ETests : TestBase
 
         // Act
         // Brak jawnego klucza prywatnego → użycie osadzonego klucza ECDSA
-        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, CertificateSerialNumber, invoiceHash, certWithKey);
-        byte[] qrBytes = qrCodeService.GenerateQrCode(url, PixelsPerModule);
-        byte[] labeled = qrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
+        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, invoiceHash, certWithKey);
+        byte[] qrBytes = QrCodeService.GenerateQrCode(url, PixelsPerModule);
+        byte[] labeled = QrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
         string pngBase64 = Convert.ToBase64String(labeled);
 
         // Assert
@@ -206,17 +179,9 @@ public class QrCodeE2ETests : TestBase
         );
 
         byte[] pfxBytes = fullCert.Export(X509ContentType.Pfx);
-#if NET10_0_OR_GREATER
-        X509Certificate2 certWithKey = X509CertificateLoader.LoadPkcs12(
-            pfxBytes,
-            password: null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-#else
-        X509Certificate2 certWithKey = new X509Certificate2(
-            pfxBytes,
-            (string?)null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-#endif
+
+        X509Certificate2 certWithKey = X509CertificateLoaderExtensions
+            .LoadPkcs12(pfxBytes);
 
         string invoiceHash;
         invoiceHash = Convert.ToBase64String(
@@ -224,9 +189,9 @@ SHA256.HashData(Encoding.UTF8.GetBytes(InvoiceXml)));
 
         // Act
         // Jawny import klucza prywatnego P-256
-        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, CertificateSerialNumber, invoiceHash, certWithKey);
-        byte[] qrBytes = qrCodeService.GenerateQrCode(url, PixelsPerModule);
-        byte[] labeled = qrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
+        string url = linkService.BuildCertificateVerificationUrl(Nip, QRCodeContextIdentifierType.Nip, Nip, invoiceHash, certWithKey);
+        byte[] qrBytes = QrCodeService.GenerateQrCode(url, PixelsPerModule);
+        byte[] labeled = QrCodeService.AddLabelToQrCode(qrBytes, GeneratedQrCodeLabel);
         string pngBase64 = Convert.ToBase64String(labeled);
 
         // Assert

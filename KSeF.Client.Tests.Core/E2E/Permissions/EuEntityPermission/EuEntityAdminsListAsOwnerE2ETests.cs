@@ -26,7 +26,6 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
         // Uwierzytelnij właściciela w kontekście NIP
         AuthenticationOperationStatusResponse ownerAuth = await AuthenticationUtils.AuthenticateAsync(
             AuthorizationClient,
-            SignatureService,
             ownerNip);
 
         Assert.NotNull(ownerAuth);
@@ -42,6 +41,16 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
         string euAdminFingerprint = CertificateUtils.GetSha256Fingerprint(euAdminCertificate);
 
         // Nadaj uprawnienia administracyjne jednostce UE w kontekście właściciela (NipVatUe)
+        PermissionsEuEntitySubjectDetails subjectDetails = new PermissionsEuEntitySubjectDetails
+        {
+            SubjectDetailsType = PermissionsEuEntitySubjectDetailsType.EntityByFingerprint,
+             EntityByFp = new PermissionsEuEntityEntityByFp
+             {
+                 Address = "EU Admin Address",
+                 FullName = "EU Admin Full Name"
+             }
+        };
+
         GrantPermissionsEuEntityRequest grantRequest = GrantEuEntityPermissionsRequestBuilder
             .Create()
             .WithSubject(new EuEntitySubjectIdentifier
@@ -56,6 +65,7 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
                 Value = ownerVatEu
             })
             .WithDescription("Grant admin for EU Entity context")
+            .WithSubjectDetails(subjectDetails)
             .Build();
 
         OperationResponse grantResponse = await KsefClient
@@ -66,7 +76,7 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
 
         // Opcjonalnie: poczekaj aż operacja nadania będzie w statusie 200
         PermissionsOperationStatusResponse grantStatus = await AsyncPollingUtils.PollAsync(
-            async () => await KsefClient.OperationsStatusAsync(grantResponse.ReferenceNumber, ownerAuth.AccessToken.Token),
+            async () => await KsefClient.OperationsStatusAsync(grantResponse.ReferenceNumber, ownerAuth.AccessToken.Token).ConfigureAwait(false),
             result => result is not null && result.Status is not null && result.Status.Code == 200,
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: 60,
@@ -76,7 +86,7 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
         Assert.Equal(200, grantStatus.Status.Code);
 
         // Act: pobierz listę administratorów podmiotów unijnych jako właściciel
-        EuEntityPermissionsQueryRequest query = new EuEntityPermissionsQueryRequest
+        EuEntityPermissionsQueryRequest query = new()
         {
             PermissionTypes = new List<EuEntityPermissionType>
             {
@@ -90,7 +100,7 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
                 ownerAuth.AccessToken.Token,
                 pageOffset: 0,
                 pageSize: 10,
-                CancellationToken),
+                CancellationToken).ConfigureAwait(false),
             condition: r => r is not null && r.Permissions is { Count: > 0 },
             delay: TimeSpan.FromMilliseconds(SleepTime),
             maxAttempts: 60,
@@ -99,5 +109,6 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
         // Assert
         Assert.NotNull(admins);
         Assert.NotEmpty(admins.Permissions);
+        Assert.Contains(admins.Permissions, x => x.SubjectEntityDetails.Address == subjectDetails.EntityByFp.Address && x.SubjectEntityDetails.FullName == subjectDetails.EntityByFp.FullName);
     }
 }

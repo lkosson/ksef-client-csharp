@@ -32,7 +32,7 @@ public class EuEntityPermissionE2ETests : TestBase
         TestFixture = new EuEntityPermissionScenarioE2EFixture();
         TestFixture.NipVatUe = MiscellaneousUtils.GetRandomNipVatEU(nip);
         AuthenticationOperationStatusResponse authOperationStatusResponse =
-            AuthenticationUtils.AuthenticateAsync(AuthorizationClient, SignatureService, nip).GetAwaiter().GetResult();
+            AuthenticationUtils.AuthenticateAsync(AuthorizationClient, nip).GetAwaiter().GetResult();
         accessToken = authOperationStatusResponse.AccessToken.Token;
         TestFixture.EuEntity.Value = fingerprint;
     }
@@ -64,7 +64,7 @@ public class EuEntityPermissionE2ETests : TestBase
         // Act
         PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> grantedPermissionsPaged =
             await AsyncPollingUtils.PollAsync(
-                async () => await SearchPermissionsAsync(EuEntityPermissionsQueryRequest),
+                async () => await SearchPermissionsAsync(EuEntityPermissionsQueryRequest).ConfigureAwait(false),
                 result => result is not null && result.Permissions is { Count: > 0 },
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 60,
@@ -93,7 +93,7 @@ public class EuEntityPermissionE2ETests : TestBase
         // Act
         PagedPermissionsResponse<Client.Core.Models.Permissions.EuEntityPermission> euEntityPermissionsWhenRevoked =
             await AsyncPollingUtils.PollAsync(
-                async () => await SearchPermissionsAsync(EuEntityPermissionsQueryRequest),
+                async () => await SearchPermissionsAsync(EuEntityPermissionsQueryRequest).ConfigureAwait(false),
                 result => result is not null && (result.Permissions is null || result.Permissions.Count == 0),
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 60,
@@ -122,7 +122,7 @@ public class EuEntityPermissionE2ETests : TestBase
             .Build();
 
         OperationResponse operationResponse = await KsefClient
-            .GrantsPermissionEUEntityAsync(grantPermissionsRequest, accessToken, CancellationToken);
+            .GrantsPermissionEUEntityAsync(grantPermissionsRequest, accessToken, CancellationToken).ConfigureAwait(false);
 
         return operationResponse;
     }
@@ -141,7 +141,7 @@ public class EuEntityPermissionE2ETests : TestBase
                 accessToken,
                 pageOffset: 0,
                 pageSize: 10,
-                CancellationToken);
+                CancellationToken).ConfigureAwait(false);
 
         return response;
     }
@@ -155,7 +155,7 @@ public class EuEntityPermissionE2ETests : TestBase
 
         foreach (Client.Core.Models.Permissions.EuEntityPermission permission in TestFixture.SearchResponse.Permissions)
         {
-            OperationResponse operationResponse = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None);
+            OperationResponse operationResponse = await KsefClient.RevokeCommonPermissionAsync(permission.Id, accessToken, CancellationToken.None).ConfigureAwait(false);
             revokeResponses.Add(operationResponse);
         }
 
@@ -163,11 +163,11 @@ public class EuEntityPermissionE2ETests : TestBase
         {
             PermissionsOperationStatusResponse status =
                 await AsyncPollingUtils.PollAsync(
-                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken),
+                    async () => await KsefClient.OperationsStatusAsync(revokeResponse.ReferenceNumber, accessToken).ConfigureAwait(false),
                     s => s is not null && s.Status is not null && s.Status.Code == OperationSuccessfulStatusCode,
                     delay: TimeSpan.FromMilliseconds(SleepTime),
                     maxAttempts: 60,
-                    cancellationToken: CancellationToken);
+                    cancellationToken: CancellationToken).ConfigureAwait(false);
 
             TestFixture.RevokeStatusResults.Add(status);
         }

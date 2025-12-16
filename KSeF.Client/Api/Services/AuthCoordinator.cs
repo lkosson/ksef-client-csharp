@@ -26,7 +26,7 @@ public class AuthCoordinator(
     {
         // 1) Pobranie challenge i timestamp
         AuthenticationChallengeResponse challengeResponse = await authorizationClient
-            .GetAuthChallengeAsync(cancellationToken);
+            .GetAuthChallengeAsync(cancellationToken).ConfigureAwait(false);
 
         string challenge = challengeResponse.Challenge;      
 
@@ -60,13 +60,13 @@ public class AuthCoordinator(
 
         // 5) Wysłanie do KSeF
         SignatureResponse submissionResponse = await authorizationClient
-            .SubmitKsefTokenAuthRequestAsync(authKsefTokenRequest.Build(), cancellationToken);
+            .SubmitKsefTokenAuthRequestAsync(authKsefTokenRequest.Build(), cancellationToken).ConfigureAwait(false);
 
         // 6) Odpytanie o gotowość tokenu
-        await WaitForAuthCompletionAsync(submissionResponse, cancellationToken);
+        await WaitForAuthCompletionAsync(submissionResponse, cancellationToken).ConfigureAwait(false);
 
         // 7) Pobranie tokenu dostępowego
-        AuthenticationOperationStatusResponse accessTokenResponse = await authorizationClient.GetAccessTokenAsync(submissionResponse.AuthenticationToken.Token, cancellationToken);       
+        AuthenticationOperationStatusResponse accessTokenResponse = await authorizationClient.GetAccessTokenAsync(submissionResponse.AuthenticationToken.Token, cancellationToken).ConfigureAwait(false);       
 
         // 8) Zwróć token            
         return accessTokenResponse;
@@ -84,7 +84,7 @@ public class AuthCoordinator(
     {
         // 1) Challenge
         AuthenticationChallengeResponse challengeResponse = await authorizationClient
-            .GetAuthChallengeAsync(cancellationToken);
+            .GetAuthChallengeAsync(cancellationToken).ConfigureAwait(false);
 
         string challenge = challengeResponse.Challenge;
 
@@ -108,16 +108,16 @@ public class AuthCoordinator(
         string unsignedXml = AuthenticationTokenRequestSerializer.SerializeToXmlString(authorizeRequest);
 
         // 4) wywołanie mechanizmu podpisującego XML
-        string signedXml = await xmlSigner.Invoke(unsignedXml);
+        string signedXml = await xmlSigner.Invoke(unsignedXml).ConfigureAwait(false);
 
         // 5)// Przesłanie podpisanego XML do systemu KSeF
         SignatureResponse authSubmission = await authorizationClient
-            .SubmitXadesAuthRequestAsync(signedXml, false, cancellationToken);
+            .SubmitXadesAuthRequestAsync(signedXml, false, cancellationToken).ConfigureAwait(false);
 
         // 6) Odpytanie o gotowość tokenu
-        await WaitForAuthCompletionAsync(authSubmission, cancellationToken);
+        await WaitForAuthCompletionAsync(authSubmission, cancellationToken).ConfigureAwait(false);
 
-        AuthenticationOperationStatusResponse accessTokenResponse = await authorizationClient.GetAccessTokenAsync(authSubmission.AuthenticationToken.Token, cancellationToken);
+        AuthenticationOperationStatusResponse accessTokenResponse = await authorizationClient.GetAccessTokenAsync(authSubmission.AuthenticationToken.Token, cancellationToken).ConfigureAwait(false);
 
         // 7) Zwrócenie tokena           
         return accessTokenResponse;
@@ -141,7 +141,7 @@ public class AuthCoordinator(
             authStatus = await authorizationClient.GetAuthStatusAsync(
                 authOperationInfo.ReferenceNumber,
                 authOperationInfo.AuthenticationToken.Token,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             // (4xx) - błąd po stronie danych/żądania
             if (authStatus.Status.Code >= AuthenticationStatusCodeResponse.BadRequest && authStatus.Status.Code < AuthenticationStatusCodeResponse.UnknownError)
@@ -166,7 +166,7 @@ public class AuthCoordinator(
             // Status 100 (Processing) lub inne - czekamy przed kolejną próbą
             if (!cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
             }
         }
         while (authStatus.Status.Code != AuthenticationStatusCodeResponse.AuthenticationSuccess

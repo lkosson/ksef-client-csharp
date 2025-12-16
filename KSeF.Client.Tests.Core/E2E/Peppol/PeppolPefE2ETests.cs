@@ -12,6 +12,7 @@ using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Core.Models.Sessions;
 using KSeF.Client.Core.Models.Sessions.OnlineSession;
 using KSeF.Client.Tests.Utils;
+using KSeF.Client.Validation;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
@@ -30,8 +31,7 @@ public partial class PeppolPefE2ETests : TestBase
     protected ITestDataClient TestClient => Get<ITestDataClient>();
 
     // Wymaganie PeppolId (CN):
-    private static readonly Regex PeppolIdRegex =
-        PeppolIdCompiledRegex();
+    private static readonly Regex PeppolIdRegex = RegexPatterns.PeppolId;
 
     private string accessToken; // token firmy (NIP) – do odczytów i ewentualnie innych operacji
     private readonly string refreshToken;
@@ -53,7 +53,7 @@ public partial class PeppolPefE2ETests : TestBase
         iban = MiscellaneousUtils.GeneratePolishIban();
 
         AuthenticationOperationStatusResponse auth = AuthenticationUtils
-            .AuthenticateAsync(AuthorizationClient, SignatureService, companyNip)
+            .AuthenticateAsync(AuthorizationClient, companyNip)
             .GetAwaiter().GetResult();
 
         accessToken = auth.AccessToken.Token;
@@ -99,6 +99,7 @@ public partial class PeppolPefE2ETests : TestBase
 
         // Assert
         Assert.NotNull(provider);
+        Assert.Null(provider.Name);
         Assert.Equal(peppolId, provider!.Id);
 
         // === 2) GRANT: Firma -> Dostawca (PefInvoicing) ===
@@ -179,6 +180,7 @@ public partial class PeppolPefE2ETests : TestBase
 
         // Assert
         Assert.NotNull(provider);
+        Assert.Null(provider.Name);
         Assert.Equal(peppolId, provider!.Id);
 
         // === 2) GRANT: Firma -> Dostawca (PefInvoicing) ===
@@ -205,6 +207,13 @@ public partial class PeppolPefE2ETests : TestBase
             cancellationToken: CancellationToken.None);
 
         Assert.NotNull(authz);
+        Assert.NotNull(authz.AuthorizationGrants.First().Id);
+        Assert.True(authz.AuthorizationGrants.Count() == 1);
+        Assert.NotNull(authz.AuthorizationGrants.First().Description);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorIdentifier);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizingEntityIdentifier);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizedEntityIdentifier);
+        Assert.Null(authz.AuthorizationGrants.First().SubjectEntityDetails);
 
         // === 3) WYSYŁKA PEF przez dostawcę ===
         // Arrange
@@ -229,11 +238,6 @@ public partial class PeppolPefE2ETests : TestBase
         Assert.False(string.IsNullOrWhiteSpace(correctionUpo));
     }
 
-
-
-
-
-
     // -----------------------------
     // KROK 0: Auto-rejestracja
     // -----------------------------
@@ -241,7 +245,7 @@ public partial class PeppolPefE2ETests : TestBase
     {
         string country = (Environment.GetEnvironmentVariable("KSEF_PEP_COUNTRY") ?? "PL").ToUpperInvariant();
         string peppolId = $"P{country}{new Random().Next(0, 1_000_000):000000}";
-        Assert.True(PeppolIdRegex.IsMatch(peppolId), $"PeppolId '{peppolId}' nie spełnia ^P[A-Z]{{2}}[0-9]{{6}}$.");
+        Assert.True(PeppolIdRegex.IsMatch(peppolId), $"PeppolId '{peppolId}' nie spełnia {PeppolIdRegex}");
 
         string organizationName = Environment.GetEnvironmentVariable("KSEF_PEP_ORG") ?? "E2E Peppol Test Provider";
         string organizationIdentifier = Environment.GetEnvironmentVariable("KSEF_PEP_ORG_ID") ?? peppolId;
@@ -277,12 +281,12 @@ public partial class PeppolPefE2ETests : TestBase
 
         AuthenticationOperationStatusResponse providerAuth = await AuthenticationUtils.AuthenticateAsync(
             authorizationClient: AuthorizationClient,
-            signatureService: SignatureService,
             certificate: providerSeal,
             contextIdentifierType: AuthenticationTokenContextIdentifierType.PeppolId,
-            contextIdentifierValue: peppolId);
+            contextIdentifierValue: peppolId).ConfigureAwait(false);
 
         Assert.NotNull(providerAuth?.AccessToken);
+        Assert.NotNull(providerAuth?.RefreshToken);
         return (peppolId, providerAuth.AccessToken.Token);
     }
 
@@ -307,7 +311,7 @@ public partial class PeppolPefE2ETests : TestBase
                         accessToken: accessToken,
                         pageOffset: pageOffset,
                         pageSize: pageSize,
-                        cancellationToken: CancellationToken.None);
+                        cancellationToken: CancellationToken.None).ConfigureAwait(false);
 
                     PeppolProvider? hit = page?.PeppolProviders?.FirstOrDefault(p => p.Id == peppolId);
                     if (hit != null)
@@ -329,7 +333,7 @@ public partial class PeppolPefE2ETests : TestBase
                 return false;
             },
             delay: TimeSpan.FromMilliseconds(SleepTime),
-            maxAttempts: 3);
+            maxAttempts: 3).ConfigureAwait(false);
 
         Assert.True(resolved != null,
             $"Brak PeppolId '{peppolId}' po auto-rejestracji. Sprawdź CN/O oraz zwiększ retry.");
@@ -358,39 +362,51 @@ public partial class PeppolPefE2ETests : TestBase
         OperationResponse grantResp = await KsefClient.GrantsAuthorizationPermissionAsync(
             requestPayload: grantReq,
             accessToken: accessToken,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: CancellationToken.None).ConfigureAwait(false);
 
         Assert.NotNull(grantResp);
+        Assert.NotNull(grantResp.ReferenceNumber);
 
-        PermissionsOperationStatusResponse grantRespStatus = await KsefClient.OperationsStatusAsync(grantResp.ReferenceNumber, accessToken);
+        PermissionsOperationStatusResponse grantRespStatus = await KsefClient.OperationsStatusAsync(grantResp.ReferenceNumber, accessToken).ConfigureAwait(false);
 
         Assert.NotNull(grantRespStatus);
+        Assert.NotNull(grantRespStatus.Status);
+        Assert.Null(grantRespStatus.Status.Details);
+        Assert.Null(grantRespStatus.Status.Extensions);
 
-            // opcjonalnie: szybka walidacja listy grantów (w niektórych env może nie być 1:1)
-            EntityAuthorizationsQueryRequest query = new()
+        // opcjonalnie: szybka walidacja listy grantów (w niektórych env może nie być 1:1)
+        EntityAuthorizationsQueryRequest query = new()
+        {
+            AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier
             {
-                AuthorizingIdentifier = new EntityAuthorizationsAuthorizingEntityIdentifier
-                {
-                    Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip,
-                    Value = companyNip
-                },
-                AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier
-                {
-                    Type = EntityAuthorizationsAuthorizedEntityIdentifierType.PeppolId,
-                    Value = peppolId
-                },
-                QueryType = QueryType.Granted,
-                PermissionTypes = [InvoicePermissionType.PefInvoicing]
-            };
+                Type = EntityAuthorizationsAuthorizingEntityIdentifierType.Nip,
+                Value = companyNip
+            },
+            AuthorizedIdentifier = new EntityAuthorizationsAuthorizedEntityIdentifier
+            {
+                Type = EntityAuthorizationsAuthorizedEntityIdentifierType.PeppolId,
+                Value = peppolId
+            },
+            QueryType = QueryType.Granted,
+            PermissionTypes = [InvoicePermissionType.PefInvoicing]
+        };
 
         PagedAuthorizationsResponse<AuthorizationGrant> authz = await KsefClient.SearchEntityAuthorizationGrantsAsync(
             requestPayload: query,
             accessToken: accessToken,
             pageOffset: 0,
             pageSize: 10,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: CancellationToken.None).ConfigureAwait(false);
 
         Assert.NotNull(authz);
+        Assert.NotNull(authz.AuthorizationGrants.Count > 0);
+        Assert.Null(authz.AuthorizationGrants.First().SubjectEntityDetails);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorIdentifier.Value);
+        Assert.NotNull(authz.AuthorizationGrants.First().Id);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizationScope);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizationScope);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizedEntityIdentifier);
+        Assert.NotNull(authz.AuthorizationGrants.First().AuthorizingEntityIdentifier);
     }
 
     // -----------------------------
@@ -404,7 +420,7 @@ public partial class PeppolPefE2ETests : TestBase
             ksefClient: KsefClient,
             encryptionData: encryptionData,
             accessToken: providerToken,
-            systemCode: SystemCode.PEF);
+            systemCode: SystemCode.PEF).ConfigureAwait(false);
 
         Assert.NotNull(openSession);
         Assert.False(string.IsNullOrWhiteSpace(openSession.ReferenceNumber));
@@ -419,38 +435,41 @@ public partial class PeppolPefE2ETests : TestBase
             iban: iban,
             templatePath: _pefTemplate,
             encryptionData: encryptionData,
-            cryptographyService: CryptographyService);
+            cryptographyService: CryptographyService).ConfigureAwait(false);
 
         Assert.NotNull(sendResp);
 
         // status: oczekujemy Processing (100), bez błędów
-        SessionStatusResponse statusProcessing = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None);
+        SessionStatusResponse statusProcessing = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None).ConfigureAwait(false);
         Assert.NotNull(statusProcessing);
 
         SessionInvoicesResponse failedInvoices;
         if (statusProcessing.FailedInvoiceCount is not null)
         {
-            failedInvoices = await KsefClient.GetSessionFailedInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10, continuationToken: string.Empty, CancellationToken.None);
+            failedInvoices = await KsefClient.GetSessionFailedInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10, continuationToken: string.Empty, CancellationToken.None).ConfigureAwait(false);
         }
 
         Assert.Null(statusProcessing.FailedInvoiceCount);
+        Assert.NotNull(statusProcessing.Status);
         Assert.Equal(OnlineSessionCodeResponse.SessionOpened, statusProcessing.Status.Code);
-        Assert.Equal(OnlineSessionCodeResponse.SessionOpened, statusProcessing.Status.Code);
+        Assert.Null(statusProcessing.Upo);
+        Assert.NotNull(statusProcessing.InvoiceCount);
+        Assert.True(statusProcessing.InvoiceCount.Value > 0);
 
-        await KsefClient.CloseOnlineSessionAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None);
+        await KsefClient.CloseOnlineSessionAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None).ConfigureAwait(false);
 
         // czekamy na zamknięcie sesji deterministycznym pollingiem
         await AsyncPollingUtils.PollAsync(
            description: $"Sesja zamknięta dla {peppol}",
            check: async () =>
            {
-               SessionStatusResponse st = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None);
+               SessionStatusResponse st = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None).ConfigureAwait(false);
                return st?.Status?.Code == OnlineSessionCodeResponse.SessionClosed || st?.Status?.Code == OnlineSessionCodeResponse.ProcessedSuccessfully;
            },
            delay: TimeSpan.FromMilliseconds(SleepTime),
-           maxAttempts: 10);
+           maxAttempts: 10).ConfigureAwait(false);
 
-        SessionInvoicesResponse invoices = await KsefClient.GetSessionInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10);
+        SessionInvoicesResponse invoices = await KsefClient.GetSessionInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10).ConfigureAwait(false);
         Assert.NotNull(invoices);
         Assert.NotEmpty(invoices.Invoices);
 
@@ -463,19 +482,19 @@ public partial class PeppolPefE2ETests : TestBase
                description: "faktura gotowa (status inny niż processing)",
                check: async () =>
                {
-                   SessionInvoicesResponse inv = await KsefClient.GetSessionInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10);
+                   SessionInvoicesResponse inv = await KsefClient.GetSessionInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10).ConfigureAwait(false);
                    SessionInvoice refreshed = inv.Invoices.First(x => x.ReferenceNumber == sendResp.ReferenceNumber);
                    return refreshed.Status.Code != InvoiceInSessionStatusCodeResponse.Processing;
                },
                delay: TimeSpan.FromMilliseconds(SleepTime),
-               maxAttempts: 5);
+               maxAttempts: 5).ConfigureAwait(false);
         }
 
         // UPO:
         string upo = await KsefClient.GetSessionInvoiceUpoByReferenceNumberAsync(
             openSession.ReferenceNumber,
             sendResp.ReferenceNumber,
-            providerToken);
+            providerToken).ConfigureAwait(false);
 
         Assert.NotNull(upo);
         return upo;
@@ -492,7 +511,7 @@ public partial class PeppolPefE2ETests : TestBase
             ksefClient: KsefClient,
             encryptionData: encryptionData,
             accessToken: providerToken,
-            systemCode: SystemCode.PEFKOR);
+            systemCode: SystemCode.PEFKOR).ConfigureAwait(false);
 
         Assert.NotNull(openSession);
         Assert.False(string.IsNullOrWhiteSpace(openSession.ReferenceNumber));
@@ -508,39 +527,39 @@ public partial class PeppolPefE2ETests : TestBase
             iban: iban,
             templatePath: _pefCorrectionTemplate,
             encryptionData: encryptionData,
-            cryptographyService: CryptographyService);
+            cryptographyService: CryptographyService).ConfigureAwait(false);
 
         Assert.NotNull(sendResp);
 
-        await Task.Delay(SleepTime);
+        await Task.Delay(SleepTime).ConfigureAwait(false);
         // status: oczekujemy Processing (100), bez błędów
-        SessionStatusResponse statusProcessing = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None);
+        SessionStatusResponse statusProcessing = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None).ConfigureAwait(false);
         Assert.NotNull(statusProcessing);
 
         SessionInvoicesResponse failedInvoices;
         if (statusProcessing.FailedInvoiceCount is not null)
         {
-            failedInvoices = await KsefClient.GetSessionFailedInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10, continuationToken: string.Empty, CancellationToken.None);
+            failedInvoices = await KsefClient.GetSessionFailedInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10, continuationToken: string.Empty, CancellationToken.None).ConfigureAwait(false);
         }
 
         Assert.Null(statusProcessing.FailedInvoiceCount);
         Assert.Equal(OnlineSessionCodeResponse.SessionOpened, statusProcessing.Status.Code);
         Assert.Equal(OnlineSessionCodeResponse.SessionOpened, statusProcessing.Status.Code);
 
-        await KsefClient.CloseOnlineSessionAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None);
+        await KsefClient.CloseOnlineSessionAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None).ConfigureAwait(false);
 
         // oczekiwanie na zamknięcie sesji deterministycznym pollingiem
         await AsyncPollingUtils.PollAsync(
            description: $"Sesja zamknięta dla {peppol}",
            check: async () =>
            {
-               SessionStatusResponse st = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None);
+               SessionStatusResponse st = await KsefClient.GetSessionStatusAsync(openSession.ReferenceNumber, providerToken, CancellationToken.None).ConfigureAwait(false);
                return st?.Status?.Code == OnlineSessionCodeResponse.SessionClosed || st?.Status?.Code == OnlineSessionCodeResponse.ProcessedSuccessfully;
            },
            delay: TimeSpan.FromMilliseconds(SleepTime),
-           maxAttempts: 10);
+           maxAttempts: 10).ConfigureAwait(false);
 
-        SessionInvoicesResponse invoices = await KsefClient.GetSessionInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10);
+        SessionInvoicesResponse invoices = await KsefClient.GetSessionInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10).ConfigureAwait(false);
         Assert.NotNull(invoices);
         Assert.NotEmpty(invoices.Invoices);
 
@@ -553,25 +572,22 @@ public partial class PeppolPefE2ETests : TestBase
                description: "faktura gotowa (status inny niż processing)",
                check: async () =>
                {
-                   SessionInvoicesResponse inv = await KsefClient.GetSessionInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10);
+                   SessionInvoicesResponse inv = await KsefClient.GetSessionInvoicesAsync(openSession.ReferenceNumber, providerToken, pageSize: 10).ConfigureAwait(false);
                    SessionInvoice refreshed = inv.Invoices.First(x => x.ReferenceNumber == sendResp.ReferenceNumber);
                    return refreshed.Status.Code != InvoiceInSessionStatusCodeResponse.Processing;
                },
                delay: TimeSpan.FromMilliseconds(SleepTime),
-               maxAttempts: 5);
+               maxAttempts: 5).ConfigureAwait(false);
         }
 
         // UPO:
         string upo = await KsefClient.GetSessionInvoiceUpoByReferenceNumberAsync(
             openSession.ReferenceNumber,
             sendResp.ReferenceNumber,
-            providerToken);
+            providerToken).ConfigureAwait(false);
 
         Assert.NotNull(upo);
         return upo;
     }
-
-    [GeneratedRegex(@"^P[A-Z]{2}[0-9]{6}$", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
-    private static partial Regex PeppolIdCompiledRegex();
 }
 

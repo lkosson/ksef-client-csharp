@@ -79,7 +79,7 @@ public class CertificateController(IKSeFClient kSeFClient) : ControllerBase
             .WithCertificateSerialNumber(serialNumber)
             .WithName(name)
             .Build();
-        CertificateMetadataListResponse metadataList = await kSeFClient.GetCertificateMetadataListAsync(accessToken, request, 20, 0, cancellationToken);
+        CertificateMetadataListResponse metadataList = await kSeFClient.GetCertificateMetadataListAsync(accessToken, request, 20, 0, cancellationToken).ConfigureAwait(false);
         return metadataList;
     }
 }

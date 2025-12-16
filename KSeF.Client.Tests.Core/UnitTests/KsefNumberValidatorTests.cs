@@ -6,7 +6,7 @@ using System.Text;
 namespace KSeF.Client.Tests.Core.UnitTests;
 
 /// <summary>
-/// Zestaw testów jednostkowych dla walidatora numeru KSeF.
+/// Zestaw testów jednostkowych walidatora numeru KSeF.
 /// Testy opisane komentarzami AAA (Arrange, Act, Assert).
 /// </summary>
 public class KsefNumberValidatorTests
@@ -56,7 +56,7 @@ public class KsefNumberValidatorTests
     }
 
     /// <summary>
-    /// Dla poprawnych danych (32 znaki) i zgodnej sumy kontrolnej
+    /// Przy poprawnych danych (32 znaki) i zgodnej sumy kontrolnej
     /// walidacja powinna zwrócić true bez komunikatu błędu.
     /// </summary>
     [Fact]

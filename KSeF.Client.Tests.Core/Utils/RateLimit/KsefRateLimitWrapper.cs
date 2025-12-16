@@ -44,7 +44,7 @@ public static class KsefRateLimitWrapper
                 // Lokalny ograniczenie przepustowości przed wywołaniem API – oczekiwanie na odnowienie limitów
                 await WaitForRateWindowAsync(endpoint, limits, cancellationToken).ConfigureAwait(false);
 
-                T result = await ksefApiCall(cancellationToken);
+                T result = await ksefApiCall(cancellationToken).ConfigureAwait(false);
                 return result;
             }
             catch (KsefRateLimitException rateLimitEx)
@@ -56,7 +56,7 @@ public static class KsefRateLimitWrapper
                 }
 
                 // Czekaj zgodnie z Retry-After header lub użyj fallback
-                await Task.Delay(rateLimitEx.RecommendedDelay, cancellationToken);
+                await Task.Delay(rateLimitEx.RecommendedDelay, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

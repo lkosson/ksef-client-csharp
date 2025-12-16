@@ -29,7 +29,7 @@ public sealed partial class CryptographyWarmupHostedService(
     {
         try
         {
-            await cryptographyService.WarmupAsync(cancellationToken);
+            await cryptographyService.WarmupAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception)
         {

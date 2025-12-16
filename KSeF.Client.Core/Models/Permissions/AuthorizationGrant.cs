@@ -1,4 +1,5 @@
 ﻿using KSeF.Client.Core.Models.Permissions.Authorizations;
+using KSeF.Client.Core.Models.Permissions.Entity;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 using System;
 
@@ -12,6 +13,7 @@ namespace KSeF.Client.Core.Models.Permissions
         public AuthorizingEntityIdentifier AuthorizingEntityIdentifier { get; set; }
         public AuthorizationPermissionType AuthorizationScope { get; set; }
         public string Description { get; set; }
+        public EntityPermissionSubjectEntityDetails SubjectEntityDetails { get; set; }
         public DateTime StartDate { get; set; }
     }
 }

@@ -81,7 +81,7 @@ public class CryptographyService : ICryptographyService, IDisposable
             return; // Nie wykonuj, jeśli zarządzane zewnętrznie
         }
 
-        await RefreshAsync(cancellationToken); // pobierz po raz pierwszy
+        await RefreshAsync(cancellationToken).ConfigureAwait(false); // pobierz po raz pierwszy
         ScheduleNextRefresh();  // ustaw czas następnego odświeżania
     }
 
@@ -93,7 +93,7 @@ public class CryptographyService : ICryptographyService, IDisposable
             return; // Nie wykonuj, jeśli zarządzane zewnętrznie
         }
 
-        await RefreshAsync(cancellationToken);
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
         ScheduleNextRefresh();
     }
 
@@ -400,11 +400,9 @@ public class CryptographyService : ICryptographyService, IDisposable
     /// <remarks>Ta klasa jest implementacją interfejsu <see cref="ICertificateFetcher"/>,
     /// zaprojektowaną do pobierania certyfikatów przy użyciu określonej funkcji asynchronicznej.
     /// Służy wyłącznie utrzymaniu kompatybilności wstecznej (użyciu konstruktora z delegatem)</remarks>
-    private sealed class CertificateFetcher : ICertificateFetcher
-    {
-        private readonly Func<CancellationToken, Task<ICollection<PemCertificateInfo>>> _func;
-        public CertificateFetcher(Func<CancellationToken, Task<ICollection<PemCertificateInfo>>> func) => _func = func;
-        public Task<ICollection<PemCertificateInfo>> GetCertificatesAsync(CancellationToken cancellationToken) => _func(cancellationToken);
+    private sealed class CertificateFetcher(Func<CancellationToken, Task<ICollection<PemCertificateInfo>>> func) : ICertificateFetcher
+    {   
+        public Task<ICollection<PemCertificateInfo>> GetCertificatesAsync(CancellationToken cancellationToken) => func(cancellationToken);
     }
 
     private static Aes CreateConfiguredAes(byte[] key, byte[] iv)
@@ -493,7 +491,7 @@ public class CryptographyService : ICryptographyService, IDisposable
             return;
         }
 
-        await _gate.WaitAsync(cancellationToken);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (_isInitialized)
@@ -501,7 +499,7 @@ public class CryptographyService : ICryptographyService, IDisposable
                 return;
             }
 
-            ICollection<PemCertificateInfo> list = await _fetcher.GetCertificatesAsync(cancellationToken);
+            ICollection<PemCertificateInfo> list = await _fetcher.GetCertificatesAsync(cancellationToken).ConfigureAwait(false);
             CertificateMaterials certificateMaterials = BuildMaterials(list);
 
             Volatile.Write(ref _materials, certificateMaterials);
@@ -547,7 +545,7 @@ public class CryptographyService : ICryptographyService, IDisposable
             try
             {
                 _isInitialized = false;
-                await RefreshAsync(CancellationToken.None);
+                await RefreshAsync(CancellationToken.None).ConfigureAwait(false);
             }
             finally
             {
