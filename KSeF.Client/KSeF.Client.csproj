@@ -5,7 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<IsPackable>true</IsPackable>
 		<PackageId>KSeF.Client</PackageId>
-		<PackageVersion>0.5.7</PackageVersion>
+		<PackageVersion>0.6.1</PackageVersion>
 
 		<UserSecretsId>7931c1d1-5bfa-4559-8b2e-e9a0a03d4a82</UserSecretsId>
 
