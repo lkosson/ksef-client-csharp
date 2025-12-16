@@ -1,5 +1,26 @@
 > Info: 🔧 zmienione • ➕ dodane • ➖ usunięte • 🔀 przeniesione
 
+## Rejestr zmian: Wersja 2.0.0 RC6.1
+### Nowe
+- Dodano wymaganą właściwość `timestampMs` w `AuthenticationChallengeResponse`.
+- Dodano wymaganą właściwość `rateLimits.invoiceExportStatus` w `EffectiveApiRateLimits`
+
+### Zmodyfikowane
+
+- zmieniono adresy URL API KSeF oraz generowanie linków QR zgodnie z dokumentacją:
+  [srodowiska.md](https://github.com/CIRFMF/ksef-docs/blob/main/srodowiska.md)
+  [kody-qr.md](https://github.com/CIRFMF/ksef-docs/blob/main/kody-qr.md)
+- Usunięto wartość wyliczeniową (enum): Token z właściwości `subjectIdentifierType` z `TestDataSubjectIdentifier`
+- Usunięto właściwość `batchFile.fileParts[].fileName` z `OpenBatchSessionRequest`.
+- W celu zachowania kompatybilności z .NET Standard 2.0 zmieniono następujące typy:
+  - `AttachmentPermissionRevokeRequest` - zmieniono typ pola `ExpectedDate` z `DateTime` na `string`
+  - `EuEntityRepresentativePersonByFpNoId` - zmieniono typ pola `BirthDate` z `DateTimeOffset` na `string`
+  - `PermissionsIndirectEntityPersonByFingerprintWithoutIdentifier` - zmieniono typ pola `BirthDate` z `DateTimeOffset` na `string`
+  - `PersonPermissionPersonByFingerprintNoId` - zmieniono typ pola `BirthDate` z `DateTimeOffset` na `string`
+  - `PersonPermissionSubjectPersonDetails` - zmieniono typ pola `BirthDate?` z `DateTimeOffset` na `string`
+  - `PermissionsSubunitPersonByFingerprintWithoutIdentifier` - zmieniono typ pola `BirthDate` z `DateTimeOffset` na `string`
+
+
 ## Rejestr zmian: Wersja 2.0.0 RC6.0.2
 ### Nowe
 - **Dodano nowe przeciążenie metody ExportInvoicesAsync(InvoiceExportRequest, string, CancellationToken) niewymagające parametru includeMetadata.**

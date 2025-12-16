@@ -109,6 +109,7 @@ public class InvoiceE2ETests : TestBase
             _accessToken,
             systemCode);
         Assert.NotNull(openSessionResponse?.ReferenceNumber);
+        Assert.True(openSessionResponse?.ValidUntil <= DateTime.UtcNow.AddDays(1));
 
         // Krok 2: wysłanie faktury
         SendInvoiceResponse sendInvoiceResponse = await OnlineSessionUtils.SendInvoiceAsync(

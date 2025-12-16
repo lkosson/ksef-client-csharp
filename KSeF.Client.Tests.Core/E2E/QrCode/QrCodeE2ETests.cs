@@ -29,7 +29,7 @@ public class QrCodeE2ETests : TestBase
 
     public QrCodeE2ETests()
     {
-        linkService = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnvironmentsUris.TEST });
+        linkService = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefQREnvironmentsUris.TEST, BaseQRUrl = KsefQREnvironmentsUris.TEST });
     }
 
     #region Testy RSA

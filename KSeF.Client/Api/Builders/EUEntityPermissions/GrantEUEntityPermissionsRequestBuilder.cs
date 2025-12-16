@@ -1,7 +1,6 @@
 using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Validation;
-using System;
 
 namespace KSeF.Client.Api.Builders.EuEntityPermissions;
 

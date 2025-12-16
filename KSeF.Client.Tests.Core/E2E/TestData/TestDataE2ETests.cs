@@ -3,6 +3,7 @@ using KSeF.Client.Core.Models.Permissions;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.TestData;
 using KSeF.Client.Tests.Utils;
+using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using static KSeF.Client.Core.Models.Permissions.PersonalPermission;
 
@@ -383,7 +384,7 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
 		{
 			// Arrange
 			string subjectNip = MiscellaneousUtils.GetRandomNip();
-			DateTime revokeDate = DateTime.UtcNow.AddDays(1);
+			string revokeDate = DateTime.UtcNow.AddDays(1).Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
 			// Nadanie uprawnienia do wysyłki faktur z załącznikami
 			AttachmentPermissionGrantRequest grantRequest = new AttachmentPermissionGrantRequest
@@ -433,7 +434,8 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
 			Assert.True(revokedPermissionStatus.RevokedDate.HasValue,
 				"Data wygaśnięcia uprawnienia (revokeDate) powinna zostać ustawiona po cofnięciu uprawnienia");
 
-            DateOnly expectedDate = DateOnly.FromDateTime(revokeDate.ToUniversalTime());
+            DateOnly expectedDate = DateOnly.Parse(revokeDate, CultureInfo.InvariantCulture);
+            
             DateOnly actualDate = DateOnly.FromDateTime(revokedPermissionStatus.RevokedDate.Value.ToUniversalTime());
 
             Assert.Equal(expectedDate, actualDate);

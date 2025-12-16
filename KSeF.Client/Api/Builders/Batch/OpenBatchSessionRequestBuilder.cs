@@ -179,7 +179,6 @@ namespace KSeF.Client.Api.Builders.Batch
                 OrdinalNumber = ordinalNumber,
                 FileSize = fileSize,
                 FileHash = fileHash,
-                FileName = fileName
             });
             return this;
         }

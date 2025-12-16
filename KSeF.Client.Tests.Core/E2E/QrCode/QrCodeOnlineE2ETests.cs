@@ -32,7 +32,7 @@ public class QrCodeOnlineE2ETests : TestBase
     public QrCodeOnlineE2ETests(QrCodeOnlineE2EScenarioFixture fixture)
     {
         _fixture = fixture;
-        _linkSvc = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnvironmentsUris.TEST });
+        _linkSvc = new VerificationLinkService(new KSeFClientOptions() { BaseUrl = KsefEnvironmentsUris.TEST, BaseQRUrl = KsefQREnvironmentsUris.TEST });
         _encryptionData = CryptographyService.GetEncryptionData();
         _fixture.Nip = MiscellaneousUtils.GetRandomNip();
 

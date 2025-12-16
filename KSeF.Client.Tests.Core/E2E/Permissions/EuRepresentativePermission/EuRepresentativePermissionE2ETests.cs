@@ -3,7 +3,6 @@ using KSeF.Client.Api.Builders.EUEntityRepresentativePermissions;
 using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
-using KSeF.Client.Core.Models.Permissions.Authorizations;
 using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.EuEntityRepresentative;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
@@ -119,7 +118,7 @@ public class EuRepresentativePermissionE2ETests : TestBase
             {
                 FirstName = "Reprezentant",
                 LastName = "Reprezentant",
-                BirthDate = new DateTimeOffset(1990, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                BirthDate = new DateTimeOffset(1990, 1, 1, 0, 0, 0, TimeSpan.Zero).Date.ToString("yyyy-MM-dd"),
                 IdDocument = new EuEntityRepresentativeIdentityDocument
                 {
                     Type = "Passport",

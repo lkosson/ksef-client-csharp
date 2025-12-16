@@ -51,6 +51,11 @@
         public EffectiveApiRateLimitValues InvoiceExport { get; set; }
 
         /// <summary>
+        /// Limity dla eksportu paczki faktur.
+        /// </summary>
+        public EffectiveApiRateLimitValues InvoiceExportStatus { get; set; }
+
+        /// <summary>
         /// Limity dla pobierania faktur po numerze KSeF.
         /// </summary>
         public EffectiveApiRateLimitValues InvoiceDownload { get; set; }
