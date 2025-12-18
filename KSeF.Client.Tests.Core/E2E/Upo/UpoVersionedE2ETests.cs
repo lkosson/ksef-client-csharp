@@ -26,7 +26,7 @@ public class UpoVersionedE2ETests : TestBase
 	// Wersja UPO używana w testach
 	private const string UpoVersion = "upo-v4-3";
 
-	// Konfiguracja dla sesji wsadowej
+	// Konfiguracja sesji wsadowej
 	private const int TotalInvoices = 20;
 	private const int PartQuantity = 1;
 	private const int ExpectedSuccessfulInvoiceCount = 20;

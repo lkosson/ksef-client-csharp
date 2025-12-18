@@ -22,7 +22,7 @@ namespace KSeF.Client.Tests.Core.E2E.Invoice
         private static readonly KSeF.Client.Core.Models.Invoices.InvoicingMode expectedInvoicingMode = KSeF.Client.Core.Models.Invoices.InvoicingMode.Offline;
 
         /// <summary>
-        /// Dedykowany test E2E dla metody QueryInvoiceMetadataAsync.
+        /// Dedykowany test E2E metody QueryInvoiceMetadataAsync.
         /// Kroki:
         /// 1) Uwierzytelnienie sprzedawcy
         /// 2) Otwarcie sesji online

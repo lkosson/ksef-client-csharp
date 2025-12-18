@@ -38,7 +38,7 @@ public class EuEntityPermissionE2ETests : TestBase
     }
 
     /// <summary>
-    /// Nadaje uprawnienia dla podmiotu, weryfikuje ich nadanie, następnie odwołuje nadane uprawnienia i ponownie weryfikuje.
+    /// Nadaje uprawnienia podmiotowi, weryfikuje ich nadanie, następnie odwołuje nadane uprawnienia i ponownie weryfikuje.
     /// </summary>
     [Fact]
     public async Task EuEntityGrantSearchRevokeSearch_E2E_ReturnsExpectedResults()
@@ -72,13 +72,31 @@ public class EuEntityPermissionE2ETests : TestBase
         TestFixture.SearchResponse = grantedPermissionsPaged;
 
         // Assert
-        Assert.NotNull(TestFixture.SearchResponse);
+		Assert.NotNull(TestFixture.SearchResponse);
         Assert.NotEmpty(TestFixture.SearchResponse.Permissions);
-        #endregion
+		Assert.Contains(grantedPermissionsPaged.Permissions,
+	        x => x.PermissionScope == EuEntityPermissionType.InvoiceWrite);
+		Assert.Contains(grantedPermissionsPaged.Permissions,
+			x => x.PermissionScope == EuEntityPermissionType.InvoiceRead);
+		Assert.Contains(grantedPermissionsPaged.Permissions,
+	        x => x.PermissionScope == EuEntityPermissionType.Introspection);
+		Assert.Contains(grantedPermissionsPaged.Permissions,
+			x => x.PermissionScope == EuEntityPermissionType.VatUeManage);
 
-        #region Odwołaj uprawnienia
-        // Act
-        await RevokePermissionsAsync();
+		Assert.All(grantedPermissionsPaged.Permissions, permission =>
+		{
+			Assert.False(string.IsNullOrEmpty(permission.Id));
+			Assert.False(string.IsNullOrEmpty(permission.EuEntityName));
+            Assert.False(string.IsNullOrEmpty(permission.VatUeIdentifier));
+			Assert.False(string.IsNullOrEmpty(permission.Description));
+			Assert.NotEqual(default, permission.StartDate);
+		});
+
+		#endregion
+
+		#region Odwołaj uprawnienia
+		// Act
+		await RevokePermissionsAsync();
 
         Assert.NotNull(TestFixture.RevokeStatusResults);
         Assert.NotEmpty(TestFixture.RevokeStatusResults);

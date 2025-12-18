@@ -69,7 +69,8 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
 
             // Assert - Weryfikacja przypisania ról po utworzeniu podmiotu głównego
             Assert.NotNull(rolesAfterCreation);
-            Assert.NotNull(rolesAfterCreation.Roles);
+			Assert.True(rolesAfterCreation.Roles.All(x => x.StartDate != default));
+			Assert.NotNull(rolesAfterCreation.Roles);
             Assert.True(rolesAfterCreation.Roles.Any(role => role.Role == expectedRoleType),
                 $"Jednostka podrzędna powinna mieć przypisaną rolę {expectedRoleType}");
 
@@ -374,7 +375,7 @@ namespace KSeF.Client.Tests.Core.E2E.TestData
 		/// <summary>
 		/// Weryfikacja poprawności nadawania i odbierania uprawnień do wysyłki faktur z załącznikami.
 		/// Scenariusz:
-		/// 1. Nadanie uprawnienia do załączników dla podmiotu
+		/// 1. Nadanie podmiotowi uprawnienia do załączników
 		/// 2. Uwierzytelnienie i weryfikacja aktywnego uprawnienia
 		/// 3. Cofnięcie uprawnienia - ustawienie daty wygaśnięcia (revokeDate)
 		/// 4. Weryfikacja ustawienia daty wygaśnięcia uprawnienia

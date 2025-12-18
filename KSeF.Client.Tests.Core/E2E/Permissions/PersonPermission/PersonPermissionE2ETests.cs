@@ -54,7 +54,7 @@ public class PersonPermissionE2ETests : TestBase
         PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission> searchAfterGrant =
             await AsyncPollingUtils.PollAsync(
                 async () => await SearchGrantedPersonPermissionsAsync(accessToken).ConfigureAwait(false),
-                (Func<PagedPermissionsResponse<Client.Core.Models.Permissions.PersonPermission>, bool>)(result =>
+                result =>
                 {
                     if (result is null || result.Permissions is null)
                     {
@@ -68,7 +68,7 @@ public class PersonPermissionE2ETests : TestBase
                     bool hasWrite = byDescription.Any(x => x.PermissionScope == PersonPermissionType.InvoiceWrite);
 
                     return byDescription.Count > 0 && hasRead && hasWrite;
-                }),
+                },
                 delay: TimeSpan.FromMilliseconds(SleepTime),
                 maxAttempts: 60,
                 cancellationToken: CancellationToken);
@@ -76,8 +76,24 @@ public class PersonPermissionE2ETests : TestBase
         // Assert: upewnij się, że uprawnienia są widoczne i zawierają oczekiwane zakresy
         Assert.NotNull(searchAfterGrant);
         Assert.NotEmpty(searchAfterGrant.Permissions);
+		Assert.All(searchAfterGrant.Permissions, permission =>
+        {
+            Assert.False(string.IsNullOrEmpty(permission.Id));
 
-        List<Client.Core.Models.Permissions.PersonPermission> grantedNow =
+            Assert.NotNull(permission.AuthorizedIdentifier);
+			Assert.Equal(PersonPermissionAuthorizedIdentifierType.Pesel, permission.AuthorizedIdentifier.Type); 
+            Assert.False(string.IsNullOrEmpty(permission.AuthorizedIdentifier.Value));
+
+			Assert.NotNull(permission.AuthorIdentifier);
+			Assert.Equal(AuthorIdentifierType.Nip, permission.AuthorIdentifier.Type);
+			Assert.False(string.IsNullOrEmpty(permission.AuthorIdentifier.Value));
+
+			Assert.False(string.IsNullOrEmpty(permission.Description));
+			Assert.Equal(PersonPermissionState.Active, permission.PermissionState);
+			Assert.NotEqual(default, permission.StartDate);
+		});
+
+		List<Client.Core.Models.Permissions.PersonPermission> grantedNow =
             [.. searchAfterGrant.Permissions.Where(p => p.Description == description)];
 
         Assert.NotEmpty(grantedNow);

@@ -5,12 +5,12 @@ using KSeF.Client.Validation;
 namespace KSeF.Client.Api.Builders.EuEntityPermissions;
 
 /// <summary>
-/// Buduje żądanie nadania uprawnień dla podmiotu z UE w KSeF.
+/// Buduje żądanie nadania uprawnień podmiotowi z UE w KSeF.
 /// </summary>
 public static class GrantEuEntityPermissionsRequestBuilder
 {
     /// <summary>
-    /// Rozpoczyna budowę żądania nadania uprawnień dla podmiotu z UE.
+    /// Rozpoczyna budowę żądania nadania uprawnień podmiotowi z UE.
     /// </summary>
     /// <returns>
     /// Interfejs pozwalający ustawić identyfikator podmiotu, któremu nadajemy uprawnienia.
@@ -23,7 +23,7 @@ public static class GrantEuEntityPermissionsRequestBuilder
     public interface ISubjectStep
     {
         /// <summary>
-        /// Ustawia identyfikator podmiotu z UE, dla którego nadawane są uprawnienia.
+        /// Ustawia identyfikator podmiotu z UE, któremu nadawane są uprawnienia.
         /// </summary>
         /// <param name="subject">
         /// Identyfikator podmiotu (np. numer VAT UE). Nie może być null
@@ -113,7 +113,7 @@ public static class GrantEuEntityPermissionsRequestBuilder
         IBuildStep WithEuEntityDetails(PermissionsEuEntityDetails euEntityDetails);
 
         /// <summary>
-        /// Tworzy finalne żądanie nadania uprawnień dla podmiotu z UE.
+        /// Tworzy finalne żądanie nadania uprawnień podmiotowi z UE.
         /// </summary>
         /// <returns>
         /// Obiekt <see cref="GrantPermissionsEuEntityRequest"/> gotowy do wysłania do KSeF.
@@ -139,7 +139,7 @@ public static class GrantEuEntityPermissionsRequestBuilder
         private GrantPermissionsRequestBuilderImpl() { }
 
         /// <summary>
-        /// Tworzy nową implementację buildera żądania nadania uprawnień dla podmiotu z UE.
+        /// Tworzy nową implementację buildera żądania nadania uprawnień podmiotowi z UE.
         /// </summary>
         /// <returns>Interfejs startowy buildera.</returns>
         internal static ISubjectStep Create() => new GrantPermissionsRequestBuilderImpl();

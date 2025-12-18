@@ -4,6 +4,7 @@ using KSeF.Client.Core.Models;
 using KSeF.Client.Core.Models.ApiResponses;
 using KSeF.Client.Core.Models.Authorization;
 using KSeF.Client.Core.Models.Permissions;
+using KSeF.Client.Core.Models.Permissions.EUEntity;
 using KSeF.Client.Core.Models.Permissions.Identifiers;
 using KSeF.Client.Core.Models.Permissions.Person;
 using KSeF.Client.Core.Models.Permissions.SubUnit;
@@ -141,10 +142,32 @@ public class SubunitPermissionsE2ETests : TestBase
         // Assert
         Assert.NotNull(_fixture.SearchResponse);
         Assert.NotEmpty(_fixture.SearchResponse.Permissions);
-        #endregion
+        Assert.Contains(pagedPermissions.Permissions,
+            x => x.PermissionScope == SubunitPermissionType.CredentialsManage);
 
-        #region Wyszukaj uprawnienia nadane administratorowi jednostki podrzędnej - dedykowana końcówka do wyszukiwania uprawnień
-        SubunitPermissionsQueryRequest request = new()
+        Assert.All(pagedPermissions.Permissions, permission =>
+		{
+			Assert.False(string.IsNullOrEmpty(permission.Id));
+
+			Assert.NotNull(permission.AuthorizedIdentifier);
+			Assert.Equal(SubunitPermissionAuthorizedIdentifierType.Nip, permission.AuthorizedIdentifier.Type);
+            Assert.False(string.IsNullOrEmpty(permission.AuthorizedIdentifier.Value));
+
+            Assert.NotNull(permission.SubunitIdentifier);
+			Assert.Equal(SubunitIdentifierType.InternalId, permission.SubunitIdentifier.Type);
+			Assert.False(string.IsNullOrEmpty(permission.SubunitIdentifier.Value));
+
+            Assert.NotNull(permission.AuthorIdentifier);
+			Assert.Equal(AuthorIdentifierType.Nip, permission.AuthorIdentifier.Type);
+			Assert.False(string.IsNullOrEmpty(permission.AuthorIdentifier.Value));
+
+			Assert.False(string.IsNullOrEmpty(permission.Description));
+			Assert.NotEqual(default, permission.StartDate);
+		});
+		#endregion
+
+		#region Wyszukaj uprawnienia nadane administratorowi jednostki podrzędnej - dedykowana końcówka do wyszukiwania uprawnień
+		SubunitPermissionsQueryRequest request = new()
         {
             SubunitIdentifier = new SubunitPermissionsSubunitIdentifier
             {
@@ -178,11 +201,22 @@ public class SubunitPermissionsE2ETests : TestBase
             await KsefClient.SearchSubordinateEntityInvoiceRolesAsync(subordinateEntityRolesQueryRequest, _unitAccessToken);
 
         Assert.NotNull(searchSubordinateEntityInvoiceRolesResponse);
-        #endregion
+		Assert.All(searchSubordinateEntityInvoiceRolesResponse.Roles, role =>
+		{
+			Assert.NotNull(role.SubordinateEntityIdentifier);
+			Assert.True(Enum.IsDefined(role.SubordinateEntityIdentifier.Type));
+			Assert.False(string.IsNullOrEmpty(role.SubordinateEntityIdentifier.Value));
 
-        #region Cofnij uprawnienia nadane administratorowi jednostki podrzędnej
-        // Arrange &  Act - odwołanie uprawnień + polling statusów każdej operacji
-        List<PermissionsOperationStatusResponse> revokeStatuses =
+			Assert.True(Enum.IsDefined(role.Role));
+			Assert.False(string.IsNullOrEmpty(role.Description));
+			Assert.NotEqual(default, role.StartDate);
+		});
+
+		#endregion
+
+		#region Cofnij uprawnienia nadane administratorowi jednostki podrzędnej
+		// Arrange &  Act - odwołanie uprawnień + polling statusów każdej operacji
+		List<PermissionsOperationStatusResponse> revokeStatuses =
             await RevokeSubUnitPermissionsAsync(_fixture.SearchResponse.Permissions);
 
         _fixture.RevokeStatusResults = revokeStatuses;
@@ -222,7 +256,7 @@ public class SubunitPermissionsE2ETests : TestBase
     }
 
     /// <summary>
-    /// Dedykowany test E2E dla metody SearchSubordinateEntityInvoiceRolesAsync.
+    /// Dedykowany test E2E metody SearchSubordinateEntityInvoiceRolesAsync.
     /// Kroki:
     /// 1) Uwierzytelnienie jednostki głównej
     /// 2) Nadanie minimalnych uprawnień osobowych umożliwiających zarządzanie subjednostką

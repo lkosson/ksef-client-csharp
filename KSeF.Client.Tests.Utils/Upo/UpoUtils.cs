@@ -36,7 +36,7 @@ public static class UpoUtils
     }
 
     /// <summary>
-    /// Pobiera zbiorcze UPO dla sesji na podstawie numeru referencyjnego UPO.
+    /// Pobiera zbiorcze UPO sesji na podstawie numeru referencyjnego UPO.
     /// </summary>
     public static async Task<string> GetSessionUpoAsync(IKSeFClient ksefClient, string sessionReferenceNumber, string upoReferenceNumber, string accessToken)
     {

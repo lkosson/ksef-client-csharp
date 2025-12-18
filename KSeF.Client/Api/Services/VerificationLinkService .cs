@@ -27,6 +27,10 @@ namespace KSeF.Client.Api.Services
                 {
                     return KsefQREnvironmentsUris.DEMO;
                 }
+                if (KsefEnvironmentsUris.PROD == options.BaseUrl)
+                {
+                    return KsefQREnvironmentsUris.PROD;
+                }
 
                 throw new InvalidOperationException("Nieznane środowisko KSeF dla ustawienia BaseQRUrl.");
             }

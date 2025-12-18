@@ -342,7 +342,7 @@ public partial class PeppolPefE2ETests : TestBase
     }
 
     // -----------------------------
-    // KROK 2: Grant PefInvoicing - Firma nadaje uprawnienie PefInvoiceWrite (PefInvoicing - uprawnienie sesyjne) dla DOSTAWCY (kontekst żądania: PeppolId)
+    // KROK 2: Grant PefInvoicing - Firma nadaje uprawnienie PefInvoiceWrite (PefInvoicing - uprawnienie sesyjne) DOSTAWCY (kontekst żądania: PeppolId)
     //    - bearer = token firny 
     //    - Subject = PeppolId (komu przyznajemy uprawnienie)
     // -----------------------------
@@ -356,7 +356,7 @@ public partial class PeppolPefE2ETests : TestBase
                 Value = peppolId
             })
             .WithPermission(AuthorizationPermissionType.PefInvoicing)
-            .WithDescription($"E2E: Nadanie uprawnienia do wystawiania faktur PEF dla firmy {companyNip} (na wniosek {peppolId})")
+            .WithDescription($"E2E: Nadanie uprawnienia do wystawiania faktur PEF firmie {companyNip} (na wniosek {peppolId})")
             .Build();
 
         OperationResponse grantResp = await KsefClient.GrantsAuthorizationPermissionAsync(

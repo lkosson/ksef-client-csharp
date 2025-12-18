@@ -4,7 +4,7 @@ using System.Net;
 namespace KSeF.Client.DI;
 
 /// <summary>
-/// Opcje konfiguracyjne dla klienta KSeF.
+/// Opcje konfiguracyjne klienta KSeF.
 /// </summary>
 public class KSeFClientOptions
 {

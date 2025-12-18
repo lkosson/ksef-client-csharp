@@ -194,7 +194,7 @@ public class DuplicateInvoiceE2ETests : TestBase
     }
 
     /// <summary>
-    /// Pobiera listę nieudanych faktur dla podanej sesji (polling aż dostępne).
+    /// Pobiera listę nieudanych faktur podanej sesji (polling aż dostępne).
     /// </summary>
     private async Task<SessionInvoicesResponse> GetFailedInvoicesAsync(string sessionRef)
     {

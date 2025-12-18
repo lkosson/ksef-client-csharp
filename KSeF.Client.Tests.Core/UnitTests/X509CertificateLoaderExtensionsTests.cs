@@ -5,7 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace KSeF.Client.Tests.Core.UnitTests;
 
 /// <summary>
-/// Zawiera testy jednostkowe dla metod rozszerzeń, które łączą certyfikaty X.509 z kluczami prywatnymi zakodowanymi w formacie PEM.
+/// Zawiera testy jednostkowe metod rozszerzeń, które łączą certyfikaty X.509 z kluczami prywatnymi zakodowanymi w formacie PEM.
 /// </summary>
 public class X509CertificateLoaderExtensionsTests
 {
