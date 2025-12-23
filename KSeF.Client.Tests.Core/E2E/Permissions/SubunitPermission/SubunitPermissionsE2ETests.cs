@@ -270,8 +270,18 @@ public class SubunitPermissionsE2ETests : TestBase
         _unitAccessToken = await AuthenticateAsUnitAsync();
         Assert.False(string.IsNullOrWhiteSpace(_unitAccessToken));
 
-        // 2) Nadanie minimalnych uprawnień osobowych umożliwiających zarządzanie subjednostką
-        GrantPermissionsPersonRequest personGrantRequest = GrantPersonPermissionsRequestBuilder.Create()
+		PersonPermissionSubjectDetails subjectDetails = new PersonPermissionSubjectDetails
+		{
+			SubjectDetailsType = PersonPermissionSubjectDetailsType.PersonByIdentifier,
+			PersonById = new PersonPermissionPersonById
+			{
+				FirstName = "Anna",
+				LastName = "Testowa"
+			}
+		};
+
+		// 2) Nadanie minimalnych uprawnień osobowych umożliwiających zarządzanie subjednostką
+		GrantPermissionsPersonRequest personGrantRequest = GrantPersonPermissionsRequestBuilder.Create()
             .WithSubject(new GrantPermissionsPersonSubjectIdentifier
             {
                 Type = GrantPermissionsPersonSubjectIdentifierType.Nip,
@@ -279,6 +289,7 @@ public class SubunitPermissionsE2ETests : TestBase
             })
             .WithPermissions(PersonPermissionType.SubunitManage)
             .WithDescription(E2EGrantMinimalSubunitManageDescription)
+            .WithSubjectDetails(subjectDetails)
             .Build();
 
         OperationResponse grantResp = await KsefClient.GrantsPermissionPersonAsync(personGrantRequest, _unitAccessToken).ConfigureAwait(true);

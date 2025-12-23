@@ -137,6 +137,20 @@ public class EuEntityPermissionE2ETests : TestBase
             .WithSubjectName(EuEntitySubjectName)
             .WithContext(contextIdentifier)
             .WithDescription(EuEntityDescription)
+            .WithSubjectDetails(new PermissionsEuEntitySubjectDetails
+            {
+				SubjectDetailsType = PermissionsEuEntitySubjectDetailsType.EntityByFingerprint,
+                EntityByFp = new PermissionsEuEntityEntityByFp
+				{
+					Address = "ul. Testowa 1, 00-000 Miasto",
+					FullName = "Podmiot Testowy 1"
+				}
+			})
+            .WithEuEntityDetails(new PermissionsEuEntityDetails
+			{
+				Address = "ul. Testowa 2, 00-000 Miasto",
+				FullName = "Podmiot Testowy 2"
+			})
             .Build();
 
         OperationResponse operationResponse = await KsefClient

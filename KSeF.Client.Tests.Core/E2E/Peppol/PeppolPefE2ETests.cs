@@ -213,7 +213,7 @@ public partial class PeppolPefE2ETests : TestBase
         Assert.NotNull(authz.AuthorizationGrants.First().AuthorIdentifier);
         Assert.NotNull(authz.AuthorizationGrants.First().AuthorizingEntityIdentifier);
         Assert.NotNull(authz.AuthorizationGrants.First().AuthorizedEntityIdentifier);
-        Assert.Null(authz.AuthorizationGrants.First().SubjectEntityDetails);
+        Assert.NotNull(authz.AuthorizationGrants.First().SubjectEntityDetails);
 
         // === 3) WYSYŁKA PEF przez dostawcę ===
         // Arrange
@@ -357,6 +357,10 @@ public partial class PeppolPefE2ETests : TestBase
             })
             .WithPermission(AuthorizationPermissionType.PefInvoicing)
             .WithDescription($"E2E: Nadanie uprawnienia do wystawiania faktur PEF firmie {companyNip} (na wniosek {peppolId})")
+            .WithSubjectDetails(new PermissionsAuthorizationSubjectDetails
+            {
+                FullName = "Podmiot Testowy 1"
+            })
             .Build();
 
         OperationResponse grantResp = await KsefClient.GrantsAuthorizationPermissionAsync(
@@ -400,7 +404,7 @@ public partial class PeppolPefE2ETests : TestBase
 
         Assert.NotNull(authz);
         Assert.NotNull(authz.AuthorizationGrants.Count > 0);
-        Assert.Null(authz.AuthorizationGrants.First().SubjectEntityDetails);
+        Assert.NotNull(authz.AuthorizationGrants.First().SubjectEntityDetails);
         Assert.NotNull(authz.AuthorizationGrants.First().AuthorIdentifier.Value);
         Assert.NotNull(authz.AuthorizationGrants.First().Id);
         Assert.NotNull(authz.AuthorizationGrants.First().AuthorizationScope);

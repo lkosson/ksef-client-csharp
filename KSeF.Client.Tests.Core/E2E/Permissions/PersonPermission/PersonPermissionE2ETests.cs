@@ -149,6 +149,16 @@ public class PersonPermissionE2ETests : TestBase
         string description,
         string accessToken)
     {
+        PersonPermissionSubjectDetails subjectDetails = new PersonPermissionSubjectDetails
+        {
+            SubjectDetailsType = PersonPermissionSubjectDetailsType.PersonByIdentifier,
+            PersonById = new PersonPermissionPersonById
+            {
+                FirstName = "Anna",
+                LastName = "Testowa"
+            }
+        };
+
         // Arrange: zbudowanie żądania nadania uprawnień
         GrantPermissionsPersonRequest request = GrantPersonPermissionsRequestBuilder
             .Create()
@@ -157,6 +167,7 @@ public class PersonPermissionE2ETests : TestBase
                 PersonPermissionType.InvoiceRead,
                 PersonPermissionType.InvoiceWrite)
             .WithDescription(description)
+            .WithSubjectDetails(subjectDetails)
             .Build();
 
         // Act: wywołanie API nadawania uprawnień

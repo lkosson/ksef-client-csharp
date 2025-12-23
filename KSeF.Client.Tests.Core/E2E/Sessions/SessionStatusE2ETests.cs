@@ -191,7 +191,7 @@ public class SessionStatusE2ETests : TestBase
 			Assert.NotEqual(default, sessionInvoice.PermanentStorageDate);
 			Assert.NotEqual(default, sessionInvoice.UpoDownloadUrlExpirationDate);
 
-			Assert.Equal(InvoicingMode.Online, sessionInvoice.InvoicingMode);
+			Assert.Equal(InvoicingMode.Offline, sessionInvoice.InvoicingMode);
 		}
 	}
 
@@ -250,7 +250,7 @@ public class SessionStatusE2ETests : TestBase
 		Assert.NotEqual(default, sessionInvoice.PermanentStorageDate);
 		Assert.NotEqual(default, sessionInvoice.UpoDownloadUrlExpirationDate);
 
-		Assert.Equal(InvoicingMode.Online, sessionInvoice.InvoicingMode);
+		Assert.Equal(InvoicingMode.Offline, sessionInvoice.InvoicingMode);
 	}
 
 	/// <summary>

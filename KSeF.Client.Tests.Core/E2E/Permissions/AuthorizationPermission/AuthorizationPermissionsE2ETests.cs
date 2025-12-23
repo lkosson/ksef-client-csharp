@@ -122,6 +122,10 @@ public class AuthorizationPermissionsE2ETests : TestBase
             .WithSubject(_fixture.SubjectIdentifier)
             .WithPermission(AuthorizationPermissionType.SelfInvoicing)
             .WithDescription("E2E test grant")
+            .WithSubjectDetails(new PermissionsAuthorizationSubjectDetails
+            {
+                FullName = "Podmiot Testowy 1"
+            })
             .Build();
 
         OperationResponse operationResponse = await KsefClient

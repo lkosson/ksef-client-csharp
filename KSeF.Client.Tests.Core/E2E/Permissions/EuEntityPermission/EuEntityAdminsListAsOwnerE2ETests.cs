@@ -83,7 +83,12 @@ public class EuEntityAdminsListAsOwnerE2ETests : TestBase
             })
             .WithDescription("Nadanie uprawnień administratora dla kontekstu jednostki UE")
             .WithSubjectDetails(subjectDetails)
-            .Build();
+			.WithEuEntityDetails(new PermissionsEuEntityDetails
+			{
+				Address = "ul. Testowa 1, 00-000 Miasto",
+				FullName = "Podmiot Testowy 1"
+			})
+			.Build();
 
         OperationResponse grantResponse = await KsefClient
             .GrantsPermissionEUEntityAsync(grantRequest, ownerAuth.AccessToken.Token, CancellationToken);

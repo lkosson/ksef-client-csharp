@@ -1,3 +1,10 @@
+## Rejestr zmian: Wersja 2.0.0
+### Nowe
+- Dodano obsługę nagłówka `x-ms-meta-hash` zwracanego przez API (skrót SHA-256 dokumentu UPO w formacie Base64) oraz nowe metody w `UpoUtils` umożliwiające pobieranie UPO wraz z tym hashem.
+- Dodano metodę `X509CertificateLoaderExtensions.MergeWithPemKeyNoProfileForEcdsa`, która ręcznie odszyfrowuje zaszyfrowane klucze ECDSA PKCS#8 w pamięci i importuje je jako efemeryczne, zapewniając działanie także w środowiskach, gdzie `ImportFromEncryptedPem` zawodzi (np. IIS z wyłączonym LoadUserProfile dla ECDSA).
+
+### Zmodyfikowane
+- Zmieniono obsługę błędów w metodzie `X509CertificateLoaderExtensions.MergeWithPemKey`przy ładowaniu zaszyfrowanych kluczy ECDSA: zamiast niejasnego komunikatu użytkownik dostaje prosty opis problemu, a biblioteka automatycznie wywołuje metodę `MergeWithPemKeyNoProfileForEcdsa`, która działa bez profilu użytkownika.
 
 ## Rejestr zmian: Wersja 2.0.0 RC6.1.1
 ### Nowe
@@ -29,7 +36,6 @@
   - `PersonPermissionPersonByFingerprintNoId` - zmieniono typ pola `BirthDate` z `DateTimeOffset` na `string`.
   - `PersonPermissionSubjectPersonDetails` - zmieniono typ pola `BirthDate?` z `DateTimeOffset` na `string`.
   - `PermissionsSubunitPersonByFingerprintWithoutIdentifier` - zmieniono typ pola `BirthDate` z `DateTimeOffset` na `string`.
-
 
 ## Rejestr zmian: Wersja 2.0.0 RC6.0.2
 ### Nowe

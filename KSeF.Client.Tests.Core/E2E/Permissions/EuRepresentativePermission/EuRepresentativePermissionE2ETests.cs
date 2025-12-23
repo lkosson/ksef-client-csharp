@@ -86,6 +86,11 @@ public class EuRepresentativePermissionE2ETests : TestBase
             .WithContext(new EuEntityContextIdentifier { Type = EuEntityContextIdentifierType.NipVatUe, Value = ownerVatEu })
             .WithDescription("EU Company")
             .WithSubjectDetails(subjectDetails)
+            .WithEuEntityDetails(new PermissionsEuEntityDetails
+            {
+                Address = "ul. Testowa 1, 00-000 Miasto",
+                FullName = "Podmiot Testowy 1"
+            })
             .Build();
 
         OperationResponse response = await KsefClient
