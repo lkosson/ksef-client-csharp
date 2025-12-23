@@ -64,7 +64,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IRouteBuilder>(sp =>
         {
-            return new RouteBuilder(options.ApiConfiguration.ApiPrefix, options.ApiConfiguration.ApiVersion);
+            return new RouteBuilder(options.ApiConfiguration.ApiVersion);
         });
         services.AddScoped<IKSeFClient, KSeFClient>();
         services.AddScoped<ITestDataClient, TestDataClient>();

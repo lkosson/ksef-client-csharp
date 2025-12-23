@@ -10,7 +10,7 @@ using KSeF.Client.Extensions;
 namespace KSeF.Client.Tests.Core.E2E.QrCode;
 
 /// <summary>
-/// Testy integracyjne generowania kodów QR dla certyfikatów i faktur.
+/// Testy integracyjne generowania kodów QR certyfikatów i faktur.
 /// </summary>
 [Collection("QrCodeScenario")]
 public class QrCodeE2ETests : TestBase

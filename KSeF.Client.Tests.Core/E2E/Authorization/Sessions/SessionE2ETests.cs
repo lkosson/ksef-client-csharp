@@ -13,7 +13,7 @@ public class SessionE2ETests : TestBase
     private readonly AuthenticationMethodEnum authenticationMethod;
     private readonly string nip;
 
-    private const string ExpectedErrorMessage = "21304: Brak uwierzytelnienia. - Nieprawidłowy token.";
+    private const string ExpectedErrorMessage = "21301: Brak autoryzacji. - Status uwierzytelnienia (425) nie pozwala na odświeżenie tokenu dostępowego.";
     public SessionE2ETests()
     {
         nip = MiscellaneousUtils.GetRandomNip();

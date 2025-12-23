@@ -1,9 +1,7 @@
 ﻿using KSeF.Client.Api.Services;
 using KSeF.Client.Core.Interfaces.Services;
 using KSeF.Client.Core.Models.QRCode;
-using KSeF.Client.DI;
 using KSeF.Client.Extensions;
-using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography.X509Certificates;
 using Xunit.Abstractions;
 

@@ -2,12 +2,6 @@
 
 namespace KSeF.Client.Core.Models.TestData
 {
-    public class TestDataSubjectIdentifier
-    {
-        public TestDataSubjectIdentifierType Type { get; set; }
-        public string Value { get; set; }
-    }
-
     public enum TestDataSubjectIdentifierType
     {
         None,
